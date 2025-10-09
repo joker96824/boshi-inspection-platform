@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>博实智能巡检平台 - 登录测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .login-header h1 {
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .login-header p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e1e5e9;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .login-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .login-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .login-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .default-account {
+            background-color: #f8f9fa;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        .default-account h3 {
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+
+        .default-account p {
+            color: #6c757d;
+            margin: 0.25rem 0;
+        }
+
+        .api-info {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background-color: #e3f2fd;
+            border-radius: 5px;
+            font-size: 0.85rem;
+        }
+
+        .api-info h4 {
+            color: #1976d2;
+            margin-bottom: 0.5rem;
+        }
+
+        .api-info p {
+            color: #424242;
+            margin: 0.25rem 0;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>🤖 博实智能巡检平台</h1>
+            <p>智能巡检系统数据中台</p>
+        </div>
+
+        <div class="default-account">
+            <h3>🔑 默认管理员账户</h3>
+            <p><strong>用户名:</strong> admin</p>
+            <p><strong>密码:</strong> admin</p>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" value="admin" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" value="admin" required>
+            </div>
+            
+            <button type="submit" class="login-btn" id="loginBtn">
+                登录
+            </button>
+        </form>
+
+        <div id="message"></div>
+
+        <div class="api-info">
+            <h4>📡 API 信息</h4>
+            <p><strong>登录接口:</strong> POST /api/v1/auth/login</p>
+            <p><strong>服务地址:</strong> http://localhost:8000</p>
+            <p><strong>文档地址:</strong> http://localhost:8000/docs</p>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:8000';
+        
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const messageDiv = document.getElementById('message');
+            
+            // 显示加载状态
+            loginBtn.disabled = true;
+            loginBtn.innerHTML = '<span class="loading"></span>登录中...';
+            messageDiv.innerHTML = '';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // 登录成功
+                    messageDiv.innerHTML = `
+                        <div class="message success">
+                            <strong>✅ 登录成功！</strong><br>
+                            欢迎, ${data.user?.username || username}!<br>
+                            <small>Token: ${data.access_token?.substring(0, 20)}...</small>
+                        </div>
+                    `;
+                    
+                    // 存储 token
+                    if (data.access_token) {
+                        localStorage.setItem('access_token', data.access_token);
+                        console.log('🔐 Token 已保存到 localStorage');
+                        console.log('Access Token:', data.access_token);
+                        console.log('有效期:', data.expires_in, '秒 (约', Math.round(data.expires_in / (24 * 3600)), '天)');
+                    }
+                    
+                    // 可以在这里跳转到主页面
+                    setTimeout(() => {
+                        console.log('🚀 可以跳转到主页面了');
+                    }, 2000);
+                    
+                } else {
+                    // 登录失败
+                    messageDiv.innerHTML = `
+                        <div class="message error">
+                            <strong>❌ 登录失败</strong><br>
+                            ${data.detail || data.message || '用户名或密码错误'}
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('登录错误:', error);
+                messageDiv.innerHTML = `
+                    <div class="message error">
+                        <strong>❌ 网络错误</strong><br>
+                        无法连接到服务器，请检查服务是否启动<br>
+                        <small>${error.message}</small>
+                    </div>
+                `;
+            } finally {
+                // 恢复按钮状态
+                loginBtn.disabled = false;
+                loginBtn.innerHTML = '登录';
+            }
+        });
+
+        // 页面加载时检查服务器状态
+        window.addEventListener('load', async function() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/`);
+                if (response.ok) {
+                    console.log('✅ 服务器连接正常');
+                } else {
+                    console.warn('⚠️ 服务器响应异常');
+                }
+            } catch (error) {
+                console.error('❌ 无法连接到服务器:', error);
+            }
+        });
+
+        // 测试其他 API 的辅助函数
+        async function testHealthAPI() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/system/health`);
+                const data = await response.json();
+                console.log('🏥 健康检查:', data);
+                return data;
+            } catch (error) {
+                console.error('健康检查失败:', error);
+            }
+        }
+
+        // 刷新令牌测试函数（使用Authorization头中的当前token）
+        async function refreshToken() {
+            const current_token = localStorage.getItem('access_token');
+            if (!current_token) {
+                console.error('❌ 没有找到访问令牌');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/auth/refresh`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${current_token}`,
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    localStorage.setItem('access_token', data.access_token);
+                    console.log('✅ 令牌刷新成功');
+                    console.log('旧令牌:', current_token.substring(0, 20) + '...');
+                    console.log('新令牌:', data.access_token.substring(0, 20) + '...');
+                    console.log('有效期:', data.expires_in, '秒 (约', Math.round(data.expires_in / (24 * 3600)), '天)');
+                    return data;
+                } else {
+                    console.error('❌ 令牌刷新失败:', data);
+                }
+            } catch (error) {
+                console.error('❌ 刷新令牌网络错误:', error);
+            }
+        }
+
+        // 登出测试函数
+        async function logout() {
+            const access_token = localStorage.getItem('access_token');
+            if (!access_token) {
+                console.error('❌ 没有找到访问令牌');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${access_token}`,
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
+                    console.log('✅ 登出成功');
+                    return data;
+                } else {
+                    console.error('❌ 登出失败:', data);
+                }
+            } catch (error) {
+                console.error('❌ 登出网络错误:', error);
+            }
+        }
+
+        // 测试用户信息接口
+        async function testMe() {
+            const access_token = localStorage.getItem('access_token');
+            if (!access_token) {
+                console.error('❌ 没有找到访问令牌');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${access_token}`,
+                    }
+                });
+                
+                const data = await response.json();
+                if (response.ok) {
+                    console.log('✅ 用户信息获取成功:', data);
+                    return data;
+                } else {
+                    console.error('❌ 用户信息获取失败:', data);
+                }
+            } catch (error) {
+                console.error('❌ 用户信息获取网络错误:', error);
+            }
+        }
+
+        // 在控制台提供测试函数
+        console.log('🔧 可用的测试函数:');
+        console.log('- testHealthAPI(): 测试健康检查接口');
+        console.log('- testMe(): 测试获取用户信息（需要先登录）');
+        console.log('- refreshToken(): 刷新访问令牌（使用Authorization头）');
+        console.log('- logout(): 用户登出');
+        console.log('- localStorage.getItem("access_token"): 获取保存的访问令牌');
+    </script>
+</body>
+</html>

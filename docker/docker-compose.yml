@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  fastapi-ros:
+    build: 
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: fastapi-ros-dev
+    ports:
+      - "8000:8000"
+      - "9090:9090"  # ROS2 WebSocket bridge
+    volumes:
+      - ..:/workspace
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - ROS_DOMAIN_ID=0
+      - PYTHONPATH=/workspace
+    network_mode: host
+    privileged: true
+    stdin_open: true
+    tty: true
+    command: bash -c "source /opt/ros/humble/setup.bash && cd /workspace && bash"
+
+# 注意：项目已内置ROS2 Bridge，不需要额外的rosbridge_server
+

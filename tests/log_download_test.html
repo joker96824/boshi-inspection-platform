@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>博实智能巡检平台 - 日志下载测试</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            min-height: 100px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        .log-content {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗂️ 日志管理测试页面</h1>
+        
+        <!-- 登录区域 -->
+        <div class="form-group">
+            <label for="token">认证Token:</label>
+            <input type="text" id="token" placeholder="请输入JWT Token">
+            <button onclick="testLogin()">使用默认账号登录获取Token</button>
+        </div>
+
+        <!-- 日志下载测试 -->
+        <h2>📥 日志下载测试</h2>
+        <div class="form-group">
+            <label for="downloadDate">日志日期:</label>
+            <input type="date" id="downloadDate" value="2025-09-18">
+        </div>
+        <div class="form-group">
+            <label for="downloadType">日志类型:</label>
+            <select id="downloadType">
+                <option value="app">应用日志 (app.log)</option>
+                <option value="error">错误日志 (app_error.log)</option>
+                <option value="debug">调试日志 (app_debug.log)</option>
+            </select>
+        </div>
+        <button onclick="downloadLog()">🔽 直接下载日志文件</button>
+
+        <!-- 日志内容查看测试 -->
+        <h2>📖 日志内容查看测试</h2>
+        <div class="form-group">
+            <label for="contentDate">日志日期:</label>
+            <input type="date" id="contentDate" value="2025-09-18">
+        </div>
+        <div class="form-group">
+            <label for="contentType">日志类型:</label>
+            <select id="contentType">
+                <option value="app">应用日志</option>
+                <option value="error">错误日志</option>
+                <option value="debug">调试日志</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="startLine">开始行号:</label>
+            <input type="number" id="startLine" value="1" min="1">
+        </div>
+        <div class="form-group">
+            <label for="limitLines">读取行数:</label>
+            <input type="number" id="limitLines" value="50" min="1" max="1000">
+        </div>
+        <button onclick="viewLogContent()">👁️ 查看日志内容</button>
+
+        <!-- 日志统计测试 -->
+        <h2>📊 日志统计测试</h2>
+        <button onclick="getLogStats()">📈 获取日志统计信息</button>
+
+        <!-- 结果显示区域 -->
+        <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+
+        // 获取Token
+        function getToken() {
+            return document.getElementById('token').value.trim();
+        }
+
+        // 显示结果
+        function showResult(message, type = 'info') {
+            const resultDiv = document.getElementById('result');
+            resultDiv.className = `result ${type}`;
+            resultDiv.innerHTML = message;
+            resultDiv.style.display = 'block';
+        }
+
+        // 测试登录获取Token
+        async function testLogin() {
+            try {
+                const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin'
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.code === 200) {
+                    document.getElementById('token').value = result.data.access_token;
+                    showResult('✅ 登录成功，Token已自动填入', 'success');
+                } else {
+                    showResult(`❌ 登录失败: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ 登录请求失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 下载日志文件（直接下载）
+        async function downloadLog() {
+            const token = getToken();
+            if (!token) {
+                showResult('❌ 请先获取Token', 'error');
+                return;
+            }
+
+            const logDate = document.getElementById('downloadDate').value;
+            const logType = document.getElementById('downloadType').value;
+
+            if (!logDate) {
+                showResult('❌ 请选择日志日期', 'error');
+                return;
+            }
+
+            try {
+                showResult('⏳ 正在准备下载...', 'info');
+
+                const params = new URLSearchParams({
+                    log_date: logDate,
+                    log_type: logType
+                });
+
+                const response = await fetch(`${API_BASE}/api/v1/logs/download?${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+
+                // 获取文件内容
+                const blob = await response.blob();
+                
+                // 创建下载链接并触发下载
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = downloadUrl;
+                link.download = `boshi_inspection_${logDate}_${logType}.log`;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                window.URL.revokeObjectURL(downloadUrl);
+
+                showResult(`✅ 日志文件下载成功: ${logDate} - ${logType}`, 'success');
+
+            } catch (error) {
+                showResult(`❌ 下载失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 查看日志内容
+        async function viewLogContent() {
+            const token = getToken();
+            if (!token) {
+                showResult('❌ 请先获取Token', 'error');
+                return;
+            }
+
+            const logDate = document.getElementById('contentDate').value;
+            const logType = document.getElementById('contentType').value;
+            const startLine = document.getElementById('startLine').value;
+            const limitLines = document.getElementById('limitLines').value;
+
+            try {
+                showResult('⏳ 正在读取日志内容...', 'info');
+
+                const params = new URLSearchParams({
+                    log_date: logDate,
+                    log_type: logType,
+                    start_line: startLine,
+                    limit: limitLines
+                });
+
+                const response = await fetch(`${API_BASE}/api/v1/logs/content?${params}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.code === 200) {
+                    const data = result.data;
+                    const content = data.content.join('\n');
+                    
+                    const resultHtml = `
+                        <div class="success">
+                            <h3>✅ 日志内容读取成功</h3>
+                            <p><strong>文件</strong>: ${logDate} - ${logType}</p>
+                            <p><strong>总行数</strong>: ${data.total_lines}</p>
+                            <p><strong>当前显示</strong>: 第${data.current_start}-${data.current_end}行</p>
+                            <p><strong>是否还有更多</strong>: ${data.has_more ? '是' : '否'}</p>
+                        </div>
+                        <div class="log-content">${content}</div>
+                    `;
+                    
+                    document.getElementById('result').innerHTML = resultHtml;
+                    document.getElementById('result').style.display = 'block';
+                } else {
+                    showResult(`❌ 读取失败: ${result.message}`, 'error');
+                }
+
+            } catch (error) {
+                showResult(`❌ 请求失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 获取日志统计
+        async function getLogStats() {
+            const token = getToken();
+            if (!token) {
+                showResult('❌ 请先获取Token', 'error');
+                return;
+            }
+
+            try {
+                showResult('⏳ 正在获取统计信息...', 'info');
+
+                const response = await fetch(`${API_BASE}/api/v1/logs/stats`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.code === 200) {
+                    const data = result.data;
+                    const statsHtml = `
+                        <div class="success">
+                            <h3>📊 日志统计信息</h3>
+                            <p><strong>日志目录数量</strong>: ${data.total_dirs}</p>
+                            <p><strong>总占用空间</strong>: ${data.total_size_mb} MB</p>
+                            <p><strong>日期范围</strong>: ${data.date_range.earliest || '无'} 到 ${data.date_range.latest || '无'}</p>
+                            <p><strong>应用日志文件</strong>: ${data.log_types.app}</p>
+                            <p><strong>错误日志文件</strong>: ${data.log_types.error}</p>
+                            <p><strong>调试日志文件</strong>: ${data.log_types.debug}</p>
+                        </div>
+                    `;
+                    
+                    document.getElementById('result').innerHTML = statsHtml;
+                    document.getElementById('result').style.display = 'block';
+                } else {
+                    showResult(`❌ 获取统计失败: ${result.message}`, 'error');
+                }
+
+            } catch (error) {
+                showResult(`❌ 请求失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载时设置默认日期为今天
+        window.onload = function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('downloadDate').value = today;
+            document.getElementById('contentDate').value = today;
+        };
+    </script>
+</body>
+</html>
+
