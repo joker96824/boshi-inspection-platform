@@ -43,7 +43,7 @@ class ItemRepository:
         return list(result.scalars().all())
     
     async def get_all(self, page: int = 1, size: int = 20, 
-                     item_name: str = None, item_ids: List[str] = None) -> Tuple[List[Item], int]:
+                     item_name: str = None) -> Tuple[List[Item], int]:
         """获取巡检项目列表"""
         skip = (page - 1) * size
         
@@ -52,9 +52,6 @@ class ItemRepository:
         
         if item_name:
             conditions.append(Item.item_name.like(f"%{item_name}%"))
-        
-        if item_ids:
-            conditions.append(Item.id.in_(item_ids))
         
         # 查询总数
         count_query = select(func.count(Item.id)).where(and_(*conditions))

@@ -21,8 +21,6 @@ class User(BaseModel):
     
     # 关系
     sessions = relationship("Session", back_populates="user")
-    maps = relationship("Map", back_populates="user")
-    robots = relationship("Robot", back_populates="user")
     
     def __repr__(self) -> str:
         return f"<User(username={self.username}, role={self.role})>"

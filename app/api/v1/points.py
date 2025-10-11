@@ -4,6 +4,7 @@
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
 
 from ...core.deps import get_db
 from ...core.auth import get_current_user
@@ -59,6 +60,28 @@ async def get_points(
     """
     point_service = PointService(db)
     return await point_service.get_points(current_user, page, size, point_name, map_id)
+
+
+@router.get("/by-ids", response_model=dict)
+async def get_points_by_ids(
+    point_ids: List[str] = Query(..., description="巡检点ID列表（支持单个或多个ID查询）"),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_read_permission)
+):
+    """根据ID列表查询巡检点
+    
+    支持单个或多个ID查询
+    
+    Args:
+        point_ids: 巡检点ID列表
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        巡检点列表
+    """
+    point_service = PointService(db)
+    return await point_service.get_points_by_ids(point_ids, current_user)
 
 
 @router.get("/{point_id}", response_model=dict)

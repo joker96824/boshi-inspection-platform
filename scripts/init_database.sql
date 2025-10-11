@@ -4,6 +4,8 @@ CREATE DATABASE IF NOT EXISTS boshirobot DEFAULT CHARACTER SET utf8mb4 COLLATE u
 USE boshirobot;
 
 -- 删除现有表（如果存在）- 按外键依赖顺序删除
+DROP TABLE IF EXISTS tb_alarminfo;
+DROP TABLE IF EXISTS tb_alarmrule;
 DROP TABLE IF EXISTS tb_taskresult;
 DROP TABLE IF EXISTS tb_itemhistory;
 DROP TABLE IF EXISTS tb_point_item;
@@ -61,7 +63,6 @@ CREATE TABLE tb_sessions (
 -- 创建地图表
 CREATE TABLE tb_map (
     id VARCHAR(36) PRIMARY KEY COMMENT '地图ID',
-    user_id VARCHAR(36) NOT NULL COMMENT '所属用户ID',
     map_name VARCHAR(100) NOT NULL COMMENT '地图名称',
     map_image_url VARCHAR(500) NULL COMMENT '图片地址',
     map_scale DECIMAL(10,6) NULL COMMENT '比例尺',
@@ -72,10 +73,9 @@ CREATE TABLE tb_map (
     created_by VARCHAR(100) NULL COMMENT '创建人',
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
-    FOREIGN KEY (user_id) REFERENCES tb_users(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id),
     INDEX idx_map_name (map_name),
-    INDEX idx_is_deleted (is_deleted)
+    INDEX idx_is_deleted (is_deleted),
+    UNIQUE KEY uk_map_name_active (map_name, is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='地图表';
 
 -- 创建地图路网表
@@ -99,7 +99,6 @@ CREATE TABLE tb_mapnet (
 -- 创建机器人表
 CREATE TABLE tb_robot (
     id VARCHAR(36) PRIMARY KEY COMMENT '机器人ID',
-    user_id VARCHAR(36) NOT NULL COMMENT '所属用户ID',
     robot_name VARCHAR(100) NOT NULL COMMENT '机器人名称',
     robot_info JSON NULL COMMENT '机器人信息',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -107,10 +106,9 @@ CREATE TABLE tb_robot (
     created_by VARCHAR(100) NULL COMMENT '创建人',
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
-    FOREIGN KEY (user_id) REFERENCES tb_users(id) ON DELETE CASCADE,
-    INDEX idx_user_id (user_id),
     INDEX idx_robot_name (robot_name),
-    INDEX idx_is_deleted (is_deleted)
+    INDEX idx_is_deleted (is_deleted),
+    UNIQUE KEY uk_robot_name_active (robot_name, is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='机器人表';
 
 -- 创建巡检点表
@@ -274,6 +272,45 @@ CREATE TABLE tb_taskresult (
     FOREIGN KEY (taskhistory_id) REFERENCES tb_taskhistory(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务结果表';
 
+-- 创建报警规则表
+CREATE TABLE tb_alarmrule (
+    id VARCHAR(36) PRIMARY KEY COMMENT '报警规则ID',
+    rule_name VARCHAR(100) NOT NULL COMMENT '规则名称',
+    item_id VARCHAR(36) NOT NULL COMMENT '巡检项目ID',
+    alarm_param JSON NULL COMMENT '报警参数',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(100) NULL COMMENT '创建人',
+    updated_by VARCHAR(100) NULL COMMENT '更新人',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
+    INDEX idx_rule_name (rule_name),
+    INDEX idx_item_id (item_id),
+    INDEX idx_created_at (created_at),
+    INDEX idx_is_deleted (is_deleted),
+    UNIQUE KEY uk_rule_name_active (rule_name, is_deleted),
+    FOREIGN KEY (item_id) REFERENCES tb_item(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='报警规则表';
+
+-- 创建报警信息表
+CREATE TABLE tb_alarminfo (
+    id VARCHAR(36) PRIMARY KEY COMMENT '报警信息ID',
+    alarmrule_id VARCHAR(36) NOT NULL COMMENT '报警规则ID',
+    itemhistory_id VARCHAR(36) NOT NULL COMMENT '巡检记录ID',
+    alarm_data JSON NULL COMMENT '触发数据',
+    alarm_info TEXT NULL COMMENT '报警信息',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(100) NULL COMMENT '创建人',
+    updated_by VARCHAR(100) NULL COMMENT '更新人',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
+    INDEX idx_alarmrule_id (alarmrule_id),
+    INDEX idx_itemhistory_id (itemhistory_id),
+    INDEX idx_created_at (created_at),
+    INDEX idx_is_deleted (is_deleted),
+    FOREIGN KEY (alarmrule_id) REFERENCES tb_alarmrule(id) ON DELETE CASCADE,
+    FOREIGN KEY (itemhistory_id) REFERENCES tb_itemhistory(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='报警信息表';
+
 -- 插入默认用户
 -- superadmin/superadmin (超级管理员)
 -- admin/admin (管理员)
@@ -315,7 +352,6 @@ INSERT INTO tb_users (
 -- 插入示例地图数据
 INSERT INTO tb_map (
     id,
-    user_id,
     map_name,
     map_image_url,
     map_scale,
@@ -328,7 +364,6 @@ INSERT INTO tb_map (
     is_deleted
 ) VALUES (
     '550e8400-e29b-41d4-a716-446655440001',
-    '550e8400-e29b-41d4-a716-446655440000',
     '一楼巡检地图',
     '/uploads/maps/floor1_map.png',
     1.0,
@@ -339,38 +374,58 @@ INSERT INTO tb_map (
     'superadmin',
     'superadmin',
     FALSE
-), (
-    '550e8400-e29b-41d4-a716-446655440201',
-    '550e8400-e29b-41d4-a716-446655440101',
-    '二楼巡检地图',
-    '/uploads/maps/floor2_map.png',
-    1.2,
-    150.0,
-    150.0,
+);
+
+-- 插入示例地图路网数据
+INSERT INTO tb_mapnet (
+    id,
+    map_id,
+    map_net_type,
+    map_net_properties,
+    map_net_geometry,
+    created_at,
+    updated_at,
+    created_by,
+    updated_by,
+    is_deleted
+) VALUES (
+    '550e8400-e29b-41d4-a716-446655440501',
+    '550e8400-e29b-41d4-a716-446655440001',
+    'point',
+    '{"name": "导航点A", "type": "navigation"}',
+    '{"x": 50.0, "y": 50.0}',
     NOW(),
     NOW(),
-    'admin',
-    'admin',
+    'superadmin',
+    'superadmin',
     FALSE
 ), (
-    '550e8400-e29b-41d4-a716-446655440202',
-    '550e8400-e29b-41d4-a716-446655440102',
-    '室外巡检地图',
-    '/uploads/maps/outdoor_map.png',
-    0.8,
-    200.0,
-    200.0,
+    '550e8400-e29b-41d4-a716-446655440502',
+    '550e8400-e29b-41d4-a716-446655440001',
+    'line',
+    '{"name": "巡检路径1", "width": 2, "color": "blue"}',
+    '{"start": {"x": 50.0, "y": 50.0}, "end": {"x": 150.0, "y": 50.0}}',
     NOW(),
     NOW(),
-    'operator',
-    'operator',
+    'superadmin',
+    'superadmin',
+    FALSE
+), (
+    '550e8400-e29b-41d4-a716-446655440503',
+    '550e8400-e29b-41d4-a716-446655440001',
+    'rect',
+    '{"name": "禁区范围", "type": "restricted"}',
+    '{"x": 80.0, "y": 80.0, "width": 40.0, "height": 30.0}',
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
     FALSE
 );
 
 -- 插入示例机器人数据
 INSERT INTO tb_robot (
     id,
-    user_id,
     robot_name,
     robot_info,
     created_at,
@@ -380,33 +435,12 @@ INSERT INTO tb_robot (
     is_deleted
 ) VALUES (
     '550e8400-e29b-41d4-a716-446655440002',
-    '550e8400-e29b-41d4-a716-446655440000',
     '巡检机器人001',
-    '{}',
+    '{"model": "BOSHI-RB-01", "battery": 100, "status": "idle"}',
     NOW(),
     NOW(),
     'superadmin',
     'superadmin',
-    FALSE
-), (
-    '550e8400-e29b-41d4-a716-446655440301',
-    '550e8400-e29b-41d4-a716-446655440101',
-    '巡检机器人002',
-    '{}',
-    NOW(),
-    NOW(),
-    'admin',
-    'admin',
-    FALSE
-), (
-    '550e8400-e29b-41d4-a716-446655440302',
-    '550e8400-e29b-41d4-a716-446655440102',
-    '巡检机器人003',
-    '{}',
-    NOW(),
-    NOW(),
-    'operator',
-    'operator',
     FALSE
 );
 
@@ -439,34 +473,6 @@ INSERT INTO tb_task (
     'superadmin',
     'superadmin',
     FALSE
-), (
-    '550e8400-e29b-41d4-a716-446655440004',
-    '二楼夜间巡检',
-    '550e8400-e29b-41d4-a716-446655440201',
-    '550e8400-e29b-41d4-a716-446655440301',
-    '["550e8400-e29b-41d4-a716-446655440601", "550e8400-e29b-41d4-a716-446655440602"]',
-    2,
-    3,
-    5,
-    NOW(),
-    NOW(),
-    'admin',
-    'admin',
-    FALSE
-), (
-    '550e8400-e29b-41d4-a716-446655440401',
-    '室外安全巡检',
-    '550e8400-e29b-41d4-a716-446655440202',
-    '550e8400-e29b-41d4-a716-446655440302',
-    '["550e8400-e29b-41d4-a716-446655440009", "550e8400-e29b-41d4-a716-446655440010"]',
-    3,
-    4,
-    4,
-    NOW(),
-    NOW(),
-    'operator',
-    'operator',
-    FALSE
 );
 
 -- 插入示例巡检点数据
@@ -484,7 +490,7 @@ INSERT INTO tb_point (
     '550e8400-e29b-41d4-a716-446655440005',
     '一楼入口检查点',
     '550e8400-e29b-41d4-a716-446655440001',
-    '{}',
+    '{"action": "stop_and_check", "duration": 30}',
     NOW(),
     NOW(),
     'superadmin',
@@ -494,7 +500,7 @@ INSERT INTO tb_point (
     '550e8400-e29b-41d4-a716-446655440006',
     '一楼设备间检查点',
     '550e8400-e29b-41d4-a716-446655440001',
-    '{}',
+    '{"action": "detailed_inspection", "duration": 60}',
     NOW(),
     NOW(),
     'superadmin',
@@ -502,9 +508,9 @@ INSERT INTO tb_point (
     FALSE
 ), (
     '550e8400-e29b-41d4-a716-446655440007',
-    '二楼走廊检查点',
-    '550e8400-e29b-41d4-a716-446655440201',
-    '{}',
+    '一楼走廊检查点',
+    '550e8400-e29b-41d4-a716-446655440001',
+    '{"action": "patrol", "duration": 15}',
     NOW(),
     NOW(),
     'admin',
@@ -512,23 +518,13 @@ INSERT INTO tb_point (
     FALSE
 ), (
     '550e8400-e29b-41d4-a716-446655440008',
-    '二楼出口检查点',
-    '550e8400-e29b-41d4-a716-446655440201',
-    '{}',
+    '一楼出口检查点',
+    '550e8400-e29b-41d4-a716-446655440001',
+    '{"action": "final_check", "duration": 20}',
     NOW(),
     NOW(),
     'admin',
     'admin',
-    FALSE
-), (
-    '550e8400-e29b-41d4-a716-446655440501',
-    '室外周界检查点',
-    '550e8400-e29b-41d4-a716-446655440202',
-    '{}',
-    NOW(),
-    NOW(),
-    'operator',
-    'operator',
     FALSE
 );
 
@@ -722,10 +718,10 @@ INSERT INTO tb_point_item (
     'admin',
     FALSE
 ), (
-    -- 二楼出口检查点
+    -- 出口检查点
     '550e8400-e29b-41d4-a716-446655440701',
     '550e8400-e29b-41d4-a716-446655440008',
-    '550e8400-e29b-41d4-a716-446655440602',
+    '550e8400-e29b-41d4-a716-446655440009',
     NOW(),
     NOW(),
     'admin',
@@ -734,30 +730,53 @@ INSERT INTO tb_point_item (
 ), (
     '550e8400-e29b-41d4-a716-446655440702',
     '550e8400-e29b-41d4-a716-446655440008',
-    '550e8400-e29b-41d4-a716-446655440009',
-    NOW(),
-    NOW(),
-    'admin',
-    'admin',
-    FALSE
-), (
-    -- 室外周界检查点
-    '550e8400-e29b-41d4-a716-446655440703',
-    '550e8400-e29b-41d4-a716-446655440501',
-    '550e8400-e29b-41d4-a716-446655440009',
-    NOW(),
-    NOW(),
-    'operator',
-    'operator',
-    FALSE
-), (
-    '550e8400-e29b-41d4-a716-446655440704',
-    '550e8400-e29b-41d4-a716-446655440501',
     '550e8400-e29b-41d4-a716-446655440010',
     NOW(),
     NOW(),
-    'operator',
-    'operator',
+    'admin',
+    'admin',
+    FALSE
+);
+
+-- 插入示例任务日程数据
+INSERT INTO tb_taskschedule (
+    id,
+    schedule_type,
+    schedule_is_active,
+    task_id,
+    schedule_param,
+    set_time,
+    cnt,
+    created_at,
+    updated_at,
+    created_by,
+    updated_by,
+    is_deleted
+) VALUES (
+    '550e8400-e29b-41d4-a716-446655440601',
+    'daily',
+    TRUE,
+    '550e8400-e29b-41d4-a716-446655440003',
+    '{"time": "08:00:00", "repeat": true}',
+    1705392000,
+    15,
+    NOW(),
+    NOW(),
+    'superadmin',
+    'superadmin',
+    FALSE
+), (
+    '550e8400-e29b-41d4-a716-446655440602',
+    'weekly',
+    TRUE,
+    '550e8400-e29b-41d4-a716-446655440003',
+    '{"day": "monday", "time": "14:00:00"}',
+    1705478400,
+    4,
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
     FALSE
 );
 
@@ -800,23 +819,11 @@ INSERT INTO tb_taskhistory (
     FALSE
 ), (
     '550e8400-e29b-41d4-a716-446655440803',
-    '550e8400-e29b-41d4-a716-446655440004',
-    '2024-01-15T20:00:00',
-    '2024-01-15T20:15:00',
-    'completed',
-    1,
-    NOW(),
-    NOW(),
-    'admin',
-    'admin',
-    FALSE
-), (
-    '550e8400-e29b-41d4-a716-446655440804',
-    '550e8400-e29b-41d4-a716-446655440401',
+    '550e8400-e29b-41d4-a716-446655440003',
     '2024-01-16T09:00:00',
     NULL,
     'running',
-    1,
+    3,
     NOW(),
     NOW(),
     'operator',
@@ -864,19 +871,6 @@ INSERT INTO tb_taskresult (
     'superadmin',
     'superadmin',
     FALSE
-), (
-    '550e8400-e29b-41d4-a716-446655440903',
-    '550e8400-e29b-41d4-a716-446655440803',
-    1,
-    '550e8400-e29b-41d4-a716-446655440008',
-    '550e8400-e29b-41d4-a716-446655440602',
-    '/uploads/results/task_002_batch_001.json',
-    '2024-01-15T20:15:00',
-    NOW(),
-    NOW(),
-    'admin',
-    'admin',
-    FALSE
 );
 
 -- 插入示例巡检记录数据
@@ -922,23 +916,81 @@ INSERT INTO tb_itemhistory (
     FALSE
 ), (
     '550e8400-e29b-41d4-a716-446655441004',
-    '550e8400-e29b-41d4-a716-446655440803',
+    '550e8400-e29b-41d4-a716-446655440802',
+    '550e8400-e29b-41d4-a716-446655440013',
+    '{"status": "success", "cleanliness": "良好"}',
+    NOW(),
+    NOW(),
+    'superadmin',
+    'superadmin',
+    FALSE
+), (
+    '550e8400-e29b-41d4-a716-446655441005',
+    '550e8400-e29b-41d4-a716-446655440802',
+    '550e8400-e29b-41d4-a716-446655440014',
+    '{"status": "success", "lighting": "正常"}',
+    NOW(),
+    NOW(),
+    'superadmin',
+    'superadmin',
+    FALSE
+);
+
+-- 插入示例报警规则数据
+INSERT INTO tb_alarmrule (
+    id,
+    rule_name,
+    item_id,
+    alarm_param,
+    created_at,
+    updated_at,
+    created_by,
+    updated_by,
+    is_deleted
+) VALUES (
+    '550e8400-e29b-41d4-a716-446655441101',
+    '温度异常报警',
     '550e8400-e29b-41d4-a716-446655440601',
-    '{"status": "success", "temperature": 22.5}',
+    '{"threshold": 40, "operator": "gt", "level": "warning"}',
     NOW(),
     NOW(),
     'admin',
     'admin',
     FALSE
 ), (
-    '550e8400-e29b-41d4-a716-446655441005',
-    '550e8400-e29b-41d4-a716-446655440803',
-    '550e8400-e29b-41d4-a716-446655440602',
-    '{"status": "success", "fire_safety": "正常"}',
+    '550e8400-e29b-41d4-a716-446655441102',
+    '设备故障报警',
+    '550e8400-e29b-41d4-a716-446655440011',
+    '{"check_field": "equipment_status", "expected": "正常", "level": "critical"}',
     NOW(),
     NOW(),
     'admin',
     'admin',
+    FALSE
+);
+
+-- 插入示例报警信息数据
+INSERT INTO tb_alarminfo (
+    id,
+    alarmrule_id,
+    itemhistory_id,
+    alarm_data,
+    alarm_info,
+    created_at,
+    updated_at,
+    created_by,
+    updated_by,
+    is_deleted
+) VALUES (
+    '550e8400-e29b-41d4-a716-446655441201',
+    '550e8400-e29b-41d4-a716-446655441102',
+    '550e8400-e29b-41d4-a716-446655441003',
+    '{"actual_value": "正常", "expected_value": "正常", "match": true}',
+    '设备状态正常，符合预期',
+    NOW(),
+    NOW(),
+    'superadmin',
+    'superadmin',
     FALSE
 );
 
@@ -949,8 +1001,9 @@ SELECT 'superadmin / superadmin (超级管理员)' as user1;
 SELECT 'admin / admin (管理员)' as user2;
 SELECT 'operator / operator (操作员)' as user3;
 SELECT '========== 示例数据统计 ==========' as divider2;
-SELECT '3个用户, 3个地图, 3个机器人, 3个任务' as summary1;
-SELECT '5个巡检点, 8个巡检项目, 14个点-项关联关系' as summary2;
-SELECT '4条任务记录, 3条任务结果, 5条巡检记录' as summary3;
-SELECT 'Token expiry: 30 days for access tokens' as token_info;
-SELECT 'Available roles: super_admin > admin > operator > viewer > user' as role_info;
+SELECT '3个用户, 1个地图, 1个机器人, 1个任务' as summary1;
+SELECT '3条地图路网, 4个巡检点, 8个巡检项目, 12个点-项关联' as summary2;
+SELECT '2条任务日程, 3条任务记录, 3条任务结果, 5条巡检记录' as summary3;
+SELECT '2条报警规则, 1条报警信息' as summary4;
+SELECT 'Token expiry: 30 days (2592000 seconds)' as token_info;
+SELECT 'Roles: super_admin > admin > operator > viewer > user' as role_info;

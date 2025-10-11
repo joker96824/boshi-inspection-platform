@@ -82,6 +82,26 @@ async def get_taskresults(
     return await service.get_taskresults(query, current_user)
 
 
+@router.get("/{taskresult_id}", response_model=dict)
+async def get_taskresult_by_id(
+    taskresult_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_read_permission)
+):
+    """根据ID获取任务结果
+    
+    Args:
+        taskresult_id: 任务结果ID
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        任务结果对象
+    """
+    service = TaskResultService(db)
+    return await service.get_taskresult_by_id(taskresult_id, current_user)
+
+
 @router.put("/{taskresult_id}", response_model=dict)
 async def update_taskresult(
     taskresult_id: str,

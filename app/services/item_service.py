@@ -75,14 +75,29 @@ class ItemService:
             logger.error(f"获取巡检项目失败: {e}")
             raise HTTPException(status_code=500, detail="获取巡检项目失败")
     
+    async def get_items_by_ids(self, item_ids: List[str], user: dict) -> Dict[str, Any]:
+        """根据ID列表获取巡检项目"""
+        try:
+            items = await self.item_repo.get_by_ids(item_ids)
+            
+            items_data = [self._format_item_response(item) for item in items]
+            
+            return ApiResponse.success(
+                data={"items": items_data, "total": len(items_data)},
+                message="获取巡检项目列表成功"
+            )
+            
+        except Exception as e:
+            logger.error(f"获取巡检项目列表失败: {e}")
+            raise HTTPException(status_code=500, detail="获取巡检项目列表失败")
+    
     async def get_items(self, query: ItemQuery, user: dict) -> Dict[str, Any]:
         """获取巡检项目列表"""
         try:
             items, total = await self.item_repo.get_all(
                 page=query.page,
                 size=query.size,
-                item_name=query.item_name,
-                item_ids=query.ids
+                item_name=query.item_name
             )
             
             # 格式化响应数据

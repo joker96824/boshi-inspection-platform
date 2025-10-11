@@ -36,6 +36,15 @@ class RobotRepository:
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
     
+    async def get_by_ids(self, robot_ids: List[str]) -> List[Robot]:
+        """根据ID列表获取机器人"""
+        query = select(Robot).where(
+            Robot.id.in_(robot_ids),
+            Robot.is_deleted == False
+        ).order_by(Robot.created_at.desc())
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+    
     async def get_by_user_id(self, user_id: str, page: int = 1, size: int = 20, robot_name: str = None) -> tuple[List[Robot], int]:
         """根据用户ID获取机器人列表"""
         # 计算偏移量

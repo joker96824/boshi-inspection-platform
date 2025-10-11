@@ -1,258 +1,265 @@
-# 测试脚本使用说明
+# Scripts目录说明
 
-## 概述
+## 📋 脚本文件列表
 
-本目录包含了博实智能巡检平台的完整测试套件，用于验证系统功能和权限控制。
+### 数据库脚本
 
-## 测试脚本列表
+#### 1. `init_database.sql` - 数据库初始化脚本
+**功能**: 初始化完整的数据库结构和示例数据
+- 🗑️ 删除现有表（按外键依赖顺序）
+- 🏗️ 创建所有数据表（15个表）
+- 📊 插入示例数据（用户、地图、机器人、任务等）
 
-### 1. 快速测试 (`quick_test.py`)
-- **功能**: 快速验证基本功能
-- **适用**: 开发调试、快速验证
-- **时间**: 约30秒
-- **测试内容**:
-  - 服务器连接
-  - 用户登录
-  - 基本API调用
-  - 创建和查询资源
-
-### 2. 权限测试 (`test_permissions.py`)
-- **功能**: 专门测试权限控制
-- **适用**: 安全验证、权限测试
-- **时间**: 约1分钟
-- **测试内容**:
-  - 不同角色的权限验证
-  - 查询权限（所有用户）
-  - 增删改权限（只有operator+）
-  - 权限拒绝场景
-
-### 3. 全面测试 (`test_all_apis.py`)
-- **功能**: 全面测试所有API
-- **适用**: 完整功能验证、回归测试
-- **时间**: 约5-10分钟
-- **测试内容**:
-  - 所有API接口
-  - 所有用户角色
-  - 完整CRUD操作
-  - 详细测试报告
-
-## 使用方法
-
-### Windows用户
-```cmd
-# 运行测试菜单
-scripts\run_tests.bat
-
-# 或直接运行特定测试
-python scripts\quick_test.py
-python scripts\test_permissions.py
-python scripts\test_all_apis.py
+**使用方法**:
+```bash
+# 在WSL中执行
+mysql -u root -p < scripts/init_database.sql
 ```
 
-### Linux/WSL用户
-```bash
-# 运行测试菜单
-bash scripts/run_tests.sh
+**创建的表**:
+1. `tb_users` - 用户表
+2. `tb_sessions` - 会话表
+3. `tb_map` - 地图表
+4. `tb_mapnet` - 地图路网表
+5. `tb_robot` - 机器人表
+6. `tb_point` - 巡检点表
+7. `tb_item` - 巡检项目表
+8. `tb_point_item` - 点-项关联表
+9. `tb_task` - 任务表
+10. `tb_taskschedule` - 任务日程表
+11. `tb_taskhistory` - 任务记录表
+12. `tb_taskresult` - 任务结果表
+13. `tb_itemhistory` - 巡检记录表
+14. `tb_alarmrule` - 报警规则表
+15. `tb_alarminfo` - 报警信息表
 
-# 或直接运行特定测试
-python3 scripts/quick_test.py
-python3 scripts/test_permissions.py
-python3 scripts/test_all_apis.py
+**示例数据**:
+- 3个默认用户（superadmin, admin, operator）
+- 3个地图（一楼、二楼、室外）
+- 3个机器人
+- 8个巡检点
+- 8个巡检项目
+- 多条点-项关联
+- 3个任务
+- 多条任务记录和结果
+
+---
+
+### 部署脚本
+
+#### 2. `deploy_external.sh` - 外网部署脚本
+**功能**: 自动化部署到外网，供前端测试访问
+
+**主要步骤**:
+1. ✅ 检查系统环境
+2. ✅ 配置防火墙（开放8000、9090端口）
+3. ✅ 创建生产环境配置
+4. ✅ [可选] 安装配置Nginx反向代理
+5. ✅ [可选] 配置systemd开机自启
+6. ✅ 获取内网IP和外网IP
+7. ✅ 启动FastAPI应用
+
+**使用方法**:
+```bash
+# 在WSL或Linux中执行
+cd /mnt/d/Project/boshi/boshi-inspection-platform
+bash scripts/deploy_external.sh
 ```
 
-## 测试前准备
+**部署后访问地址**:
+```
+内网访问:
+- API: http://内网IP:8000
+- 文档: http://内网IP:8000/docs
+- WebSocket: ws://内网IP:8000/ws
 
-### 1. 启动服务器
+外网访问:
+- API: http://外网IP:8000
+- 文档: http://外网IP:8000/docs
+- WebSocket: ws://外网IP:8000/ws
+```
+
+**配置选项**:
+- Nginx反向代理（推荐生产环境）
+- systemd服务（实现开机自启和自动重启）
+
+**systemd服务管理**:
 ```bash
-# 在WSL中启动
+# 启动服务
+sudo systemctl start boshi-inspection
+
+# 停止服务
+sudo systemctl stop boshi-inspection
+
+# 重启服务
+sudo systemctl restart boshi-inspection
+
+# 查看状态
+sudo systemctl status boshi-inspection
+
+# 查看日志
+sudo journalctl -u boshi-inspection -f
+```
+
+---
+
+## 🚀 快速开始
+
+### 初次部署
+
+#### 1. 初始化数据库
+```bash
+# 在WSL中执行
+mysql -u root -p < scripts/init_database.sql
+```
+
+#### 2. 本地启动（测试）
+```bash
+# 启动开发服务器
 cd /mnt/d/Project/boshi/boshi-inspection-platform
 source /opt/ros/humble/setup.bash
 export ROS_DOMAIN_ID=0
-export HOST=0.0.0.0
 python3 -m app.main
 ```
 
-### 2. 确保数据库已初始化
+#### 3. 外网部署（生产）
 ```bash
-mysql -u root -proot < scripts/init_database.sql
+# 自动化部署
+bash scripts/deploy_external.sh
 ```
 
-### 3. 确保测试用户存在
-测试需要以下用户：
-- `admin` / `admin` (super_admin)
-- `testadmin` / `123456` (admin)  
-- `testoperator` / `123456` (operator)
-- `testviewer` / `123456` (viewer)
-- `testuser` / `123456` (user)
+---
 
-## 测试结果
+## 📊 数据库说明
 
-### 快速测试结果
+### 表结构关系
+
 ```
-🚀 快速功能测试...
-==================================================
-1. 测试服务器连接...
-   ✅ 服务器运行正常
+用户系统:
+├── tb_users (用户表)
+└── tb_sessions (会话表)
 
-2. 测试用户登录...
-   ✅ 管理员登录成功
+地图系统:
+├── tb_map (地图表)
+├── tb_mapnet (路网表) → tb_map
+└── tb_point (巡检点表) → tb_map
 
-3. 测试获取用户信息...
-   ✅ 获取用户信息成功: admin (super_admin)
+巡检系统:
+├── tb_item (巡检项目表)
+└── tb_point_item (点-项关联表) → tb_point, tb_item
 
-4. 测试获取用户列表...
-   ✅ 获取用户列表成功: 共 5 个用户
-      - admin (super_admin)
-      - testadmin (admin)
-      - testoperator (operator)
+任务系统:
+├── tb_task (任务表) → tb_map, tb_robot
+├── tb_taskschedule (任务日程表) → tb_task
+├── tb_taskhistory (任务记录表) → tb_task
+├── tb_taskresult (任务结果表) → tb_taskhistory
+└── tb_itemhistory (巡检记录表) → tb_taskhistory, tb_item
 
-5. 测试创建地图...
-   ✅ 创建地图成功: 550e8400-e29b-41d4-a716-446655440000
+报警系统:
+├── tb_alarmrule (报警规则表) → tb_item
+└── tb_alarminfo (报警信息表) → tb_alarmrule, tb_itemhistory
 
-6. 测试获取地图列表...
-   ✅ 获取地图列表成功: 共 1 个地图
-      - 快速测试地图_1703123456
-
-7. 测试创建机器人...
-   ✅ 创建机器人成功: 550e8400-e29b-41d4-a716-446655440001
-
-8. 测试获取机器人列表...
-   ✅ 获取机器人列表成功: 共 1 个机器人
-      - 快速测试机器人_1703123456
-
-==================================================
-🎉 快速测试完成！
-如果所有测试都通过，说明系统基本功能正常。
-可以运行 scripts/test_all_apis.py 进行完整测试。
+机器人系统:
+└── tb_robot (机器人表)
 ```
 
-### 权限测试结果
-```
-🔐 权限测试开始...
-================================================================================
-📊 测试结果:
---------------------------------------------------------------------------------
-✅ super_admin  GET  /api/v1/users/                    - 成功 (期望: 成功)
-✅ admin        GET  /api/v1/users/                    - 成功 (期望: 成功)
-✅ operator     GET  /api/v1/users/                    - 成功 (期望: 成功)
-✅ viewer       GET  /api/v1/users/                    - 成功 (期望: 成功)
-✅ user         GET  /api/v1/users/                    - 成功 (期望: 成功)
-✅ super_admin  POST /api/v1/maps/                     - 成功 (期望: 成功)
-✅ admin        POST /api/v1/maps/                     - 成功 (期望: 成功)
-✅ operator     POST /api/v1/maps/                     - 成功 (期望: 成功)
-❌ viewer       POST /api/v1/maps/                     - 失败 (期望: 失败)
-❌ user         POST /api/v1/maps/                     - 失败 (期望: 失败)
-================================================================================
-📊 测试完成: 10/10 通过 (100.0%)
-🎉 所有权限测试通过！
+### 默认账号
+
+| 用户名 | 密码 | 角色 | 说明 |
+|--------|------|------|------|
+| superadmin | superadmin | super_admin | 超级管理员 |
+| admin | admin | admin | 管理员 |
+| operator | operator | operator | 操作员 |
+
+---
+
+## 🔧 维护脚本
+
+### 数据库重置
+
+完全重置数据库（**慎用，会删除所有数据**）:
+```bash
+mysql -u root -p < scripts/init_database.sql
 ```
 
-### 全面测试结果
-```
-🚀 开始全面API测试...
-测试目标: http://localhost:8000
-测试时间: 2024-01-01 10:00:00
-
-🔐 测试认证API...
-✅ super_admin 登录成功
-✅ admin 登录成功
-✅ operator 登录成功
-✅ viewer 登录成功
-✅ user 登录成功
-
-👥 测试用户管理API...
-✅ PASS 创建用户-super_admin - super_admin POST /api/v1/users/ (状态码: 200)
-✅ PASS 创建用户-admin - admin POST /api/v1/users/ (状态码: 200)
-✅ PASS 获取用户列表-super_admin - super_admin GET /api/v1/users/ (状态码: 200)
-
-🗺️ 测试地图管理API...
-✅ PASS 创建地图-super_admin - super_admin POST /api/v1/maps/ (状态码: 200)
-✅ PASS 创建地图-admin - admin POST /api/v1/maps/ (状态码: 200)
-✅ PASS 创建地图-operator - operator POST /api/v1/maps/ (状态码: 200)
-✅ PASS 获取地图列表-super_admin - super_admin GET /api/v1/maps/ (状态码: 200)
-
-... (更多测试结果)
-
-================================================================================
-📊 测试报告
-================================================================================
-总测试数: 150
-通过数: 148
-失败数: 2
-通过率: 98.7%
-
-❌ 失败的测试:
-  - 创建用户-viewer (viewer) - 状态码: 403
-  - 创建用户-user (user) - 状态码: 403
-
-📄 详细报告已保存到: test_report_20240101_100000.json
+### 查看表结构
+```bash
+mysql -u root -p boshi_inspection -e "SHOW TABLES;"
 ```
 
-## 测试报告文件
+### 查看用户列表
+```bash
+mysql -u root -p boshi_inspection -e "SELECT id, username, role FROM tb_users WHERE is_deleted=0;"
+```
 
-全面测试会生成详细的JSON报告文件：
-- 文件名: `test_report_YYYYMMDD_HHMMSS.json`
-- 包含: 测试摘要、详细结果、创建的资源等
-- 用途: 问题分析、回归测试、CI/CD集成
+---
 
-## 故障排除
+## 📦 依赖要求
 
-### 常见问题
+### 系统依赖
+- MySQL 8.0+
+- Python 3.10+
+- ROS2 Humble（可选）
 
-1. **连接被拒绝**
-   - 确保服务器已启动
-   - 检查端口8000是否被占用
+### Python依赖
+- FastAPI
+- SQLAlchemy
+- PyMySQL
+- 其他依赖见 `requirements.txt`
 
-2. **登录失败**
-   - 检查用户名密码
-   - 确保用户已创建
+---
 
-3. **权限错误**
-   - 检查用户角色
-   - 验证权限配置
+## 🔐 安全注意事项
 
-4. **数据库错误**
-   - 确保MySQL运行
-   - 检查数据库初始化
+### 生产环境部署前
 
-### 调试技巧
-
-1. **查看详细错误**
-   ```python
-   # 在测试脚本中添加调试信息
-   print(f"响应状态: {response.status}")
-   print(f"响应内容: {await response.text()}")
+1. **修改默认密码**
+   ```sql
+   -- 重置admin密码
+   UPDATE tb_users SET password_hash = '$2b$12$...' WHERE username = 'admin';
    ```
 
-2. **检查服务器日志**
+2. **修改JWT密钥**
    ```bash
-   # 查看服务器输出
-   tail -f logs/app.log
+   # 编辑 .env 文件
+   SECRET_KEY=your-secret-key-here
    ```
 
-3. **验证API文档**
-   ```bash
-   # 访问API文档
-   curl http://localhost:8000/docs
-   ```
+3. **配置防火墙**
+   - 只开放必要端口（8000）
+   - 限制SSH访问IP
 
-## 持续集成
+4. **配置HTTPS**
+   - 使用Nginx配置SSL证书
+   - 强制HTTPS访问
 
-可以将测试集成到CI/CD流程：
+---
 
-```yaml
-# GitHub Actions 示例
-- name: Run Tests
-  run: |
-    python scripts/quick_test.py
-    python scripts/test_permissions.py
-    python scripts/test_all_apis.py
-```
+## 📞 技术支持
 
-## 贡献
+### 相关文档
+- **API文档**: `docs/API_REFERENCE.md`
+- **模块详细文档**: `docs/api/01-18.md`
+- **部署指南**: `docs/EXTERNAL_DEPLOYMENT_GUIDE.md`
+- **日志指南**: `docs/LOGGING_GUIDE.md`
+- **错误码说明**: `docs/ERROR_CODES.md`
 
-如需添加新的测试用例：
-1. 在相应的测试脚本中添加测试方法
-2. 更新测试文档
-3. 确保测试覆盖所有场景
-4. 验证测试结果正确性
+### 问题排查
+1. 查看应用日志：`logs/YYYY-MM-DD/app.log`
+2. 查看错误日志：`logs/YYYY-MM-DD/error.log`
+3. 查看调试日志：`logs/YYYY-MM-DD/debug.log`
+
+---
+
+## 🔄 版本更新
+
+### 数据库迁移
+如需更新数据库结构：
+1. 修改 `scripts/init_database.sql`
+2. 创建迁移SQL文件到 `migrations/` 目录
+3. 参考 `migrations/README.md` 执行迁移
+
+---
+
+**最后更新**: 2024-01-16  
+**维护者**: 博实智能巡检平台开发团队

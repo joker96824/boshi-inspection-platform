@@ -93,6 +93,43 @@ class TaskScheduleService:
             )
             
         except (ResourceNotFoundError, PermissionDeniedError) as e:
+            logger.warning(f"获取任务日程失败: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"获取任务日程失败: {e}")
+            raise HTTPException(status_code=500, detail="获取任务日程失败")
+    
+    async def get_taskschedules_by_ids(self, taskschedule_ids: List[str], user: dict) -> Dict[str, Any]:
+        """根据ID列表获取任务日程"""
+        try:
+            taskschedules = await self.taskschedule_repo.get_by_ids(taskschedule_ids)
+            
+            items_data = [self._format_taskschedule_response(ts) for ts in taskschedules]
+            
+            return ApiResponse.success(
+                data={"items": items_data, "total": len(items_data)},
+                message="获取任务日程列表成功"
+            )
+            
+        except Exception as e:
+            logger.error(f"获取任务日程列表失败: {e}")
+            raise HTTPException(status_code=500, detail="获取任务日程列表失败")
+    
+    async def get_taskschedules_legacy(self, taskschedule_id: str, user: dict) -> Dict[str, Any]:
+        """根据ID获取任务日程（向后兼容）"""
+        try:
+            taskschedule = await self.taskschedule_repo.get_by_id(taskschedule_id)
+            if not taskschedule:
+                raise ResourceNotFoundError(f"任务日程ID '{taskschedule_id}' 不存在")
+            
+            # 任务日程存在性检查已完成，无需额外权限检查
+            
+            return ApiResponse.success(
+                data=self._format_taskschedule_response(taskschedule),
+                message="获取任务日程成功"
+            )
+            
+        except (ResourceNotFoundError, PermissionDeniedError) as e:
             # 业务异常直接抛出，保持原始错误信息
             logger.error(f"获取任务日程失败: {e}")
             raise

@@ -4,6 +4,7 @@
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
 
 from ...core.deps import get_db
 from ...core.auth import get_current_user
@@ -57,6 +58,28 @@ async def get_user_robots(
     """
     robot_service = RobotService(db)
     return await robot_service.get_user_robots(current_user, page, size, robot_name)
+
+
+@router.get("/by-ids", response_model=dict)
+async def get_robots_by_ids(
+    robot_ids: List[str] = Query(..., description="机器人ID列表（支持单个或多个ID查询）"),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_read_permission)
+):
+    """根据ID列表查询机器人
+    
+    支持单个或多个ID查询
+    
+    Args:
+        robot_ids: 机器人ID列表
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        机器人列表
+    """
+    robot_service = RobotService(db)
+    return await robot_service.get_robots_by_ids(robot_ids, current_user)
 
 
 @router.get("/{robot_id}", response_model=dict)

@@ -87,6 +87,22 @@ class TaskHistoryService:
             logger.error(f"获取任务记录失败: {e}")
             raise HTTPException(status_code=500, detail="获取任务记录失败")
     
+    async def get_taskhistories_by_ids(self, taskhistory_ids: List[str], user: dict) -> Dict[str, Any]:
+        """根据ID列表获取任务记录"""
+        try:
+            taskhistories = await self.taskhistory_repo.get_by_ids(taskhistory_ids)
+            
+            items_data = [self._format_taskhistory_response(th) for th in taskhistories]
+            
+            return ApiResponse.success(
+                data={"items": items_data, "total": len(items_data)},
+                message="获取任务记录列表成功"
+            )
+            
+        except Exception as e:
+            logger.error(f"获取任务记录列表失败: {e}")
+            raise HTTPException(status_code=500, detail="获取任务记录列表失败")
+    
     async def get_taskhistories(self, user: dict, page: int = 1, size: int = 20, 
                         task_id: str = None, record_status: str = None, record_batch: int = None,
                         start_time_from: str = None, start_time_to: str = None,

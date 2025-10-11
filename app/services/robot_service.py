@@ -26,7 +26,6 @@ class RobotService:
         """格式化机器人响应数据"""
         return {
             "id": robot.id,
-            "user_id": robot.user_id,
             "robot_name": robot.robot_name,
             "robot_info": robot.robot_info,
             "created_at": robot.created_at.strftime("%Y-%m-%dT%H:%M:%S") if robot.created_at else None,
@@ -39,7 +38,6 @@ class RobotService:
         """创建机器人"""
         try:
             create_data = {
-                "user_id": user["id"],
                 "robot_name": robot_data.robot_name,
                 "robot_info": robot_data.robot_info,
                 "created_by": user["username"],
@@ -81,6 +79,22 @@ class RobotService:
             data=self._format_robot_response(robot),
             message="获取机器人成功"
         )
+    
+    async def get_robots_by_ids(self, robot_ids: List[str], user: dict) -> Dict[str, Any]:
+        """根据ID列表获取机器人"""
+        try:
+            robots = await self.robot_repo.get_by_ids(robot_ids)
+            
+            items_data = [self._format_robot_response(robot) for robot in robots]
+            
+            return ApiResponse.success(
+                data={"items": items_data, "total": len(items_data)},
+                message="获取机器人列表成功"
+            )
+            
+        except Exception as e:
+            logger.error(f"获取机器人列表失败: {e}")
+            raise HTTPException(status_code=500, detail="获取机器人列表失败")
     
     async def get_user_robots(self, user: dict, page: int = 1, size: int = 20, robot_name: str = None) -> Dict[str, Any]:
         """获取所有机器人列表"""

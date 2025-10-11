@@ -95,6 +95,22 @@ class TaskService:
             logger.error(f"获取任务失败: {e}")
             raise HTTPException(status_code=500, detail="获取任务失败")
     
+    async def get_tasks_by_ids(self, task_ids: List[str], user: dict) -> Dict[str, Any]:
+        """根据ID列表获取任务"""
+        try:
+            tasks = await self.task_repo.get_by_ids(task_ids)
+            
+            items_data = [self._format_task_response(task) for task in tasks]
+            
+            return ApiResponse.success(
+                data={"items": items_data, "total": len(items_data)},
+                message="获取任务列表成功"
+            )
+            
+        except Exception as e:
+            logger.error(f"获取任务列表失败: {e}")
+            raise HTTPException(status_code=500, detail="获取任务列表失败")
+    
     async def get_tasks(self, user: dict, page: int = 1, size: int = 20, 
                         task_name: str = None, map_id: str = None, robot_id: str = None,
                         sort_by: str = "task_order", sort_order: str = "asc") -> Dict[str, Any]:

@@ -40,7 +40,6 @@ class ItemQuery(BaseSchema):
     page: int = Field(1, ge=1, description="页码")
     size: int = Field(20, ge=1, le=100, description="每页数量")
     item_name: Optional[str] = Field(None, description="巡检项目名称（模糊查询）")
-    ids: Optional[List[str]] = Field(None, description="巡检项目ID列表（精确查询）")
 
 
 class ItemListResponse(BaseSchema):

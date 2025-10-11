@@ -4,7 +4,7 @@
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
+from typing import Optional, List
 
 from ...core.deps import get_db
 from ...core.auth import get_current_user
@@ -73,6 +73,28 @@ async def get_mapnets_by_map(
     query = MapNetQuery(map_id=map_id, map_net_type=map_net_type, page=page, size=size)
     mapnet_service = MapNetService(db)
     return await mapnet_service.get_mapnets_by_map(query, current_user)
+
+
+@router.get("/by-ids", response_model=dict)
+async def get_mapnets_by_ids(
+    mapnet_ids: List[str] = Query(..., description="路网元素ID列表（支持单个或多个ID查询）"),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_read_permission)
+):
+    """根据ID列表查询路网元素
+    
+    支持单个或多个ID查询
+    
+    Args:
+        mapnet_ids: 路网元素ID列表
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        路网元素列表
+    """
+    mapnet_service = MapNetService(db)
+    return await mapnet_service.get_mapnets_by_ids(mapnet_ids, current_user)
 
 
 @router.get("/{mapnet_id}", response_model=dict)

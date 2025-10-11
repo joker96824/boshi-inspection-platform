@@ -35,6 +35,15 @@ class TaskRepository:
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
     
+    async def get_by_ids(self, task_ids: List[str]) -> List[Task]:
+        """根据ID列表获取任务"""
+        query = select(Task).where(
+            Task.id.in_(task_ids),
+            Task.is_deleted == False
+        ).order_by(Task.created_at.desc())
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+    
     async def get_all(self, page: int = 1, size: int = 20, 
                       task_name: str = None, map_id: str = None, robot_id: str = None,
                       sort_by: str = "task_order", sort_order: str = "asc") -> tuple[List[Task], int]:

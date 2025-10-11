@@ -29,6 +29,15 @@ class MapNetRepository:
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
     
+    async def get_by_ids(self, mapnet_ids: List[str]) -> List[MapNet]:
+        """根据ID列表获取路网元素"""
+        query = select(MapNet).where(
+            MapNet.id.in_(mapnet_ids),
+            MapNet.is_deleted == False
+        ).order_by(MapNet.created_at.desc())
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+    
     async def get_by_map_id(
         self, 
         map_id: str, 

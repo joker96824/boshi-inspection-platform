@@ -1,159 +1,250 @@
-# 博实智能巡检平台
+# 🤖 博实智能巡检平台
 
-一个基于FastAPI和ROS2的智能巡检系统数据中台，支持用户认证、权限管理、ROS2通信和WebSocket实时通信。
+一个基于 FastAPI 和 ROS2 的智能巡检系统数据中台，支持用户认证、权限管理、ROS2 通信和 WebSocket 实时通信。
 
-## 🚀 项目特点
+---
 
-- **现代化架构**: 基于FastAPI的异步Web框架
-- **ROS2集成**: 原生支持ROS2通信协议
-- **实时通信**: WebSocket支持实时数据推送
-- **权限管理**: 基于角色的访问控制(RBAC)
-- **统一错误码**: 简化的错误处理体系
-- **分层设计**: API → Service → Repository → Model
+## ✨ 项目特点
+
+- 🚀 **现代化架构**: 基于 FastAPI 的异步 Web 框架
+- 🤖 **ROS2 集成**: 原生支持 ROS2 通信协议
+- ⚡ **实时通信**: WebSocket 支持实时数据推送
+- 🔐 **权限管理**: 基于角色的访问控制(RBAC)
+- 📝 **统一日志**: 分层日志策略（业务审计/错误/调试）
+- 🔢 **统一错误码**: 简化的错误处理体系
+- 📊 **完整文档**: 119个API接口的详细文档
+
+---
 
 ## 🏗️ 技术栈
 
-- **后端框架**: FastAPI 0.104.1
-- **数据库**: MySQL + SQLAlchemy (异步)
-- **认证**: JWT + Session 管理
-- **缓存**: Redis
-- **机器人通信**: ROS2 (humble)
-- **实时通信**: WebSocket
-- **开发环境**: WSL2 + Python 3.10
+| 类别 | 技术 |
+|------|------|
+| **后端框架** | FastAPI 0.104.1 |
+| **数据库** | MySQL 8.0+ + SQLAlchemy (异步) |
+| **认证** | JWT + Session 管理 |
+| **缓存** | Redis |
+| **机器人通信** | ROS2 Humble |
+| **实时通信** | WebSocket |
+| **开发环境** | WSL2 + Ubuntu 22.04 + Python 3.10 |
 
-## 📁 项目结构
+---
 
-```
-D:\Project\boshi-inspection-platform\
-├── app/                        # 主应用程序
-│   ├── api/v1/                 # API路由层
-│   ├── services/               # 业务逻辑层
-│   ├── repositories/           # 数据访问层
-│   ├── models/                 # 数据模型层
-│   ├── schemas/                # Pydantic模式
-│   ├── core/                   # 核心功能
-│   ├── config/                 # 配置管理
-│   ├── ros/                    # ROS2集成
-│   ├── websocket/              # WebSocket通信
-│   └── utils/                  # 工具函数
-├── scripts/                    # 工具脚本
-├── tests/                      # 测试代码
-├── docs/                       # 项目文档
-└── requirements.txt           # Python依赖
-```
+## 🎯 核心功能
 
-## 🔢 错误码规范
+### 1. 用户认证和权限
+- ✅ JWT Token认证（有效期30天）
+- ✅ 基于角色的权限控制（5种角色）
+- ✅ 会话管理和安全登出
+- ✅ 操作审计日志
 
-- **100**: 请求数据有误（数据验证、格式、密码等）
-- **200**: 请求成功
-- **210**: 登录成功但需重置密码
-- **301**: 请求参数错误
-- **400/403/404**: 业务错误（业务逻辑、权限、资源不存在）
-- **410**: token验证失败（过期、无效、不存在等）
-- **414**: 登录失败
-- **999**: 系统异常
+### 2. 地图和巡检管理
+- ✅ 地图管理（名称、图片、比例、坐标）
+- ✅ 地图路网管理（点、线、矩形）
+- ✅ 巡检点管理
+- ✅ 巡检项目管理
+- ✅ 点-项多对多关联
 
-详细说明: [错误码文档](docs/ERROR_CODES.md)
+### 3. 机器人和任务
+- ✅ 机器人信息管理
+- ✅ 任务配置和调度
+- ✅ 任务执行记录
+- ✅ 任务结果管理
+- ✅ 巡检记录管理
 
-## 🔐 权限体系
+### 4. 报警系统
+- ✅ 报警规则配置
+- ✅ 报警信息记录
 
-### 角色层级
-- **super_admin**: 超级管理员（最高权限）
-- **admin**: 管理员（用户管理权限）
-- **operator**: 操作员（机器人操作权限）
-- **viewer**: 观察员（只读权限）
-- **user**: 普通用户（基础权限）
+### 5. 系统管理
+- ✅ 系统信息查询
+- ✅ 健康检查接口
+- ✅ 日志查询和下载
+- ✅ ROS2 消息发布
 
-### 权限规则
-- 高级别角色可以管理低级别角色
-- 用户管理需要admin或super_admin权限
-- ROS2操作需要operator或更高权限
-
-## 🔌 API接口
-
-### 认证接口
-- `POST /api/v1/auth/login` - 用户登录
-- `POST /api/v1/auth/logout` - 用户登出
-- `POST /api/v1/auth/refresh` - 刷新令牌
-- `GET /api/v1/auth/me` - 获取用户信息
-
-### 用户管理
-- `POST /api/v1/users/create` - 创建用户
-- `GET /api/v1/users/` - 获取用户列表
-- `PUT /api/v1/users/forceupdate` - 管理员强制更新
-- `PUT /api/v1/users/updatepassword` - 用户修改密码
-- `DELETE /api/v1/users/delete` - 删除用户
-
-### 系统接口
-- `GET /api/v1/system/health` - 健康检查
-- `GET /api/v1/system/info` - 系统信息
-
-### ROS2接口
-- `GET /api/v1/ros2/topics` - 获取话题列表
-- `GET /api/v1/ros2/status` - 获取ROS2状态
-- `POST /api/v1/ros2/publish/*` - 发布消息
+---
 
 ## 🚀 快速开始
 
-### 1. 环境准备
+### 前置要求
+- Windows 10/11
+- WSL2 + Ubuntu 22.04
+- MySQL 8.0+
+- Python 3.10+
+- ROS2 Humble（可选）
 
+### 1. 初始化数据库
 ```bash
-# 安装依赖
-pip install -r requirements.txt
-
-# 初始化数据库
-mysql -u root -p < scripts/init_database.sql
+wsl -e bash -c "mysql -u root -proot < scripts/init_database.sql"
 ```
 
-### 2. 配置环境
-
+### 2. 启动服务
 ```bash
-# 复制环境变量模板（如果需要自定义配置）
-cp env.template .env
-
-# 编辑配置（可选）
-nano .env
+# 本地启动
+wsl -e bash -c "cd /mnt/d/Project/boshi/boshi-inspection-platform && source /opt/ros/humble/setup.bash && export ROS_DOMAIN_ID=0 && python3 -m app.main"
 ```
 
-### 3. 启动应用
-
-```bash
-# 在WSL中启动
-cd /mnt/d/Project/boshi-inspection-platform
-source /opt/ros/humble/setup.bash
-python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-### 4. 访问应用
-
+### 3. 访问服务
 - **API文档**: http://localhost:8000/docs
 - **健康检查**: http://localhost:8000/api/v1/system/health
-- **登录测试**: [tests/login_test.html](tests/login_test.html)
+- **登录测试**: 打开 `tests/login_test.html`
 
-## 🧪 测试
+### 4. 默认账号
+| 用户名 | 密码 | 角色 |
+|--------|------|------|
+| superadmin | superadmin | super_admin |
+| admin | admin | admin |
+| operator | operator | operator |
 
-### 健康检查
-```bash
-python scripts/health_check.py
+---
+
+## 📚 文档导航
+
+### 🎯 推荐文档（按使用场景）
+
+#### 前端开发
+1. **[API快速参考](docs/API_QUICK_REFERENCE.md)** - 接口速查表 ⭐
+2. **[API测试数据](docs/API_TEST_DATA.md)** - Swagger测试参数 ⭐⭐
+3. **[错误码规范](docs/ERROR_CODES.md)** - 错误处理
+
+#### 后端开发
+1. **[项目结构说明](docs/PROJECT_STRUCTURE.md)** - 完整的项目结构 ⭐
+2. **[错误码规范](docs/ERROR_CODES.md)** - 错误处理
+3. **[日志系统指南](docs/LOGGING_GUIDE.md)** - 日志配置
+
+#### 部署运维
+1. **[完整启动指南](STARTUP_GUIDE.md)** - WSL环境搭建 ⭐⭐⭐
+2. **[外网部署指南](docs/EXTERNAL_DEPLOYMENT_GUIDE.md)** - 生产环境部署
+3. **[脚本使用说明](scripts/README.md)** - 工具脚本
+
+#### 测试
+1. **[测试工具说明](tests/README.md)** - 可视化测试页面
+2. 打开 `tests/login_test.html` - 登录功能测试
+3. 打开 `tests/log_download_test.html` - 日志管理测试
+
+### 📖 完整文档列表
+详见 **[docs/README.md](docs/README.md)**
+
+---
+
+## 🏛️ 架构设计
+
+### 分层架构
+```
+┌─────────────────────────────────────────┐
+│  API Layer (app/api/v1/)                │
+│  ├─ 18个模块接口文件                     │
+│  └─ 处理HTTP请求、参数验证、路由定义      │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│  Service Layer (app/services/)          │
+│  ├─ 16个业务服务类                       │
+│  └─ 业务逻辑、事务管理、日志记录          │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│  Repository Layer (app/repositories/)   │
+│  ├─ 14个数据仓库类                       │
+│  └─ 数据库操作、CRUD、分页查询           │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│  Model Layer (app/models/)              │
+│  ├─ 15个SQLAlchemy模型                  │
+│  └─ 表结构定义、关系映射                 │
+└─────────────────────────────────────────┘
 ```
 
-### 登录测试
-- 用户名: `admin`
-- 密码: `admin`
-- 角色: `super_admin`
+### 核心组件
+- **认证系统**: JWT + Session双重验证
+- **权限系统**: RBAC角色权限控制
+- **日志系统**: 分层日志（业务/错误/调试）
+- **异常系统**: 统一异常处理和错误码
+- **ROS2集成**: 消息发布和订阅
+- **WebSocket**: 实时双向通信
 
-## 📚 开发文档
+---
 
-- [项目结构说明](PROJECT_STRUCTURE.md)
-- [错误码规范](docs/ERROR_CODES.md)
-- [Cursor AI 开发规则](.cursorrules)
+## 🔢 错误码规范
 
-## 🔧 开发工具
+| 错误码 | 含义 | 使用场景 |
+|-------|------|---------|
+| 200 | 请求成功 | 正常成功响应 |
+| 210 | 登录成功需重置密码 | 首次登录 |
+| 301 | 请求参数错误 | 参数验证失败 |
+| 410 | Token验证失败 | Token过期/无效 |
+| 414 | 登录失败 | 用户名或密码错误 |
+| 999 | 系统异常 | 服务器内部错误 |
 
-- **数据库初始化**: `scripts/init_database.sql`
-- **系统健康检查**: `scripts/health_check.py`
-- **登录功能测试**: `tests/login_test.html`
+详细说明: [错误码文档](docs/ERROR_CODES.md)
 
-## 📝 许可证
+---
 
-MIT License
+## 📊 项目统计
+
+| 项目 | 数量 |
+|------|------|
+| 数据库表 | 15个 |
+| API接口 | 119个 |
+| API模块 | 18个 |
+| 模型文件 | 15个 |
+| 服务文件 | 16个 |
+| 仓库文件 | 14个 |
+| 文档文件 | 27个 |
+
+---
+
+## 🔧 开发规范
+
+### 编码规范
+- 遵循 PEP 8 标准
+- 使用 type hints
+- 所有函数必须有文档字符串
+- 详见 `.cursorrules`
+
+### API设计规范
+- RESTful API设计
+- 统一响应格式
+- 统一错误处理
+- 详见 [API完整参考](docs/API_REFERENCE.md)
+
+### 数据库规范
+- SQLAlchemy 2.0 异步语法
+- Repository 模式
+- 软删除机制
+- 详见 [项目结构说明](PROJECT_STRUCTURE.md)
+
+---
+
+## 🤝 贡献指南
+
+1. Fork 项目
+2. 创建特性分支
+3. 提交代码（遵循编码规范）
+4. 推送到分支
+5. 创建 Pull Request
+
+---
+
+## 📞 技术支持
+
+### 常见问题
+- 启动问题 → 查看 [STARTUP_GUIDE.md](STARTUP_GUIDE.md)
+- API问题 → 查看 [API模块文档](docs/api/README.md)
+- 部署问题 → 查看 [EXTERNAL_DEPLOYMENT_GUIDE.md](docs/EXTERNAL_DEPLOYMENT_GUIDE.md)
+
+### 联系方式
+- **项目**: 博实智能巡检平台
+- **维护者**: 开发团队
+
+---
+
+## 📄 许可证
+
+请参考项目许可证文件。
+
+---
+
+**最后更新**: 2024-01-16  
+**项目状态**: ✅ 生产就绪

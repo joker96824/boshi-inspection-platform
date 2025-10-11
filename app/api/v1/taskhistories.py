@@ -4,6 +4,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
 
 from ...core.deps import get_db
 from ...core.auth import get_current_user
@@ -72,6 +73,28 @@ async def get_taskhistories(
         current_user, page, size, task_id, record_status, record_batch,
         start_time_from, start_time_to, end_time_from, end_time_to
     )
+
+
+@router.get("/by-ids", response_model=dict)
+async def get_taskhistories_by_ids(
+    taskhistory_ids: List[str] = Query(..., description="任务记录ID列表（支持单个或多个ID查询）"),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_read_permission)
+):
+    """根据ID列表查询任务记录
+    
+    支持单个或多个ID查询
+    
+    Args:
+        taskhistory_ids: 任务记录ID列表
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        任务记录列表
+    """
+    service = TaskHistoryService(db)
+    return await service.get_taskhistories_by_ids(taskhistory_ids, current_user)
 
 
 @router.get("/{taskhistory_id}", response_model=dict)

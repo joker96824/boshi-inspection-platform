@@ -16,6 +16,8 @@ from .item import Item
 from .point_item import PointItem
 from .itemhistory import ItemHistory
 from .taskresult import TaskResult
+from .alarmrule import AlarmRule
+from .alarminfo import AlarmInfo
 
 __all__ = [
     "BaseModel",
@@ -32,4 +34,6 @@ __all__ = [
     "PointItem",
     "ItemHistory",
     "TaskResult",
+    "AlarmRule",
+    "AlarmInfo",
 ]

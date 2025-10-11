@@ -5,7 +5,7 @@
 from fastapi import FastAPI, WebSocket
 
 from .core.app_factory import create_app, setup_lifespan_events
-from .api.v1 import auth, users, ros2, system, logs, maps, mapnets, robots, points, items, point_items, itemhistories, tasks, taskschedules, taskhistories, taskresults
+from .api.v1 import auth, users, ros2, system, logs, maps, mapnets, robots, points, items, point_items, itemhistories, tasks, taskschedules, taskhistories, taskresults, alarmrules, alarminfos
 from .config.settings import settings
 from .utils.response import ApiResponse
 
@@ -46,6 +46,8 @@ def register_routes():
     app.include_router(taskschedules.router, prefix="/api/v1/taskschedules", tags=["任务日程管理"])
     app.include_router(taskhistories.router, prefix="/api/v1/taskhistories", tags=["任务记录管理"])
     app.include_router(taskresults.router, prefix="/api/v1/taskresults", tags=["任务结果管理"])
+    app.include_router(alarmrules.router, prefix="/api/v1/alarmrules", tags=["报警规则管理"])
+    app.include_router(alarminfos.router, prefix="/api/v1/alarminfos", tags=["报警信息管理"])
     
     # 系统API路由
     app.include_router(system.router, prefix="/api/v1/system", tags=["系统"])

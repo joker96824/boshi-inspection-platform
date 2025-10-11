@@ -2,7 +2,7 @@
 地图路网业务逻辑服务
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..repositories.mapnet_repository import MapNetRepository
 from ..schemas.mapnet import MapNetCreate, MapNetUpdate, MapNetQuery
@@ -98,6 +98,22 @@ class MapNetService:
         # 路网元素存在性检查已完成，无需额外权限检查
         
         return ApiResponse.success(data={"mapnet": self._format_mapnet_response(mapnet_obj)})
+    
+    async def get_mapnets_by_ids(self, mapnet_ids: List[str], user: dict) -> Dict[str, Any]:
+        """根据ID列表获取路网元素"""
+        try:
+            mapnets = await self.mapnet_repo.get_by_ids(mapnet_ids)
+            
+            items_data = [self._format_mapnet_response(mapnet) for mapnet in mapnets]
+            
+            return ApiResponse.success(
+                data={"items": items_data, "total": len(items_data)},
+                message="获取路网元素列表成功"
+            )
+            
+        except Exception as e:
+            logger.error(f"获取路网元素列表失败: {e}")
+            raise
     
     async def get_mapnets_by_map(self, query: MapNetQuery, user: dict) -> Dict[str, Any]:
         """获取地图的路网元素列表"""

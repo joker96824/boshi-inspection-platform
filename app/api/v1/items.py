@@ -40,7 +40,6 @@ async def get_items(
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(20, ge=1, le=100, description="每页数量"),
     item_name: Optional[str] = Query(None, description="巡检项目名称（模糊查询）"),
-    ids: Optional[List[str]] = Query(None, description="巡检项目ID列表（精确查询）"),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_read_permission)
 ):
@@ -50,7 +49,6 @@ async def get_items(
         page: 页码
         size: 每页数量
         item_name: 巡检项目名称（模糊查询）
-        ids: 巡检项目ID列表（精确查询）
         db: 数据库会话
         current_user: 当前用户
     
@@ -60,11 +58,32 @@ async def get_items(
     query = ItemQuery(
         page=page,
         size=size,
-        item_name=item_name,
-        ids=ids
+        item_name=item_name
     )
     service = ItemService(db)
     return await service.get_items(query, current_user)
+
+
+@router.get("/by-ids", response_model=dict)
+async def get_items_by_ids(
+    item_ids: List[str] = Query(..., description="巡检项目ID列表（支持单个或多个ID查询）"),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_read_permission)
+):
+    """根据ID列表查询巡检项目
+    
+    支持单个或多个ID查询
+    
+    Args:
+        item_ids: 巡检项目ID列表
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        巡检项目列表
+    """
+    service = ItemService(db)
+    return await service.get_items_by_ids(item_ids, current_user)
 
 
 @router.get("/{item_id}", response_model=dict)

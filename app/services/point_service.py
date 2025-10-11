@@ -91,6 +91,22 @@ class PointService:
             message="获取巡检点成功"
         )
     
+    async def get_points_by_ids(self, point_ids: List[str], user: dict) -> Dict[str, Any]:
+        """根据ID列表获取巡检点"""
+        try:
+            points = await self.point_repo.get_by_ids(point_ids)
+            
+            items_data = [self._format_point_response(point) for point in points]
+            
+            return ApiResponse.success(
+                data={"items": items_data, "total": len(items_data)},
+                message="获取巡检点列表成功"
+            )
+            
+        except Exception as e:
+            logger.error(f"获取巡检点列表失败: {e}")
+            raise HTTPException(status_code=500, detail="获取巡检点列表失败")
+    
     async def get_points(self, user: dict, page: int = 1, size: int = 20, point_name: str = None, map_id: str = None) -> Dict[str, Any]:
         """获取巡检点列表"""
         try:

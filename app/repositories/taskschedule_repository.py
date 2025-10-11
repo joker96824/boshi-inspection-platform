@@ -35,6 +35,15 @@ class TaskScheduleRepository:
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
     
+    async def get_by_ids(self, taskschedule_ids: List[str]) -> List[TaskSchedule]:
+        """根据ID列表获取任务日程"""
+        query = select(TaskSchedule).where(
+            TaskSchedule.id.in_(taskschedule_ids),
+            TaskSchedule.is_deleted == False
+        ).order_by(TaskSchedule.created_at.desc())
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+    
     async def get_all(self, page: int = 1, size: int = 20, task_id: str = None, 
                        schedule_type: str = None) -> tuple[List[TaskSchedule], int]:
         """获取任务日程列表"""

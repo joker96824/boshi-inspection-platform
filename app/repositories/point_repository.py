@@ -36,6 +36,15 @@ class PointRepository:
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
     
+    async def get_by_ids(self, point_ids: List[str]) -> List[Point]:
+        """根据ID列表获取巡检点"""
+        query = select(Point).where(
+            Point.id.in_(point_ids),
+            Point.is_deleted == False
+        ).order_by(Point.created_at.desc())
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+    
     async def get_by_map_id(self, map_id: str, page: int = 1, size: int = 20, point_name: str = None) -> tuple[List[Point], int]:
         """根据地图ID获取巡检点列表"""
         # 计算偏移量

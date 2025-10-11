@@ -28,7 +28,6 @@ class MapService:
         """格式化地图响应数据"""
         return {
             "id": map_obj.id,
-            "user_id": map_obj.user_id,
             "map_name": map_obj.map_name,
             "map_image_url": map_obj.map_image_url,
             "map_scale": float(map_obj.map_scale) if map_obj.map_scale is not None else None,
@@ -50,7 +49,6 @@ class MapService:
             # 准备创建数据
             create_data = {
                 "id": str(uuid.uuid4()),
-                "user_id": user["id"],
                 **map_data.dict(),
                 "created_by": user["username"],
                 "updated_by": user["username"]

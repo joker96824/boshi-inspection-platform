@@ -4,6 +4,7 @@
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
 
 from ...core.deps import get_db
 from ...core.auth import get_current_user
@@ -60,6 +61,28 @@ async def get_taskschedules(
     return await taskschedule_service.get_taskschedules(
         current_user, page, size, task_id, schedule_type
     )
+
+
+@router.get("/by-ids", response_model=dict)
+async def get_taskschedules_by_ids(
+    taskschedule_ids: List[str] = Query(..., description="任务日程ID列表（支持单个或多个ID查询）"),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_read_permission)
+):
+    """根据ID列表查询任务日程
+    
+    支持单个或多个ID查询
+    
+    Args:
+        taskschedule_ids: 任务日程ID列表
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        任务日程列表
+    """
+    taskschedule_service = TaskScheduleService(db)
+    return await taskschedule_service.get_taskschedules_by_ids(taskschedule_ids, current_user)
 
 
 @router.get("/{taskschedule_id}", response_model=dict)

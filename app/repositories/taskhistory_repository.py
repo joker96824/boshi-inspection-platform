@@ -35,6 +35,15 @@ class TaskHistoryRepository:
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
     
+    async def get_by_ids(self, taskhistory_ids: List[str]) -> List[TaskHistory]:
+        """根据ID列表获取任务记录"""
+        query = select(TaskHistory).where(
+            TaskHistory.id.in_(taskhistory_ids),
+            TaskHistory.is_deleted == False
+        ).order_by(TaskHistory.created_at.desc())
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+    
     async def get_all(self, page: int = 1, size: int = 20, 
                       task_id: str = None, record_status: str = None, record_batch: int = None,
                       start_time_from: str = None, start_time_to: str = None,
