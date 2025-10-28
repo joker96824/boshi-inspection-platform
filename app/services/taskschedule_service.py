@@ -231,7 +231,10 @@ class TaskScheduleService:
                 f"日程ID: {taskschedule_id}, 类型: {taskschedule.schedule_type}"
             )
             
-            return ApiResponse.success(message="任务日程删除成功")
+            return ApiResponse.success(
+                data={"id": taskschedule_id},
+                message="任务日程删除成功"
+            )
             
         except (ResourceNotFoundError, PermissionDeniedError) as e:
             # 业务异常直接抛出，保持原始错误信息

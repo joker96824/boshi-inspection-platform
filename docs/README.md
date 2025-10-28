@@ -20,6 +20,10 @@
 - 📝 **[日志系统指南](./LOGGING_GUIDE.md)** - 日志配置和使用
 - 🌐 **[外网部署指南](./EXTERNAL_DEPLOYMENT_GUIDE.md)** - 生产环境部署
 
+### ROS2通信文档
+- 🤖 **[ROS2集成架构详解](./ROS2_INTEGRATION_ARCHITECTURE.md)** - ROS2通信实现原理
+- 🔌 **[ROS2通信指南](./ROS2_COMMUNICATION_GUIDE.md)** - ROS2使用和配置
+
 ---
 
 ## 📖 文档说明
@@ -55,6 +59,18 @@
 - 生产环境部署步骤
 - 防火墙、Nginx配置
 - 适合运维人员
+
+### 7. ROS2集成架构详解 (`ROS2_INTEGRATION_ARCHITECTURE.md`) ⭐
+- ROS2通信实现原理
+- Spin机制详解
+- 线程安全和性能优化
+- 适合理解ROS2集成
+
+### 8. ROS2通信指南 (`ROS2_COMMUNICATION_GUIDE.md`)
+- ROS2使用方法
+- 测试步骤
+- 调试技巧
+- 适合快速上手
 
 ---
 
@@ -116,7 +132,8 @@
 |---------|------|
 | API文档 | 2个 |
 | 系统文档 | 4个 |
-| **总计** | **6个** |
+| ROS2文档 | 2个 |
+| **总计** | **8个** |
 
 ---
 

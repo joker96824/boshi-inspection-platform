@@ -45,6 +45,35 @@ class RobotRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
+    async def get_all(self, page: int = 1, size: int = 20, robot_name: str = None, map_id: str = None) -> tuple[List[Robot], int]:
+        """获取所有机器人列表（分页）"""
+        # 计算偏移量
+        skip = (page - 1) * size
+        
+        # 构建查询条件
+        conditions = [Robot.is_deleted == False]
+        
+        # 添加机器人名称模糊匹配条件
+        if robot_name:
+            conditions.append(Robot.robot_name.like(f"%{robot_name}%"))
+        
+        # 添加地图ID筛选条件
+        if map_id:
+            conditions.append(Robot.map_id == map_id)
+        
+        # 查询总数
+        count_stmt = select(func.count(Robot.id)).where(*conditions)
+        count_result = await self.db.execute(count_stmt)
+        total = count_result.scalar()
+        
+        # 查询数据
+        stmt = select(Robot).where(*conditions).order_by(Robot.created_at.desc()).offset(skip).limit(size)
+        
+        result = await self.db.execute(stmt)
+        robots = result.scalars().all()
+        
+        return list(robots), total
+    
     async def get_by_user_id(self, user_id: str, page: int = 1, size: int = 20, robot_name: str = None) -> tuple[List[Robot], int]:
         """根据用户ID获取机器人列表"""
         # 计算偏移量

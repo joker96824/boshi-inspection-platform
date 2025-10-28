@@ -33,6 +33,7 @@ class MapService:
             "map_scale": float(map_obj.map_scale) if map_obj.map_scale is not None else None,
             "map_center_x": float(map_obj.map_center_x) if map_obj.map_center_x is not None else None,
             "map_center_y": float(map_obj.map_center_y) if map_obj.map_center_y is not None else None,
+            "factory_id": map_obj.factory_id,
             "created_at": map_obj.created_at,
             "updated_at": map_obj.updated_at,
             "created_by": map_obj.created_by,
@@ -229,7 +230,10 @@ class MapService:
                     }
                 )
                 
-                return ApiResponse.success(message="地图删除成功")
+                return ApiResponse.success(
+                    data={"id": map_id},
+                    message="地图删除成功"
+                )
             else:
                 raise BusinessError("地图删除失败")
                 

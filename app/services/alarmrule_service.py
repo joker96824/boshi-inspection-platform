@@ -181,7 +181,10 @@ class AlarmRuleService:
                     f"删除报警规则成功，ID: {alarmrule_id}"
                 )
 
-                return ApiResponse.success(message="删除报警规则成功")
+                return ApiResponse.success(
+                    data={"id": alarmrule_id},
+                    message="删除报警规则成功"
+                )
             else:
                 raise HTTPException(status_code=500, detail="删除报警规则失败")
 

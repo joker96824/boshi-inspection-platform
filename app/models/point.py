@@ -19,6 +19,7 @@ class Point(BaseModel):
     
     # 关系
     map = relationship("Map", back_populates="points")
+    items = relationship("Item", back_populates="point", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<Point(id='{self.id}', point_name='{self.point_name}', map_id='{self.map_id}')>"

@@ -4,6 +4,7 @@ ROS2 Bridge - 提供WebSocket和HTTP接口与ROS2通信
 
 import asyncio
 import json
+import threading
 from typing import Dict, List, Optional, Callable
 import rclpy
 from rclpy.node import Node
@@ -29,8 +30,15 @@ class ROS2Bridge(Node):
         # 消息回调
         self._message_callbacks: List[Callable] = []
         
+        # Spin线程控制
+        self._spin_thread = None
+        self._stop_spin = False
+        
         # 初始化基础话题
         self._init_default_topics()
+        
+        # 启动spin线程
+        self._start_spin_thread()
         
         logger.info("ROS2 Bridge节点已启动")
     
@@ -61,6 +69,15 @@ class ROS2Bridge(Node):
         self.bridge_subscribers['laser'] = self.create_subscription(
             LaserScan, '/scan', self._laser_callback, 10
         )
+        
+        # ✅ 订阅来自 ros-test 的测试消息
+        self.bridge_subscribers['test_topic'] = self.create_subscription(
+            String,
+            '/test_topic',  # 主题名：必须和 ros-test 的 PUBLISH_TOPIC 一致（带前导斜杠）
+            self._test_topic_callback,
+            10
+        )
+        logger.info("已订阅 /test_topic，等待接收来自 ros-test 的消息...")
     
     def _string_callback(self, msg):
         """字符串消息回调"""
@@ -100,6 +117,41 @@ class ROS2Bridge(Node):
                 "range_max": msg.range_max
             }
         })
+    
+    def _test_topic_callback(self, msg):
+        """处理来自 ros-test 的测试消息"""
+        # 📝 在日志中输出接收到的消息内容
+        logger.info("=" * 60)
+        logger.info(f"📩 收到来自 ros-test 的消息")
+        logger.info(f"   主题: /test_topic")
+        logger.info(f"   内容: {msg.data}")
+        logger.info("=" * 60)
+        
+        # 广播到所有WebSocket连接
+        self._broadcast_message({
+            "type": "ros_test_message",
+            "topic": "/test_topic",
+            "data": msg.data,
+            "timestamp": self.get_clock().now().to_msg().sec
+        })
+        
+        # 处理业务逻辑
+        self._process_ros_test_message(msg.data)
+    
+    def _process_ros_test_message(self, message_data: str):
+        """处理接收到的测试消息（添加业务逻辑）"""
+        # 示例：根据消息内容执行不同操作
+        if "test" in message_data.lower():
+            logger.info("   → 消息类型: 测试消息")
+        
+        if "timestamp" in message_data.lower():
+            logger.info("   → 包含时间戳信息")
+        
+        # 在这里可以添加你的业务逻辑：
+        # - 触发巡检任务
+        # - 更新数据库状态
+        # - 发送响应消息到机器人
+        # - 记录到任务历史
     
     def _broadcast_message(self, message: dict):
         """广播消息到所有回调"""
@@ -191,3 +243,25 @@ class ROS2Bridge(Node):
     def is_ros2_available(self) -> bool:
         """检查ROS2是否可用"""
         return rclpy.ok()
+    
+    def _start_spin_thread(self):
+        """启动ROS2 spin线程"""
+        def spin_node():
+            logger.info("ROS2 spin线程已启动，开始监听消息...")
+            while not self._stop_spin and rclpy.ok():
+                try:
+                    rclpy.spin_once(self, timeout_sec=0.1)
+                except Exception as e:
+                    logger.error(f"ROS2 spin错误: {e}")
+            logger.info("ROS2 spin线程已停止")
+        
+        self._spin_thread = threading.Thread(target=spin_node, daemon=True)
+        self._spin_thread.start()
+    
+    def stop_spin(self):
+        """停止ROS2 spin线程"""
+        logger.info("正在停止ROS2 spin线程...")
+        self._stop_spin = True
+        if self._spin_thread and self._spin_thread.is_alive():
+            self._spin_thread.join(timeout=2.0)
+        logger.info("ROS2 spin线程已停止")

@@ -246,7 +246,10 @@ class ItemHistoryService:
                     f"删除巡检记录成功，ID: {itemhistory_id}"
                 )
                 
-                return ApiResponse.success(message="删除巡检记录成功")
+                return ApiResponse.success(
+                    data={"id": itemhistory_id},
+                    message="删除巡检记录成功"
+                )
             else:
                 raise HTTPException(status_code=500, detail="删除巡检记录失败")
             

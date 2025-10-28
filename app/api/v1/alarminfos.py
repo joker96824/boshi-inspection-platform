@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
 from ...core.deps import get_db
-from ...core.permissions import require_write_permission, require_read_permission
+from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...services.alarminfo_service import AlarmInfoService
 from ...schemas.alarminfo import (
     AlarmInfoCreate, AlarmInfoUpdate, AlarmInfoQuery,
@@ -41,7 +41,7 @@ async def create_alarminfo(
 async def get_alarminfos_by_ids(
     alarminfo_ids: List[str] = Query(..., description="报警信息ID列表（支持单个或多个ID查询）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID列表查询报警信息
     
@@ -66,7 +66,7 @@ async def get_alarminfos(
     alarmrule_id: Optional[str] = Query(None, description="报警规则ID"),
     itemhistory_id: Optional[str] = Query(None, description="巡检记录ID"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """分页查询报警信息列表
     
@@ -90,7 +90,7 @@ async def get_alarminfos(
 async def get_alarminfo_by_id(
     alarminfo_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID获取报警信息
     
@@ -151,7 +151,7 @@ async def delete_alarminfo(
 @router.get("/stats/summary", response_model=dict)
 async def get_alarminfo_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取报警信息统计信息
     

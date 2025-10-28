@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
 from ...core.deps import get_db
-from ...core.permissions import require_write_permission, require_read_permission
+from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...services.item_service import ItemService
 from ...schemas.item import ItemCreate, ItemUpdate, ItemResponse, ItemQuery, ItemListResponse
 from ...utils.response import ApiResponse
@@ -40,8 +40,9 @@ async def get_items(
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(20, ge=1, le=100, description="每页数量"),
     item_name: Optional[str] = Query(None, description="巡检项目名称（模糊查询）"),
+    point_id: Optional[str] = Query(None, description="巡检点ID（筛选）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取巡检项目列表
     
@@ -58,7 +59,8 @@ async def get_items(
     query = ItemQuery(
         page=page,
         size=size,
-        item_name=item_name
+        item_name=item_name,
+        point_id=point_id
     )
     service = ItemService(db)
     return await service.get_items(query, current_user)
@@ -68,7 +70,7 @@ async def get_items(
 async def get_items_by_ids(
     item_ids: List[str] = Query(..., description="巡检项目ID列表（支持单个或多个ID查询）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID列表查询巡检项目
     
@@ -90,7 +92,7 @@ async def get_items_by_ids(
 async def get_item_by_id(
     item_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID获取巡检项目详情
     
@@ -151,7 +153,7 @@ async def delete_item(
 @router.get("/stats/summary", response_model=dict)
 async def get_item_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取巡检项目统计信息
     

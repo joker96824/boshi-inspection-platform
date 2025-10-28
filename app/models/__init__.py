@@ -13,11 +13,28 @@ from .task import Task
 from .taskschedule import TaskSchedule
 from .taskhistory import TaskHistory
 from .item import Item
-from .point_item import PointItem
 from .itemhistory import ItemHistory
 from .taskresult import TaskResult
 from .alarmrule import AlarmRule
 from .alarminfo import AlarmInfo
+from .gimbal import Gimbal
+from .gimbaltask import GimbalTask
+from .gimbalschedule import GimbalSchedule
+from .gimbalhistory import GimbalHistory
+from .device import Device
+from .sensor import Sensor
+from .sensorschedule import SensorSchedule
+from .sensorhistory import SensorHistory
+from .vehiclecontroller import VehicleController
+from .environmentsensor import EnvironmentSensor
+from .dualptz import DualPTZ
+from .motorstatus import MotorStatus
+from .lidar import Lidar
+from .robotarm import RobotArm
+from .ultrasonic import Ultrasonic
+from .depthcamera import DepthCamera
+from .navigationcontroller import NavigationController
+from .factory import Factory
 
 __all__ = [
     "BaseModel",
@@ -31,9 +48,26 @@ __all__ = [
     "TaskSchedule",
     "TaskHistory",
     "Item",
-    "PointItem",
     "ItemHistory",
     "TaskResult",
     "AlarmRule",
     "AlarmInfo",
+    "Gimbal",
+    "GimbalTask",
+    "GimbalSchedule",
+    "GimbalHistory",
+    "Device",
+    "Sensor",
+    "SensorSchedule",
+    "SensorHistory",
+    "VehicleController",
+    "EnvironmentSensor",
+    "DualPTZ",
+    "MotorStatus",
+    "Lidar",
+    "RobotArm",
+    "Ultrasonic",
+    "DepthCamera",
+    "NavigationController",
+    "Factory",
 ]

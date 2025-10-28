@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ...core.deps import get_db
 from ...core.auth import get_current_user
 from ...services.auth_service import AuthService
-from ...schemas.user import UserLogin
+from ...services.user_service import UserService
+from ...schemas.user import UserLogin, PasswordVerifyRequest
 from ...utils.response import ApiResponse
 
 router = APIRouter()
@@ -45,6 +46,28 @@ async def refresh_token(
     """刷新令牌"""
     auth_service = AuthService(db)
     return await auth_service.refresh_token(current_user)
+
+
+@router.post("/verify-password", response_model=dict)
+async def verify_password(
+    password_data: PasswordVerifyRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """验证用户密码
+    
+    用于在执行敏感操作时再次确认密码
+    
+    Args:
+        password_data: 包含用户输入的密码
+        current_user: 当前用户信息（从token获取）
+        db: 数据库会话
+    
+    Returns:
+        密码验证结果
+    """
+    user_service = UserService(db)
+    return await user_service.verify_password(password_data, current_user)
 
 
 @router.get("/me", response_model=dict)

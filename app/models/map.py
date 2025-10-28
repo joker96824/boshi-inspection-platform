@@ -16,8 +16,10 @@ class Map(BaseModel):
     map_scale = Column(DECIMAL(10, 6), nullable=True, comment='比例尺')
     map_center_x = Column(DECIMAL(15, 6), nullable=True, comment='中心点横坐标')
     map_center_y = Column(DECIMAL(15, 6), nullable=True, comment='中心点纵坐标')
+    factory_id = Column(String(36), ForeignKey("tb_factory.id", ondelete="SET NULL"), nullable=True, index=True, comment='厂区ID')
     
     # 关系
+    factory = relationship("Factory", foreign_keys=[factory_id])
     mapnets = relationship("MapNet", back_populates="map")
     points = relationship("Point", back_populates="map")
     tasks = relationship("Task", back_populates="map")

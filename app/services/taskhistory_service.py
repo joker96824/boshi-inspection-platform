@@ -190,7 +190,10 @@ class TaskHistoryService:
                 f"删除任务记录成功，ID: {taskhistory_id}"
             )
             
-            return ApiResponse.success(message="删除任务记录成功")
+            return ApiResponse.success(
+                data={"id": taskhistory_id},
+                message="删除任务记录成功"
+            )
             
         except (ResourceNotFoundError, PermissionDeniedError) as e:
             logger.warning(f"删除任务记录失败: {e}")

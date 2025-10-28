@@ -2,7 +2,7 @@
 机器人业务逻辑服务
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
@@ -28,6 +28,7 @@ class RobotService:
             "id": robot.id,
             "robot_name": robot.robot_name,
             "robot_info": robot.robot_info,
+            "map_id": robot.map_id,
             "created_at": robot.created_at.strftime("%Y-%m-%dT%H:%M:%S") if robot.created_at else None,
             "updated_at": robot.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if robot.updated_at else None,
             "created_by": robot.created_by,
@@ -40,6 +41,7 @@ class RobotService:
             create_data = {
                 "robot_name": robot_data.robot_name,
                 "robot_info": robot_data.robot_info,
+                "map_id": robot_data.map_id,
                 "created_by": user["username"],
                 "updated_by": user["username"]
             }
@@ -69,7 +71,7 @@ class RobotService:
             )
             raise HTTPException(status_code=500, detail="创建机器人失败")
     
-    async def get_robot_by_id(self, robot_id: str, user: dict) -> Dict[str, Any]:
+    async def get_robot_by_id(self, robot_id: str, user: Optional[dict]) -> Dict[str, Any]:
         """根据ID获取机器人"""
         robot = await self.robot_repo.get_by_id(robot_id)
         if not robot:
@@ -80,7 +82,7 @@ class RobotService:
             message="获取机器人成功"
         )
     
-    async def get_robots_by_ids(self, robot_ids: List[str], user: dict) -> Dict[str, Any]:
+    async def get_robots_by_ids(self, robot_ids: List[str], user: Optional[dict]) -> Dict[str, Any]:
         """根据ID列表获取机器人"""
         try:
             robots = await self.robot_repo.get_by_ids(robot_ids)
@@ -96,10 +98,10 @@ class RobotService:
             logger.error(f"获取机器人列表失败: {e}")
             raise HTTPException(status_code=500, detail="获取机器人列表失败")
     
-    async def get_user_robots(self, user: dict, page: int = 1, size: int = 20, robot_name: str = None) -> Dict[str, Any]:
+    async def get_user_robots(self, user: Optional[dict], page: int = 1, size: int = 20, robot_name: str = None, map_id: str = None) -> Dict[str, Any]:
         """获取所有机器人列表"""
         try:
-            robots, total = await self.robot_repo.get_all(page, size, robot_name)
+            robots, total = await self.robot_repo.get_all(page, size, robot_name, map_id)
             
             # 格式化响应数据
             items = [self._format_robot_response(robot) for robot in robots]
@@ -131,6 +133,8 @@ class RobotService:
                 update_data["robot_name"] = robot_data.robot_name
             if robot_data.robot_info is not None:
                 update_data["robot_info"] = robot_data.robot_info
+            if robot_data.map_id is not None:
+                update_data["map_id"] = robot_data.map_id
             update_data["updated_by"] = user["username"]
             
             # 更新机器人
@@ -181,7 +185,10 @@ class RobotService:
                 f"删除机器人成功，ID: {robot_id}"
             )
             
-            return ApiResponse.success(message="删除机器人成功")
+            return ApiResponse.success(
+                data={"id": robot_id},
+                message="删除机器人成功"
+            )
             
         except Exception as e:
             logger.error(f"删除机器人失败: {e}")
@@ -193,7 +200,7 @@ class RobotService:
             )
             raise HTTPException(status_code=500, detail="删除机器人失败")
     
-    async def get_robot_stats(self, user: dict) -> Dict[str, Any]:
+    async def get_robot_stats(self, user: Optional[dict]) -> Dict[str, Any]:
         """获取机器人统计信息"""
         try:
             total_count = await self.robot_repo.count_all()

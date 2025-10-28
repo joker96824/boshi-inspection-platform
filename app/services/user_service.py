@@ -2,7 +2,7 @@
 用户业务逻辑层
 """
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from ..core.exceptions import (
     UsernameExistsError, EmailExistsError, MobileExistsError, UserNotFoundError,
     PermissionDeniedError, OldPasswordError, CannotDeleteSelfError
@@ -13,7 +13,7 @@ from datetime import datetime
 from ..repositories.user_repository import UserRepository
 from ..core.security import get_password_hash, verify_password
 from ..core.permissions import can_manage_role
-from ..schemas.user import UserCreate, UserUpdate, UserPasswordUpdate
+from ..schemas.user import UserCreate, UserUpdate, UserPasswordUpdate, PasswordVerifyRequest
 from ..utils.response import ApiResponse
 from ..config.logging import log_user_action
 
@@ -259,6 +259,54 @@ class UserService:
             },
             message=f"用户 '{user.username}' (角色: {user.role}) 删除成功，所有会话已失效"
         )
+    
+    async def verify_password(self, password_data: PasswordVerifyRequest, current_user: dict) -> Dict[str, Any]:
+        """验证用户密码"""
+        try:
+            # 获取用户信息
+            user = await self.user_repo.get_by_username(current_user["username"])
+            if not user:
+                return ApiResponse.success(
+                    data={"is_valid": False, "message": "用户不存在"},
+                    message="密码验证完成"
+                )
+            
+            # 验证密码
+            is_valid = verify_password(password_data.password, user.password_hash)
+            
+            if is_valid:
+                message = "密码验证成功"
+                log_user_action(
+                    current_user["username"],
+                    "verify_password",
+                    "success",
+                    "密码验证成功"
+                )
+            else:
+                message = "密码验证失败"
+                log_user_action(
+                    current_user["username"],
+                    "verify_password",
+                    "failed",
+                    "密码验证失败"
+                )
+            
+            return ApiResponse.success(
+                data={"is_valid": is_valid, "message": message},
+                message="密码验证完成"
+            )
+            
+        except Exception as e:
+            log_user_action(
+                current_user["username"],
+                "verify_password",
+                "failed",
+                f"密码验证异常: {str(e)}"
+            )
+            return ApiResponse.success(
+                data={"is_valid": False, "message": "密码验证异常"},
+                message="密码验证完成"
+            )
     
     def _format_user_response(self, user) -> dict:
         """格式化用户响应数据"""

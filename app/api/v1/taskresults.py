@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
 from ...core.deps import get_db
-from ...core.permissions import require_write_permission, require_read_permission
+from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...services.taskresult_service import TaskResultService
 from ...schemas.taskresult import (
     TaskResultCreate, TaskResultUpdate, TaskResultQuery,
@@ -41,7 +41,7 @@ async def create_taskresult(
 async def get_taskresults_by_ids(
     taskresult_ids: List[str] = Query(..., description="任务结果ID列表（支持单个或多个ID查询）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID列表查询任务结果
     
@@ -64,7 +64,7 @@ async def get_taskresults(
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(20, ge=1, le=100, description="每页数量"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """分页查询任务结果列表
     
@@ -86,7 +86,7 @@ async def get_taskresults(
 async def get_taskresult_by_id(
     taskresult_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID获取任务结果
     
@@ -147,7 +147,7 @@ async def delete_taskresult(
 @router.get("/stats/summary", response_model=dict)
 async def get_taskresult_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取任务结果统计信息
     

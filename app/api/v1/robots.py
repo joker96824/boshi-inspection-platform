@@ -4,11 +4,11 @@
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
 
 from ...core.deps import get_db
 from ...core.auth import get_current_user
-from ...core.permissions import require_write_permission, require_read_permission
+from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...schemas.robot import RobotCreate, RobotUpdate, RobotQuery
 from ...services.robot_service import RobotService
 from ...utils.response import ApiResponse
@@ -41,8 +41,9 @@ async def get_user_robots(
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(20, ge=1, le=100, description="每页数量"),
     robot_name: str = Query(None, description="机器人名称（模糊匹配）"),
+    map_id: str = Query(None, description="地图ID筛选"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取当前用户的机器人列表
     
@@ -50,6 +51,7 @@ async def get_user_robots(
         page: 页码
         size: 每页数量
         robot_name: 机器人名称（模糊匹配）
+        map_id: 地图ID筛选
         db: 数据库会话
         current_user: 当前用户
     
@@ -57,14 +59,14 @@ async def get_user_robots(
         机器人列表
     """
     robot_service = RobotService(db)
-    return await robot_service.get_user_robots(current_user, page, size, robot_name)
+    return await robot_service.get_user_robots(current_user, page, size, robot_name, map_id)
 
 
 @router.get("/by-ids", response_model=dict)
 async def get_robots_by_ids(
     robot_ids: List[str] = Query(..., description="机器人ID列表（支持单个或多个ID查询）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID列表查询机器人
     
@@ -86,7 +88,7 @@ async def get_robots_by_ids(
 async def get_robot_by_id(
     robot_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID获取机器人
     
@@ -147,7 +149,7 @@ async def delete_robot(
 @router.get("/stats/summary", response_model=dict)
 async def get_robot_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取机器人统计信息
     

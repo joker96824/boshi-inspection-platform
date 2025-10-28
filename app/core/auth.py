@@ -5,7 +5,7 @@
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from jose import JWTError, jwt
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -55,6 +55,60 @@ def verify_token(token: str) -> Dict[str, Any]:
         return payload
     except JWTError:
         raise TokenError("无效的令牌")
+
+
+async def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
+    db: AsyncSession = Depends(get_db)
+) -> Optional[dict]:
+    """获取当前用户信息（可选认证）"""
+    if not credentials:
+        return None
+    
+    try:
+        token = credentials.credentials
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM]
+        )
+        user_id = payload.get("sub")
+        if user_id is None:
+            return None
+    except JWTError:
+        return None
+
+    # 查询用户信息
+    stmt = select(User).where(User.id == user_id, User.is_deleted == False)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        return None
+
+    # 检查当前令牌的会话是否有效
+    from ..models.session import Session
+    from datetime import datetime
+    
+    session_stmt = select(Session).where(
+        Session.token == token,
+        Session.user_id == user_id,
+        Session.is_deleted == False,
+        Session.expires_at > datetime.utcnow()
+    )
+    session_result = await db.execute(session_stmt)
+    session = session_result.scalar_one_or_none()
+    
+    if session is None:
+        return None
+
+    return {
+        "id": str(user.id),
+        "username": user.username,
+        "email": user.email,
+        "mobile": user.mobile,
+        "role": user.role
+    }
 
 
 async def get_current_user(

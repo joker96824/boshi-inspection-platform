@@ -190,7 +190,10 @@ class TaskResultService:
                     f"删除任务结果成功，ID: {taskresult_id}"
                 )
 
-                return ApiResponse.success(message="删除任务结果成功")
+                return ApiResponse.success(
+                    data={"id": taskresult_id},
+                    message="删除任务结果成功"
+                )
             else:
                 raise HTTPException(status_code=500, detail="删除任务结果失败")
 

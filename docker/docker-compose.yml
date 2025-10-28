@@ -1,26 +1,106 @@
 version: '3.8'
 
 services:
-  fastapi-ros:
-    build: 
-      context: ..
-      dockerfile: docker/Dockerfile
-    container_name: fastapi-ros-dev
+  # MySQL数据库服务
+  mysql:
+    image: mysql:8.0
+    container_name: boshi-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-Xx147258.}
+      MYSQL_DATABASE: boshirobot
+      MYSQL_USER: boshi
+      MYSQL_PASSWORD: ${DB_PASSWORD:-Xx147258.}
+      TZ: Asia/Shanghai
+    ports:
+      - "3307:3306"  # 宿主机3307端口映射到容器3306端口
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./scripts/init_database.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - boshi-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-Xx147258.}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 博实智能巡检平台应用
+  app:
+    image: boshi-inspection-platform:1.0
+    container_name: boshi-app
+    restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      # 数据库配置 - 支持外部.env文件配置
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-boshi}
+      DB_PASSWORD: ${DB_PASSWORD:-Xx147258.}
+      DB_NAME: ${DB_NAME:-boshirobot}
+      DATABASE_URL: ${DATABASE_URL:-mysql+aiomysql://boshi:Xx147258.@mysql:3306/boshirobot}
+      
+      # Redis配置 - 支持外部.env文件配置
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_DB: ${REDIS_DB:-0}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      
+      # 应用配置
+      HOST: ${HOST:-0.0.0.0}
+      PORT: ${PORT:-8000}
+      DEBUG: ${DEBUG:-true}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      SECRET_KEY: ${SECRET_KEY:-change-this-to-a-random-secret-key-in-production}
+      
+      # ROS2配置
+      ROS2_ENABLED: ${ROS2_ENABLED:-true}
+      ROS2_DOMAIN_ID: ${ROS2_DOMAIN_ID:-0}
+      
+      # 时区
+      TZ: Asia/Shanghai
     ports:
       - "8000:8000"
-      - "9090:9090"  # ROS2 WebSocket bridge
     volumes:
-      - ..:/workspace
-      - /tmp/.X11-unix:/tmp/.X11-unix:rw
-    environment:
-      - DISPLAY=${DISPLAY:-:0}
-      - ROS_DOMAIN_ID=0
-      - PYTHONPATH=/workspace
-    network_mode: host
-    privileged: true
-    stdin_open: true
-    tty: true
-    command: bash -c "source /opt/ros/humble/setup.bash && cd /workspace && bash"
+      - ./logs:/app/logs
+      - ./docs:/app/docs:ro
+    networks:
+      - boshi-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/system/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-# 注意：项目已内置ROS2 Bridge，不需要额外的rosbridge_server
+  # Redis缓存服务（可选）
+  redis:
+    image: redis:7-alpine
+    container_name: boshi-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - boshi-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  boshi-network:
+    driver: bridge
+
 

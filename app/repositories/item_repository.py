@@ -43,7 +43,7 @@ class ItemRepository:
         return list(result.scalars().all())
     
     async def get_all(self, page: int = 1, size: int = 20, 
-                     item_name: str = None) -> Tuple[List[Item], int]:
+                     item_name: str = None, point_id: str = None) -> Tuple[List[Item], int]:
         """获取巡检项目列表"""
         skip = (page - 1) * size
         
@@ -52,6 +52,9 @@ class ItemRepository:
         
         if item_name:
             conditions.append(Item.item_name.like(f"%{item_name}%"))
+        
+        if point_id:
+            conditions.append(Item.point_id == point_id)
         
         # 查询总数
         count_query = select(func.count(Item.id)).where(and_(*conditions))
@@ -69,6 +72,16 @@ class ItemRepository:
         items = list(result.scalars().all())
         
         return items, total
+    
+    async def get_by_point_id(self, point_id: str) -> List[Item]:
+        """根据巡检点ID获取所有巡检项目"""
+        query = select(Item).where(
+            Item.point_id == point_id,
+            Item.is_deleted == False
+        ).order_by(Item.created_at.desc())
+        
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
     
     async def update(self, item_id: str, data: Dict[str, Any]) -> Optional[Item]:
         """更新巡检项目"""

@@ -5,7 +5,7 @@
 from fastapi import FastAPI, WebSocket
 
 from .core.app_factory import create_app, setup_lifespan_events
-from .api.v1 import auth, users, ros2, system, logs, maps, mapnets, robots, points, items, point_items, itemhistories, tasks, taskschedules, taskhistories, taskresults, alarmrules, alarminfos
+from .api.v1 import auth, users, ros2, system, logs, maps, factories, mapnets, robots, points, items, itemhistories, tasks, taskschedules, taskhistories, taskresults, alarmrules, alarminfos, gimbals, gimbaltasks, gimbalschedules, gimbalhistories, devices, sensors, sensorschedules, sensorhistories, vehiclecontrollers, environmentsensors, dualptzs, motorstatuses, lidars, robotarms, ultrasonics, depthcameras, navigationcontrollers
 from .config.settings import settings
 from .utils.response import ApiResponse
 
@@ -33,19 +33,45 @@ async def root():
 def register_routes():
     """注册所有API路由"""
     # 业务API路由
+    # 基础功能模块
     app.include_router(auth.router, prefix="/api/v1/auth", tags=["认证"])
     app.include_router(users.router, prefix="/api/v1/users", tags=["用户管理"])
+    app.include_router(factories.router, prefix="/api/v1/factories", tags=["厂区管理"])
     app.include_router(maps.router, prefix="/api/v1/maps", tags=["地图管理"])
     app.include_router(mapnets.router, prefix="/api/v1/mapnets", tags=["地图路网管理"])
     app.include_router(robots.router, prefix="/api/v1/robots", tags=["机器人管理"])
     app.include_router(points.router, prefix="/api/v1/points", tags=["巡检点管理"])
     app.include_router(items.router, prefix="/api/v1/items", tags=["巡检项目管理"])
-    app.include_router(point_items.router, prefix="/api/v1/point-items", tags=["巡检中间表管理"])
     app.include_router(itemhistories.router, prefix="/api/v1/itemhistories", tags=["巡检记录管理"])
     app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["任务管理"])
     app.include_router(taskschedules.router, prefix="/api/v1/taskschedules", tags=["任务日程管理"])
     app.include_router(taskhistories.router, prefix="/api/v1/taskhistories", tags=["任务记录管理"])
     app.include_router(taskresults.router, prefix="/api/v1/taskresults", tags=["任务结果管理"])
+    
+    # 云台相关模块（按添加顺序）
+    app.include_router(gimbals.router, prefix="/api/v1/gimbals", tags=["云台管理"])
+    app.include_router(gimbaltasks.router, prefix="/api/v1/gimbaltasks", tags=["云台任务管理"])
+    app.include_router(gimbalschedules.router, prefix="/api/v1/gimbalschedules", tags=["云台日程管理"])
+    app.include_router(gimbalhistories.router, prefix="/api/v1/gimbalhistories", tags=["云台记录管理"])
+    
+    # 设备相关模块（按添加顺序）
+    app.include_router(devices.router, prefix="/api/v1/devices", tags=["设备管理"])
+    app.include_router(sensors.router, prefix="/api/v1/sensors", tags=["智能传感器管理"])
+    app.include_router(sensorschedules.router, prefix="/api/v1/sensorschedules", tags=["传感器日程管理"])
+    app.include_router(sensorhistories.router, prefix="/api/v1/sensorhistories", tags=["传感器记录管理"])
+    
+    # 配置管理模块（按添加顺序）
+    app.include_router(vehiclecontrollers.router, prefix="/api/v1/vehiclecontrollers", tags=["车体控制器管理"])
+    app.include_router(environmentsensors.router, prefix="/api/v1/environmentsensors", tags=["环境传感器管理"])
+    app.include_router(dualptzs.router, prefix="/api/v1/dualptzs", tags=["双光云台配置管理"])
+    app.include_router(motorstatuses.router, prefix="/api/v1/motorstatuses", tags=["电机状态配置管理"])
+    app.include_router(lidars.router, prefix="/api/v1/lidars", tags=["激光雷达配置管理"])
+    app.include_router(robotarms.router, prefix="/api/v1/robotarms", tags=["机械臂状态配置管理"])
+    app.include_router(ultrasonics.router, prefix="/api/v1/ultrasonics", tags=["超声波状态配置管理"])
+    app.include_router(depthcameras.router, prefix="/api/v1/depthcameras", tags=["深度相机配置管理"])
+    app.include_router(navigationcontrollers.router, prefix="/api/v1/navigationcontrollers", tags=["导航控制器配置管理"])
+    
+    # 报警和系统管理模块
     app.include_router(alarmrules.router, prefix="/api/v1/alarmrules", tags=["报警规则管理"])
     app.include_router(alarminfos.router, prefix="/api/v1/alarminfos", tags=["报警信息管理"])
     

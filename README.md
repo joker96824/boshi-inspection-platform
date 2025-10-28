@@ -235,8 +235,8 @@ wsl -e bash -c "cd /mnt/d/Project/boshi/boshi-inspection-platform && source /opt
 - 部署问题 → 查看 [EXTERNAL_DEPLOYMENT_GUIDE.md](docs/EXTERNAL_DEPLOYMENT_GUIDE.md)
 
 ### 联系方式
-- **项目**: 博实智能巡检平台
-- **维护者**: 开发团队
+- **项目**: 博实智能巡检项目组
+- **维护者**: 博实智能巡检项目组
 
 ---
 

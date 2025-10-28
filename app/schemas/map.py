@@ -15,6 +15,7 @@ class MapBase(BaseSchema):
     map_scale: Optional[Decimal] = Field(None, ge=0, description="比例尺")
     map_center_x: Optional[Decimal] = Field(None, description="中心点横坐标")
     map_center_y: Optional[Decimal] = Field(None, description="中心点纵坐标")
+    factory_id: Optional[str] = Field(None, description="厂区ID")
 
     @validator('map_name')
     def validate_map_name(cls, v):
@@ -45,6 +46,7 @@ class MapUpdate(BaseSchema):
     map_scale: Optional[Decimal] = Field(None, ge=0, description="比例尺")
     map_center_x: Optional[Decimal] = Field(None, description="中心点横坐标")
     map_center_y: Optional[Decimal] = Field(None, description="中心点纵坐标")
+    factory_id: Optional[str] = Field(None, description="厂区ID")
 
     @validator('map_name')
     def validate_map_name(cls, v):

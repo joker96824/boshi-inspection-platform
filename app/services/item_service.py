@@ -2,7 +2,7 @@
 巡检项目业务逻辑服务
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
@@ -56,7 +56,7 @@ class ItemService:
             logger.error(f"创建巡检项目失败: {e}")
             raise HTTPException(status_code=500, detail="创建巡检项目失败")
     
-    async def get_item_by_id(self, item_id: str, user: dict) -> Dict[str, Any]:
+    async def get_item_by_id(self, item_id: str, user: Optional[dict]) -> Dict[str, Any]:
         """根据ID获取巡检项目"""
         try:
             item = await self.item_repo.get_by_id(item_id)
@@ -75,7 +75,7 @@ class ItemService:
             logger.error(f"获取巡检项目失败: {e}")
             raise HTTPException(status_code=500, detail="获取巡检项目失败")
     
-    async def get_items_by_ids(self, item_ids: List[str], user: dict) -> Dict[str, Any]:
+    async def get_items_by_ids(self, item_ids: List[str], user: Optional[dict]) -> Dict[str, Any]:
         """根据ID列表获取巡检项目"""
         try:
             items = await self.item_repo.get_by_ids(item_ids)
@@ -91,13 +91,14 @@ class ItemService:
             logger.error(f"获取巡检项目列表失败: {e}")
             raise HTTPException(status_code=500, detail="获取巡检项目列表失败")
     
-    async def get_items(self, query: ItemQuery, user: dict) -> Dict[str, Any]:
+    async def get_items(self, query: ItemQuery, user: Optional[dict]) -> Dict[str, Any]:
         """获取巡检项目列表"""
         try:
             items, total = await self.item_repo.get_all(
                 page=query.page,
                 size=query.size,
-                item_name=query.item_name
+                item_name=query.item_name,
+                point_id=query.point_id
             )
             
             # 格式化响应数据
@@ -154,17 +155,12 @@ class ItemService:
             raise HTTPException(status_code=500, detail="更新巡检项目失败")
     
     async def delete_item(self, item_id: str, user: dict) -> Dict[str, Any]:
-        """删除巡检项目（级联删除关联关系）"""
+        """删除巡检项目"""
         try:
             # 检查巡检项目是否存在
             existing_item = await self.item_repo.get_by_id(item_id)
             if not existing_item:
                 raise ResourceNotFoundError(f"巡检项目ID '{item_id}' 不存在")
-            
-            # 级联删除关联的中间表记录
-            from ..repositories.point_item_repository import PointItemRepository
-            point_item_repo = PointItemRepository(self.db)
-            deleted_relations = await point_item_repo.delete_by_item_id(item_id)
             
             # 删除巡检项目
             success = await self.item_repo.soft_delete(item_id, user["username"])
@@ -174,15 +170,12 @@ class ItemService:
                     user["username"],
                     "delete_item",
                     "success",
-                    f"删除巡检项目成功，ID: {item_id}，同时删除了 {deleted_relations} 个关联记录"
+                    f"删除巡检项目成功，ID: {item_id}"
                 )
                 
                 return ApiResponse.success(
-                    data={
-                        "item_id": item_id,
-                        "deleted_relations": deleted_relations
-                    },
-                    message=f"删除巡检项目成功，同时删除了 {deleted_relations} 个关联记录"
+                    data={"id": item_id},
+                    message="删除巡检项目成功"
                 )
             else:
                 raise HTTPException(status_code=500, detail="删除巡检项目失败")
@@ -194,7 +187,7 @@ class ItemService:
             logger.error(f"删除巡检项目失败: {e}")
             raise HTTPException(status_code=500, detail="删除巡检项目失败")
     
-    async def get_item_stats(self, user: dict) -> Dict[str, Any]:
+    async def get_item_stats(self, user: Optional[dict]) -> Dict[str, Any]:
         """获取巡检项目统计信息"""
         try:
             total_count = await self.item_repo.count_all()
@@ -218,6 +211,7 @@ class ItemService:
             "id": item.id,
             "item_name": item.item_name,
             "item_info": item.item_info,
+            "point_id": item.point_id,
             "created_at": item.created_at.strftime("%Y-%m-%dT%H:%M:%S") if item.created_at else None,
             "updated_at": item.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if item.updated_at else None,
             "created_by": item.created_by,

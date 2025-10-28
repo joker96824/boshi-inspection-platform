@@ -8,7 +8,7 @@ from typing import Optional
 
 from ...core.deps import get_db
 from ...core.auth import get_current_user
-from ...core.permissions import require_write_permission, require_read_permission
+from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...services.map_service import MapService
 from ...schemas.map import (
     MapCreate, MapUpdate, MapResponse, MapQuery, MapListResponse
@@ -49,7 +49,7 @@ async def get_user_maps(
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(20, ge=1, le=100, description="每页数量"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取当前用户的地图列表
     
@@ -75,7 +75,7 @@ async def get_user_maps(
 async def get_map_by_id(
     map_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID获取地图详情
     
@@ -149,7 +149,7 @@ async def delete_map(
 @router.get("/stats/summary", response_model=dict)
 async def get_map_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取当前用户的地图统计信息
     

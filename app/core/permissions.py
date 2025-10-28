@@ -5,7 +5,7 @@
 from enum import Enum
 from typing import Dict, List, Optional
 from fastapi import Depends
-from ..core.auth import get_current_user
+from ..core.auth import get_current_user, get_current_user_optional
 from ..core.exceptions import PermissionDeniedError
 
 
@@ -85,3 +85,11 @@ require_write_permission = require_role_level(UserRole.OPERATOR)
 
 # 查询权限：所有用户都可以
 require_read_permission = require_role_level(UserRole.USER)
+
+# 无需认证的查询权限：不检查token，直接返回None
+def require_no_auth():
+    """无需认证的权限装饰器"""
+    def no_auth_checker(current_user: Optional[dict] = Depends(get_current_user_optional)) -> Optional[dict]:
+        return current_user
+    
+    return no_auth_checker

@@ -90,6 +90,17 @@ class UserLogin(BaseSchema):
 
 
 
+class PasswordVerifyRequest(BaseSchema):
+    """密码验证请求模式"""
+    password: str = Field(..., min_length=1, max_length=100, description="用户密码")
+
+
+class PasswordVerifyResponse(BaseSchema):
+    """密码验证响应模式"""
+    is_valid: bool = Field(..., description="密码是否正确")
+    message: str = Field(..., description="验证结果消息")
+
+
 class UserListResponse(BaseSchema):
     """用户列表响应模式"""
     total: int = Field(..., description="总数量")

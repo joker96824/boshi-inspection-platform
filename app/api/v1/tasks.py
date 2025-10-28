@@ -4,11 +4,11 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
 
 from ...core.deps import get_db
 from ...core.auth import get_current_user
-from ...core.permissions import require_write_permission, require_read_permission
+from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...services.task_service import TaskService
 from ...schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskQuery, TaskListResponse
 from ...utils.response import ApiResponse
@@ -46,7 +46,7 @@ async def get_tasks(
     sort_by: str = Query("task_order", description="排序字段: task_order, task_res_prior, task_int_prior"),
     sort_order: str = Query("asc", description="排序顺序: asc(正序), desc(反序)"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取任务列表
     
@@ -74,7 +74,7 @@ async def get_tasks(
 async def get_tasks_by_ids(
     task_ids: List[str] = Query(..., description="任务ID列表（支持单个或多个ID查询）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID列表查询任务
     
@@ -96,7 +96,7 @@ async def get_tasks_by_ids(
 async def get_task_by_id(
     task_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID获取任务
     

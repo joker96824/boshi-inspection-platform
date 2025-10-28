@@ -1,0 +1,53 @@
+"""
+智能传感器Pydantic模式
+"""
+
+from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, Field
+from .base import BaseSchema, BaseResponse
+
+
+class SensorBase(BaseSchema):
+    """智能传感器基础模式"""
+    device_id: str = Field(..., description="关联设备ID")
+    sensor_name: str = Field(..., min_length=1, max_length=100, description="传感器名称")
+    sensor_params: Optional[Dict[str, Any]] = Field(None, description="传感器参数")
+
+
+class SensorCreate(SensorBase):
+    """智能传感器创建模式"""
+    pass
+
+
+class SensorUpdate(BaseSchema):
+    """智能传感器更新模式"""
+    device_id: Optional[str] = Field(None, description="关联设备ID")
+    sensor_name: Optional[str] = Field(None, min_length=1, max_length=100, description="传感器名称")
+    sensor_params: Optional[Dict[str, Any]] = Field(None, description="传感器参数")
+
+
+class SensorResponse(BaseResponse):
+    """智能传感器响应模式"""
+    id: str = Field(..., description="传感器ID")
+    device_id: str = Field(..., description="关联设备ID")
+    sensor_name: str = Field(..., description="传感器名称")
+    sensor_params: Optional[Dict[str, Any]] = Field(None, description="传感器参数")
+    created_at: str = Field(..., description="创建时间")
+    updated_at: str = Field(..., description="更新时间")
+    created_by: Optional[str] = Field(None, description="创建者")
+    updated_by: Optional[str] = Field(None, description="更新者")
+
+
+class SensorQuery(BaseSchema):
+    """智能传感器查询模式"""
+    page: int = Field(1, ge=1, description="页码")
+    size: int = Field(20, ge=1, le=100, description="每页数量")
+    sensor_name: Optional[str] = Field(None, description="传感器名称（模糊查询）")
+    device_id: Optional[str] = Field(None, description="设备ID筛选")
+
+
+class SensorListResponse(BaseSchema):
+    """智能传感器列表响应模式"""
+    items: List[SensorResponse] = Field(..., description="智能传感器列表")
+    pagination: Dict[str, Any] = Field(..., description="分页信息")
+

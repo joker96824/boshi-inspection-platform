@@ -10,7 +10,8 @@ from pydantic import Field
 class Settings(BaseSettings):
     """应用配置类"""
     
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # 优先使用环境变量，不读取.env文件（Docker环境中通过environment传递配置）
+    model_config = SettingsConfigDict(extra="ignore")
 
     # 应用基础配置
     APP_NAME: str = Field("博实智能巡检平台", description="应用名称")

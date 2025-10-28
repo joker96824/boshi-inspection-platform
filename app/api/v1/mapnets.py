@@ -8,7 +8,7 @@ from typing import Optional, List
 
 from ...core.deps import get_db
 from ...core.auth import get_current_user
-from ...core.permissions import require_write_permission, require_read_permission
+from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...services.mapnet_service import MapNetService
 from ...schemas.mapnet import (
     MapNetCreate, MapNetUpdate, MapNetResponse, MapNetQuery, MapNetListResponse
@@ -51,7 +51,7 @@ async def get_mapnets_by_map(
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(20, ge=1, le=100, description="每页数量"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取地图的路网元素列表
     
@@ -79,7 +79,7 @@ async def get_mapnets_by_map(
 async def get_mapnets_by_ids(
     mapnet_ids: List[str] = Query(..., description="路网元素ID列表（支持单个或多个ID查询）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID列表查询路网元素
     
@@ -101,7 +101,7 @@ async def get_mapnets_by_ids(
 async def get_mapnet_by_id(
     mapnet_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID获取路网元素详情
     
@@ -178,7 +178,7 @@ async def delete_mapnet(
 async def get_mapnet_stats(
     map_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取地图的路网统计信息
     

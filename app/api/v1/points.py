@@ -4,11 +4,11 @@
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
 
 from ...core.deps import get_db
 from ...core.auth import get_current_user
-from ...core.permissions import require_write_permission, require_read_permission
+from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...schemas.point import PointCreate, PointUpdate, PointQuery
 from ...services.point_service import PointService
 from ...utils.response import ApiResponse
@@ -43,7 +43,7 @@ async def get_points(
     point_name: str = Query(None, description="巡检点名称（模糊匹配）"),
     map_id: str = Query(None, description="地图ID（可选过滤）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取巡检点列表
     
@@ -66,7 +66,7 @@ async def get_points(
 async def get_points_by_ids(
     point_ids: List[str] = Query(..., description="巡检点ID列表（支持单个或多个ID查询）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID列表查询巡检点
     
@@ -88,7 +88,7 @@ async def get_points_by_ids(
 async def get_point_by_id(
     point_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID获取巡检点
     
@@ -149,7 +149,7 @@ async def delete_point(
 @router.get("/stats/summary", response_model=dict)
 async def get_point_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取巡检点统计信息
     

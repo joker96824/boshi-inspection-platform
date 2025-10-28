@@ -257,6 +257,7 @@ def setup_lifespan_events(app: FastAPI):
         # 关闭ROS2 Bridge
         if ros2_bridge:
             try:
+                ros2_bridge.stop_spin()  # 先停止spin线程
                 ros2_bridge.destroy_node()
                 if rclpy.ok():
                     rclpy.shutdown()

@@ -2,7 +2,7 @@
 任务业务逻辑服务
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
@@ -74,7 +74,7 @@ class TaskService:
             logger.error(f"创建任务失败: {e}")
             raise HTTPException(status_code=500, detail="创建任务失败")
     
-    async def get_task_by_id(self, task_id: str, user: dict) -> Dict[str, Any]:
+    async def get_task_by_id(self, task_id: str, user: Optional[dict]) -> Dict[str, Any]:
         """根据ID获取任务"""
         try:
             task = await self.task_repo.get_by_id(task_id)
@@ -95,7 +95,7 @@ class TaskService:
             logger.error(f"获取任务失败: {e}")
             raise HTTPException(status_code=500, detail="获取任务失败")
     
-    async def get_tasks_by_ids(self, task_ids: List[str], user: dict) -> Dict[str, Any]:
+    async def get_tasks_by_ids(self, task_ids: List[str], user: Optional[dict]) -> Dict[str, Any]:
         """根据ID列表获取任务"""
         try:
             tasks = await self.task_repo.get_by_ids(task_ids)
@@ -111,7 +111,7 @@ class TaskService:
             logger.error(f"获取任务列表失败: {e}")
             raise HTTPException(status_code=500, detail="获取任务列表失败")
     
-    async def get_tasks(self, user: dict, page: int = 1, size: int = 20, 
+    async def get_tasks(self, user: Optional[dict], page: int = 1, size: int = 20, 
                         task_name: str = None, map_id: str = None, robot_id: str = None,
                         sort_by: str = "task_order", sort_order: str = "asc") -> Dict[str, Any]:
         """获取任务列表"""
@@ -194,7 +194,10 @@ class TaskService:
                 f"删除任务成功，ID: {task_id}"
             )
             
-            return ApiResponse.success(message="删除任务成功")
+            return ApiResponse.success(
+                data={"id": task_id},
+                message="删除任务成功"
+            )
             
         except (ResourceNotFoundError, PermissionDeniedError) as e:
             logger.warning(f"删除任务失败: {e}")

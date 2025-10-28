@@ -4,11 +4,11 @@
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
 
 from ...core.deps import get_db
 from ...core.auth import get_current_user
-from ...core.permissions import require_write_permission, require_read_permission
+from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...services.taskschedule_service import TaskScheduleService
 from ...schemas.taskschedule import TaskScheduleCreate, TaskScheduleUpdate
 
@@ -42,7 +42,7 @@ async def get_taskschedules(
     task_id: str = Query(None, description="任务ID"),
     schedule_type: str = Query(None, description="日程类型（模糊匹配）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取任务日程列表
     
@@ -67,7 +67,7 @@ async def get_taskschedules(
 async def get_taskschedules_by_ids(
     taskschedule_ids: List[str] = Query(..., description="任务日程ID列表（支持单个或多个ID查询）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID列表查询任务日程
     
@@ -89,7 +89,7 @@ async def get_taskschedules_by_ids(
 async def get_taskschedule_by_id(
     taskschedule_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID获取任务日程
     
@@ -151,7 +151,7 @@ async def delete_taskschedule(
 async def get_taskschedule_stats(
     task_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取任务日程统计信息
     

@@ -245,7 +245,10 @@ class MapNetService:
                     }
                 )
                 
-                return ApiResponse.success(message="路网元素删除成功")
+                return ApiResponse.success(
+                    data={"id": mapnet_id},
+                    message="路网元素删除成功"
+                )
             else:
                 raise BusinessError("路网元素删除失败")
                 

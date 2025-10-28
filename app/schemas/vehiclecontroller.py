@@ -1,0 +1,136 @@
+"""
+车体控制器数据验证模式
+"""
+
+from typing import Optional, List, Dict, Any
+from pydantic import BaseModel, Field, validator
+from .base import BaseSchema, BaseResponse
+
+
+class SerialConfig(BaseModel):
+    """串口配置模式"""
+    module_index: int = Field(..., ge=1, le=4, description="模块索引(1-4)")
+    station_number: int = Field(..., ge=0, le=255, description="串口通讯站号")
+    baud_rate: int = Field(..., description="串口通讯波特率")
+    function_code: int = Field(..., ge=1, le=10, description="串口通讯功能")
+    enabled: bool = Field(True, description="是否启用")
+    
+    @validator('baud_rate')
+    def validate_baud_rate(cls, v):
+        valid_rates = [9600, 19200, 38400, 57600, 115200, 230400, 460800, 921600]
+        if v not in valid_rates:
+            raise ValueError(f'波特率必须是以下值之一: {valid_rates}')
+        return v
+
+
+class EthernetConfig(BaseModel):
+    """以太网配置模式"""
+    module_index: int = Field(..., ge=1, le=2, description="模块索引(1-2)")
+    ip_address: str = Field(..., description="IP地址")
+    subnet_mask: str = Field(..., description="子网掩码")
+    gateway: str = Field(..., description="网关")
+    port: int = Field(..., ge=1, le=65535, description="端口")
+    baud_rate: int = Field(..., ge=9600, le=115200, description="波特率")
+    communication_mode: str = Field(..., description="通讯模式：server/client")
+    enabled: bool = Field(True, description="是否启用")
+    
+    @validator('communication_mode')
+    def validate_communication_mode(cls, v):
+        if v not in ['server', 'client']:
+            raise ValueError('通讯模式必须是 server 或 client')
+        return v
+
+
+class VehicleControllerBase(BaseSchema):
+    """车体控制器基础模式"""
+    vehicle_model: str = Field(..., description="车体模型")
+    wheel_diameter: float = Field(..., gt=0, description="车轮直径(mm)")
+    reduction_ratio: int = Field(..., gt=0, description="车体减速比")
+    wheelbase: float = Field(..., gt=0, description="车体轴距(mm)")
+    track_width: float = Field(..., gt=0, description="车体轮距(mm)")
+    max_linear_velocity: float = Field(..., gt=0, description="车体最大线速度(m/s)")
+    max_angular_velocity: float = Field(..., gt=0, description="车体最大角速度(rad/s)")
+    serial_configs: List[SerialConfig] = Field(..., max_length=4, description="串口通讯配置")
+    ethernet_configs: List[EthernetConfig] = Field(..., max_length=2, description="以太网通讯配置")
+    controller_version: str = Field(..., description="控制器版本")
+    remote_upgrade_enabled: bool = Field(False, description="远程升级是否开启")
+    
+    @validator('vehicle_model')
+    def validate_vehicle_model(cls, v):
+        valid_models = ['双轮差速', '四轮差速', '四驱四转', '单舵轮', '双舵轮']
+        if v not in valid_models:
+            raise ValueError(f'车体模型必须是以下值之一: {valid_models}')
+        return v
+    
+    @validator('serial_configs')
+    def validate_serial_configs(cls, v):
+        if len(v) > 4:
+            raise ValueError('串口配置最多支持4组')
+        # 检查module_index是否重复
+        indices = [config.module_index for config in v]
+        if len(indices) != len(set(indices)):
+            raise ValueError('串口配置的module_index不能重复')
+        return v
+    
+    @validator('ethernet_configs')
+    def validate_ethernet_configs(cls, v):
+        if len(v) > 2:
+            raise ValueError('以太网配置最多支持2组')
+        # 检查module_index是否重复
+        indices = [config.module_index for config in v]
+        if len(indices) != len(set(indices)):
+            raise ValueError('以太网配置的module_index不能重复')
+        return v
+
+
+class VehicleControllerCreate(VehicleControllerBase):
+    """车体控制器创建模式"""
+    pass
+
+
+class VehicleControllerUpdate(BaseSchema):
+    """车体控制器更新模式"""
+    vehicle_model: Optional[str] = Field(None, description="车体模型")
+    wheel_diameter: Optional[float] = Field(None, gt=0, description="车轮直径(mm)")
+    reduction_ratio: Optional[int] = Field(None, gt=0, description="车体减速比")
+    wheelbase: Optional[float] = Field(None, gt=0, description="车体轴距(mm)")
+    track_width: Optional[float] = Field(None, gt=0, description="车体轮距(mm)")
+    max_linear_velocity: Optional[float] = Field(None, gt=0, description="车体最大线速度(m/s)")
+    max_angular_velocity: Optional[float] = Field(None, gt=0, description="车体最大角速度(rad/s)")
+    serial_configs: Optional[List[SerialConfig]] = Field(None, max_length=4, description="串口通讯配置")
+    ethernet_configs: Optional[List[EthernetConfig]] = Field(None, max_length=2, description="以太网通讯配置")
+    controller_version: Optional[str] = Field(None, description="控制器版本")
+    remote_upgrade_enabled: Optional[bool] = Field(None, description="远程升级是否开启")
+
+
+class VehicleControllerResponse(BaseResponse):
+    """车体控制器响应模式"""
+    id: str = Field(..., description="车体控制器ID")
+    vehicle_model: str = Field(..., description="车体模型")
+    wheel_diameter: float = Field(..., description="车轮直径(mm)")
+    reduction_ratio: int = Field(..., description="车体减速比")
+    wheelbase: float = Field(..., description="车体轴距(mm)")
+    track_width: float = Field(..., description="车体轮距(mm)")
+    max_linear_velocity: float = Field(..., description="车体最大线速度(m/s)")
+    max_angular_velocity: float = Field(..., description="车体最大角速度(rad/s)")
+    serial_configs: List[Dict[str, Any]] = Field(..., description="串口通讯配置")
+    ethernet_configs: List[Dict[str, Any]] = Field(..., description="以太网通讯配置")
+    controller_version: str = Field(..., description="控制器版本")
+    remote_upgrade_enabled: bool = Field(..., description="远程升级是否开启")
+    created_at: str = Field(..., description="创建时间")
+    updated_at: str = Field(..., description="更新时间")
+    created_by: Optional[str] = Field(None, description="创建者")
+    updated_by: Optional[str] = Field(None, description="更新者")
+
+
+class VehicleControllerQuery(BaseSchema):
+    """车体控制器查询模式"""
+    page: int = Field(1, ge=1, description="页码")
+    size: int = Field(20, ge=1, le=100, description="每页数量")
+    vehicle_model: Optional[str] = Field(None, description="车体模型筛选")
+
+
+class VehicleControllerListResponse(BaseSchema):
+    """车体控制器列表响应模式"""
+    items: List[VehicleControllerResponse] = Field(..., description="车体控制器列表")
+    total: int = Field(..., description="总数")

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
 from ...core.deps import get_db
-from ...core.permissions import require_write_permission, require_read_permission
+from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...schemas.itemhistory import ItemHistoryCreate, ItemHistoryUpdate, ItemHistoryQuery
 from ...services.itemhistory_service import ItemHistoryService
 
@@ -41,7 +41,7 @@ async def get_itemhistories_from_taskhistories(
     size: int = Query(20, ge=1, le=100, description="每页数量"),
     with_details: bool = Query(False, description="是否返回详细信息（显示巡检项目信息）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """从任务记录角度查询巡检记录
     
@@ -77,7 +77,7 @@ async def get_itemhistories_from_items(
     size: int = Query(20, ge=1, le=100, description="每页数量"),
     with_details: bool = Query(False, description="是否返回详细信息（显示任务记录信息）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """从巡检项目角度查询巡检记录
     
@@ -110,7 +110,7 @@ async def get_itemhistories_from_items(
 async def get_itemhistory_by_id(
     itemhistory_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID获取巡检记录
     
@@ -191,7 +191,7 @@ async def delete_itemhistory(
 @router.get("/stats/summary", response_model=dict)
 async def get_itemhistory_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取巡检记录统计信息
     
