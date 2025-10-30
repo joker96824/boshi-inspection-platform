@@ -35,6 +35,8 @@ from .ultrasonic import Ultrasonic
 from .depthcamera import DepthCamera
 from .navigationcontroller import NavigationController
 from .factory import Factory
+from .manualoperation import ManualOperation
+from .operationrecord import OperationRecord
 
 __all__ = [
     "BaseModel",
@@ -70,4 +72,6 @@ __all__ = [
     "DepthCamera",
     "NavigationController",
     "Factory",
+    "ManualOperation",
+    "OperationRecord",
 ]

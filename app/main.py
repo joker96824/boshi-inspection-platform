@@ -5,7 +5,7 @@
 from fastapi import FastAPI, WebSocket
 
 from .core.app_factory import create_app, setup_lifespan_events
-from .api.v1 import auth, users, ros2, system, logs, maps, factories, mapnets, robots, points, items, itemhistories, tasks, taskschedules, taskhistories, taskresults, alarmrules, alarminfos, gimbals, gimbaltasks, gimbalschedules, gimbalhistories, devices, sensors, sensorschedules, sensorhistories, vehiclecontrollers, environmentsensors, dualptzs, motorstatuses, lidars, robotarms, ultrasonics, depthcameras, navigationcontrollers
+from .api.v1 import auth, users, ros2, system, logs, maps, factories, mapnets, robots, points, items, itemhistories, tasks, taskschedules, taskhistories, taskresults, alarmrules, alarminfos, gimbals, gimbaltasks, gimbalschedules, gimbalhistories, devices, sensors, sensorschedules, sensorhistories, vehiclecontrollers, environmentsensors, dualptzs, motorstatuses, lidars, robotarms, ultrasonics, depthcameras, navigationcontrollers, manualoperations, operationrecords
 from .config.settings import settings
 from .utils.response import ApiResponse
 
@@ -74,6 +74,10 @@ def register_routes():
     # 报警和系统管理模块
     app.include_router(alarmrules.router, prefix="/api/v1/alarmrules", tags=["报警规则管理"])
     app.include_router(alarminfos.router, prefix="/api/v1/alarminfos", tags=["报警信息管理"])
+    
+    # 操作记录管理模块
+    app.include_router(manualoperations.router, prefix="/api/v1/manualoperations", tags=["手动操作记录管理"])
+    app.include_router(operationrecords.router, prefix="/api/v1/operationrecords", tags=["操作记录管理"])
     
     # 系统API路由
     app.include_router(system.router, prefix="/api/v1/system", tags=["系统"])

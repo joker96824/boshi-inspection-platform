@@ -185,3 +185,16 @@ class NavigationControllerListResponse(BaseSchema):
     """导航控制器配置列表响应模式"""
     items: List[NavigationControllerResponse] = Field(..., description="导航控制器配置列表")
     total: int = Field(..., description="总数")
+
+
+class NavigationControllerImportRequest(BaseSchema):
+    """导航控制器配置导入请求模式"""
+    data: List[NavigationControllerCreate] = Field(..., description="导入的导航控制器配置数据")
+
+
+class NavigationControllerImportResponse(BaseSchema):
+    """导航控制器配置导入响应模式"""
+    success_count: int = Field(..., description="成功导入数量")
+    failed_count: int = Field(..., description="失败数量")
+    errors: List[str] = Field(default=[], description="错误信息列表")
+    message: str = Field(..., description="导入结果消息")

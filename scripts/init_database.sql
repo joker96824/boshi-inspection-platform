@@ -2580,10 +2580,70 @@ SELECT '========== 用户账号信息 ==========' as divider;
 SELECT 'superadmin / superadmin (超级管理员)' as user1;
 SELECT 'admin / admin (管理员)' as user2;
 SELECT 'operator / operator (操作员)' as user3;
+-- 创建手动操作记录表
+CREATE TABLE tb_manual_operation (
+    id VARCHAR(36) PRIMARY KEY COMMENT '手动操作记录ID',
+    user_id VARCHAR(36) NOT NULL COMMENT '用户ID',
+    username VARCHAR(50) NOT NULL COMMENT '用户名',
+    operation_time DATETIME NOT NULL COMMENT '操作时间',
+    operation_content JSON NOT NULL COMMENT '操作内容JSON',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(50) NULL COMMENT '创建者',
+    updated_by VARCHAR(50) NULL COMMENT '更新者',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
+    INDEX idx_user_id (user_id),
+    INDEX idx_username (username),
+    INDEX idx_operation_time (operation_time),
+    INDEX idx_created_at (created_at),
+    INDEX idx_is_deleted (is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='手动操作记录表';
+
+-- 创建操作记录表
+CREATE TABLE tb_operation_record (
+    id VARCHAR(36) PRIMARY KEY COMMENT '操作记录ID',
+    user_id VARCHAR(36) NOT NULL COMMENT '用户ID',
+    username VARCHAR(50) NOT NULL COMMENT '用户名',
+    operation_time DATETIME NOT NULL COMMENT '操作时间',
+    operation_content JSON NOT NULL COMMENT '操作内容JSON',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(50) NULL COMMENT '创建者',
+    updated_by VARCHAR(50) NULL COMMENT '更新者',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
+    INDEX idx_user_id (user_id),
+    INDEX idx_username (username),
+    INDEX idx_operation_time (operation_time),
+    INDEX idx_created_at (created_at),
+    INDEX idx_is_deleted (is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='操作记录表';
+
+-- 插入手动操作记录测试数据
+INSERT INTO tb_manual_operation (id, user_id, username, operation_time, operation_content, created_at, updated_at, created_by, updated_by, is_deleted) VALUES (
+    '550e8400-e29b-41d4-a716-446655440080', '550e8400-e29b-41d4-a716-446655440000', 'superadmin', '2024-01-15 09:30:00', '{"action": "manual_start", "target": "robot_001", "description": "手动启动机器人"}', NOW(), NOW(), 'superadmin', 'superadmin', FALSE
+), (
+    '550e8400-e29b-41d4-a716-446655440081', '550e8400-e29b-41d4-a716-446655440001', 'admin', '2024-01-15 10:15:00', '{"action": "manual_stop", "target": "robot_002", "description": "手动停止机器人"}', NOW(), NOW(), 'admin', 'admin', FALSE
+), (
+    '550e8400-e29b-41d4-a716-446655440082', '550e8400-e29b-41d4-a716-446655440002', 'operator', '2024-01-15 11:00:00', '{"action": "manual_reset", "target": "gimbal_001", "description": "手动重置云台"}', NOW(), NOW(), 'operator', 'operator', FALSE
+);
+
+-- 插入操作记录测试数据
+INSERT INTO tb_operation_record (id, user_id, username, operation_time, operation_content, created_at, updated_at, created_by, updated_by, is_deleted) VALUES (
+    '550e8400-e29b-41d4-a716-446655440090', '550e8400-e29b-41d4-a716-446655440000', 'superadmin', '2024-01-15 08:00:00', '{"action": "login", "ip": "192.168.1.100", "description": "用户登录"}', NOW(), NOW(), 'superadmin', 'superadmin', FALSE
+), (
+    '550e8400-e29b-41d4-a716-446655440091', '550e8400-e29b-41d4-a716-446655440001', 'admin', '2024-01-15 08:30:00', '{"action": "create_task", "target": "task_001", "description": "创建新任务"}', NOW(), NOW(), 'admin', 'admin', FALSE
+), (
+    '550e8400-e29b-41d4-a716-446655440092', '550e8400-e29b-41d4-a716-446655440002', 'operator', '2024-01-15 09:00:00', '{"action": "update_config", "target": "robot_config", "description": "更新机器人配置"}', NOW(), NOW(), 'operator', 'operator', FALSE
+), (
+    '550e8400-e29b-41d4-a716-446655440093', '550e8400-e29b-41d4-a716-446655440000', 'superadmin', '2024-01-15 12:00:00', '{"action": "logout", "ip": "192.168.1.100", "description": "用户登出"}', NOW(), NOW(), 'superadmin', 'superadmin', FALSE
+);
+
+SELECT '========== 操作记录模块 ==========' as divider1;
+SELECT '手动操作记录表: tb_manual_operation' as table1;
+SELECT '操作记录表: tb_operation_record' as table2;
 SELECT '========== 示例数据统计 ==========' as divider2;
 SELECT '3个用户, 3个厂区, 1个地图, 1个机器人, 3个设备, 4个智能传感器, 3个传感器日程, 4个传感器记录, 3个云台, 3个云台任务, 3个云台日程, 4个云台记录, 2个车体控制器配置, 3个环境传感器配置, 3个双光云台配置, 3个电机状态配置, 3个激光雷达配置, 3个机械臂状态配置, 3个超声波状态配置, 3个深度相机配置, 3个导航控制器配置, 1个任务' as summary1;
 SELECT '3条地图路网, 4个巡检点, 7个巡检项目' as summary2;
 SELECT '2条任务日程, 3条任务记录, 3条任务结果, 5条巡检记录' as summary3;
 SELECT '2条报警规则, 1条报警信息' as summary4;
-SELECT 'Token expiry: 30 days (2592000 seconds)' as token_info;
-SELECT 'Roles: super_admin > admin > operator > viewer > user' as role_info;
+SELECT '3条手动操作记录, 4条操作记录' as summary5;
