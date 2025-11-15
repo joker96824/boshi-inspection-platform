@@ -246,12 +246,37 @@ class TaskService:
             for item_id in task.task_items:
                 if item_id in item_dict:
                     item = item_dict[item_id]
+                    device = item.device
+                    point = device.point if device else None
+                    
+                    # 计算是否可执行：Item、Device、Point 都必须启用
+                    executable = (
+                        item.enabled and 
+                        device and device.enabled and 
+                        point and point.enabled
+                    )
+                    
+                    # 计算禁用原因（如果不可执行）
+                    disabled_reason = None
+                    if not executable:
+                        if not item.enabled:
+                            disabled_reason = "巡检项目已禁用"
+                        elif not device or not device.enabled:
+                            disabled_reason = "设备已禁用"
+                        elif not point or not point.enabled:
+                            disabled_reason = "巡检点已禁用"
+                    
                     task_items_info.append({
                         "id": item.id,
                         "item_name": item.item_name,
                         "item_info": item.item_info,
                         "device_id": item.device_id,
-                        "device_name": item.device.device_name if item.device else None,
+                        "device_name": device.device_name if device else None,
+                        "point_id": point.id if point else None,
+                        "point_name": point.point_name if point else None,
+                        "enabled": item.enabled,  # 巡检项目本身的启用状态
+                        "executable": executable,  # 是否可执行（考虑上级启用状态）
+                        "disabled_reason": disabled_reason,  # 不可执行的原因
                         "created_at": item.created_at.strftime("%Y-%m-%dT%H:%M:%S") if item.created_at else None,
                         "updated_at": item.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if item.updated_at else None,
                         "created_by": item.created_by,

@@ -34,12 +34,17 @@ class ItemRepository:
         return result.scalar_one_or_none()
     
     async def get_by_ids(self, item_ids: List[str]) -> List[Item]:
-        """根据ID列表获取巡检项目（预加载 device 关系）"""
+        """根据ID列表获取巡检项目（预加载 device 和 point 关系）"""
         if not item_ids:
             return []
         
+        from ..models.device import Device
+        from ..models.point import Point
+        
         query = (select(Item)
-                .options(selectinload(Item.device))
+                .options(
+                    selectinload(Item.device).selectinload(Device.point)
+                )
                 .where(
                     Item.id.in_(item_ids),
                     Item.is_deleted == False

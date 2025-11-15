@@ -3,7 +3,7 @@
 """
 
 from typing import Optional, Dict, Any, List
-from pydantic import Field, validator
+from pydantic import BaseModel, Field, validator
 from .base import BaseSchema, BaseResponse
 
 
@@ -31,12 +31,30 @@ class TaskUpdate(BaseSchema):
     task_int_prior: Optional[int] = Field(None, ge=1, le=10, description="打断优先级 (1-10)")
 
 
+class TaskItemResponse(BaseModel):
+    """任务巡检项目响应模式"""
+    id: str = Field(..., description="巡检项目ID")
+    item_name: str = Field(..., description="巡检项目名称")
+    item_info: Dict[str, Any] = Field(..., description="巡检参数信息")
+    device_id: str = Field(..., description="设备ID")
+    device_name: Optional[str] = Field(None, description="设备名称")
+    point_id: Optional[str] = Field(None, description="巡检点ID")
+    point_name: Optional[str] = Field(None, description="巡检点名称")
+    enabled: bool = Field(..., description="巡检项目本身的启用状态")
+    executable: bool = Field(..., description="是否可执行（考虑上级启用状态：Item、Device、Point都必须启用）")
+    disabled_reason: Optional[str] = Field(None, description="不可执行的原因（当executable为false时）")
+    created_at: Optional[str] = Field(None, description="创建时间")
+    updated_at: Optional[str] = Field(None, description="更新时间")
+    created_by: Optional[str] = Field(None, description="创建者")
+    updated_by: Optional[str] = Field(None, description="更新者")
+
+
 class TaskResponse(BaseResponse):
     """任务响应模式"""
     task_name: str = Field(..., description="任务名称")
     robot_id: str = Field(..., description="执行机器人ID")
     robot_name: Optional[str] = Field(None, description="机器人名称")
-    task_items: Optional[List[str]] = Field(None, description="任务巡检项目ID列表")
+    task_items: Optional[List[TaskItemResponse]] = Field(None, description="任务巡检项目列表（包含执行状态）")
     task_order: int = Field(..., description="任务执行顺序")
     task_res_prior: int = Field(..., description="响应优先级")
     task_int_prior: int = Field(..., description="打断优先级")
