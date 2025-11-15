@@ -42,6 +42,7 @@ async def get_tasks(
     size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     task_name: str = Query(None, description="任务名称（模糊匹配）"),
     robot_id: str = Query(None, description="机器人ID"),
+    map_id: str = Query(None, description="地图ID（通过机器人-地图关联筛选）"),
     sort_by: str = Query("task_order", description="排序字段: task_order, task_res_prior, task_int_prior"),
     sort_order: str = Query("asc", description="排序顺序: asc(正序), desc(反序)"),
     db: AsyncSession = Depends(get_db),
@@ -54,6 +55,7 @@ async def get_tasks(
         size: 每页数量
         task_name: 任务名称（模糊匹配）
         robot_id: 机器人ID
+        map_id: 地图ID（通过机器人-地图关联筛选）
         sort_by: 排序字段
         sort_order: 排序顺序
         db: 数据库会话
@@ -65,7 +67,7 @@ async def get_tasks(
     validate_pagination_params(page, size)
     service = TaskService(db)
     return await service.get_tasks(
-        current_user, page, size, task_name, robot_id, sort_by, sort_order
+        current_user, page, size, task_name, robot_id, map_id, sort_by, sort_order
     )
 
 

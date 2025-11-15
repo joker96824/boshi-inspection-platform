@@ -48,6 +48,7 @@ class TaskQuery(BaseSchema):
     size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
     task_name: Optional[str] = Field(None, description="任务名称（模糊匹配）")
     robot_id: Optional[str] = Field(None, description="机器人ID")
+    map_id: Optional[str] = Field(None, description="地图ID（通过机器人-地图关联筛选）")
     sort_by: Optional[str] = Field("task_order", description="排序字段: task_order, task_res_prior, task_int_prior")
     sort_order: Optional[str] = Field("asc", description="排序顺序: asc(正序), desc(反序)")
     

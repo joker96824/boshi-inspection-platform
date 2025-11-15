@@ -108,14 +108,14 @@ class TaskService:
             raise HTTPException(status_code=500, detail="获取任务列表失败")
     
     async def get_tasks(self, user: Optional[dict], page: Optional[int] = None, size: Optional[int] = None, 
-                        task_name: str = None, robot_id: str = None,
+                        task_name: str = None, robot_id: str = None, map_id: str = None,
                         sort_by: str = "task_order", sort_order: str = "asc") -> Dict[str, Any]:
         """获取任务列表"""
         try:
             # 如果未提供分页参数，返回所有数据
             if page is None or size is None:
                 tasks, total = await self.task_repo.get_all(
-                    None, None, task_name, robot_id, sort_by, sort_order
+                    None, None, task_name, robot_id, map_id, sort_by, sort_order
                 )
                 items = []
                 for task in tasks:
@@ -127,7 +127,7 @@ class TaskService:
             
             # 获取所有任务，无需基于用户ID过滤
             tasks, total = await self.task_repo.get_all(
-                page, size, task_name, robot_id, sort_by, sort_order
+                page, size, task_name, robot_id, map_id, sort_by, sort_order
             )
             
             # 格式化响应数据

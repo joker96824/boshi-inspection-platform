@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from ..models.task import Task
 from ..models.robot import Robot
+from ..models.robotmap import RobotMap
 from ..core.exceptions import ResourceNotFoundError
 
 
@@ -102,7 +103,7 @@ class TaskRepository:
         return list(tasks), total
     
     async def get_all(self, page: Optional[int] = None, size: Optional[int] = None, task_name: str = None, 
-                     robot_id: str = None, 
+                     robot_id: str = None, map_id: str = None,
                      sort_by: str = "task_order", sort_order: str = "asc") -> Tuple[List[Task], int]:
         """获取所有任务列表"""
         # 如果未提供分页参数，返回所有数据
@@ -120,24 +121,62 @@ class TaskRepository:
         if robot_id:
             conditions.append(Task.robot_id == robot_id)
         
-        # 查询总数
-        count_stmt = select(func.count(Task.id)).where(and_(*conditions))
-        count_result = await self.db.execute(count_stmt)
-        total = count_result.scalar() or 0
+        # 如果提供了 map_id，需要通过 RobotMap 中间表进行 JOIN 筛选
+        if map_id:
+            # 查询总数（需要 JOIN RobotMap）
+            count_stmt = (
+                select(func.count(func.distinct(Task.id)))
+                .join(Robot, Task.robot_id == Robot.id)
+                .join(RobotMap, Robot.id == RobotMap.robot_id)
+                .where(
+                    and_(*conditions),
+                    RobotMap.map_id == map_id,
+                    RobotMap.is_deleted == False,
+                    Robot.is_deleted == False
+                )
+            )
+            count_result = await self.db.execute(count_stmt)
+            total = count_result.scalar() or 0
+            
+            # 查询数据（需要 JOIN RobotMap）
+            stmt = (
+                select(Task)
+                .options(
+                    selectinload(Task.robot),
+                    selectinload(Task.schedules)
+                )
+                .join(Robot, Task.robot_id == Robot.id)
+                .join(RobotMap, Robot.id == RobotMap.robot_id)
+                .where(
+                    and_(*conditions),
+                    RobotMap.map_id == map_id,
+                    RobotMap.is_deleted == False,
+                    Robot.is_deleted == False
+                )
+                .distinct()
+            )
+        else:
+            # 查询总数
+            count_stmt = select(func.count(Task.id)).where(and_(*conditions))
+            count_result = await self.db.execute(count_stmt)
+            total = count_result.scalar() or 0
+            
+            # 查询数据（包含关联的robot）
+            stmt = (
+                select(Task)
+                .options(
+                    selectinload(Task.robot),
+                    selectinload(Task.schedules)
+                )
+                .where(and_(*conditions))
+            )
         
         # 构建排序
         order_column = getattr(Task, sort_by, Task.task_order)
         if sort_order == "desc":
             order_column = order_column.desc()
         
-        # 查询数据（包含关联的robot）
-        stmt = (select(Task)
-                .options(
-                    selectinload(Task.robot),
-                    selectinload(Task.schedules)
-                )
-                .where(and_(*conditions))
-                .order_by(order_column, Task.created_at.desc()))
+        stmt = stmt.order_by(order_column, Task.created_at.desc())
         if skip is not None and limit is not None:
             stmt = stmt.offset(skip).limit(limit)
         
