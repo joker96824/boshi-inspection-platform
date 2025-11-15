@@ -10,6 +10,7 @@ from ..models.map import Map
 from ..models.robot import Robot
 from ..models.robotmap import RobotMap
 from ..models.point import Point
+from ..models.device import Device
 from ..models.item import Item
 from ..models.user import User
 
@@ -187,11 +188,12 @@ class MapRepository:
         robots_result = await self.db.execute(robots_query)
         robots = list(robots_result.scalars().all())
 
-        # 获取该地图下的所有巡检点（包含巡检项目）
+        # 获取该地图下的所有巡检点（包含设备和巡检项目）
         points_query = (
             select(Point)
             .options(
-                selectinload(Point.items)
+                selectinload(Point.devices).selectinload(Device.items),
+                selectinload(Point.devices).selectinload(Device.sensors)
             )
             .where(
                 Point.map_id == map_id,

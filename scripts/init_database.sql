@@ -3,7 +3,9 @@
 CREATE DATABASE IF NOT EXISTS boshirobot DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE boshirobot;
 
--- 删除现有表（如果存在）- 按外键依赖顺序删除
+-- 删除所有现有表（如果存在）- 按外键依赖顺序删除
+-- 注意：使用 SET FOREIGN_KEY_CHECKS = 0 来禁用外键检查，以便可以按任意顺序删除表
+SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS tb_alarminfo;
 DROP TABLE IF EXISTS tb_alarmrule;
 DROP TABLE IF EXISTS tb_taskresult;
@@ -41,6 +43,8 @@ DROP TABLE IF EXISTS tb_map;
 DROP TABLE IF EXISTS tb_factory;
 DROP TABLE IF EXISTS tb_sessions;
 DROP TABLE IF EXISTS tb_users;
+-- 重新启用外键检查
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- 创建用户表
 CREATE TABLE tb_users (
@@ -314,28 +318,6 @@ CREATE TABLE tb_gimbalhistory (
     INDEX idx_is_deleted (is_deleted),
     FOREIGN KEY (inspection_project_id) REFERENCES tb_gimbal_inspection_project(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='云台巡检记录表';
-
--- 创建设备表
-CREATE TABLE tb_device (
-    id VARCHAR(36) PRIMARY KEY COMMENT '设备ID',
-    device_name VARCHAR(100) NOT NULL COMMENT '设备名称',
-    device_params JSON NULL COMMENT '设备参数',
-    map_id VARCHAR(36) NULL COMMENT '地图ID',
-    x_coordinate DECIMAL(10,4) NULL COMMENT 'X坐标（地图横坐标）',
-    y_coordinate DECIMAL(10,4) NULL COMMENT 'Y坐标（地图纵坐标）',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    created_by VARCHAR(100) NULL COMMENT '创建人',
-    updated_by VARCHAR(100) NULL COMMENT '更新人',
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
-    INDEX idx_device_name (device_name),
-    INDEX idx_map_id (map_id),
-    INDEX idx_device_coordinates (map_id, x_coordinate, y_coordinate),
-    INDEX idx_created_at (created_at),
-    INDEX idx_is_deleted (is_deleted),
-    UNIQUE KEY uk_device_name_active (device_name, is_deleted),
-    FOREIGN KEY (map_id) REFERENCES tb_map(id) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='设备表';
 
 -- 创建车体控制器配置表
 CREATE TABLE cfg_vehicle_controller (
@@ -625,7 +607,47 @@ CREATE TABLE cfg_navigation_controller (
     INDEX idx_is_deleted (is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='导航控制器配置表';
 
--- 创建智能传感器表
+-- 创建巡检点表
+CREATE TABLE tb_point (
+    id VARCHAR(36) PRIMARY KEY COMMENT '巡检点ID',
+    point_name VARCHAR(100) NOT NULL COMMENT '巡检点名称',
+    map_id VARCHAR(36) NOT NULL COMMENT '所属地图ID',
+    x_coordinate DECIMAL(10,4) NULL COMMENT 'X坐标（地图横坐标）',
+    y_coordinate DECIMAL(10,4) NULL COMMENT 'Y坐标（地图纵坐标）',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(100) NULL COMMENT '创建人',
+    updated_by VARCHAR(100) NULL COMMENT '更新人',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
+    FOREIGN KEY (map_id) REFERENCES tb_map(id) ON DELETE CASCADE,
+    INDEX idx_point_name (point_name),
+    INDEX idx_map_id (map_id),
+    INDEX idx_point_coordinates (map_id, x_coordinate, y_coordinate),
+    INDEX idx_is_deleted (is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='巡检点表';
+
+-- 创建设备表（必须在tb_point之后创建，因为tb_device引用tb_point，且必须在tb_sensor之前，因为tb_sensor引用tb_device）
+CREATE TABLE tb_device (
+    id VARCHAR(36) PRIMARY KEY COMMENT '设备ID',
+    device_name VARCHAR(100) NOT NULL COMMENT '设备名称',
+    device_params JSON NULL COMMENT '设备参数',
+    point_id VARCHAR(36) NOT NULL COMMENT '所属巡检点ID',
+    x_coordinate DECIMAL(10,4) NULL COMMENT 'X坐标（地图横坐标）',
+    y_coordinate DECIMAL(10,4) NULL COMMENT 'Y坐标（地图纵坐标）',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(100) NULL COMMENT '创建人',
+    updated_by VARCHAR(100) NULL COMMENT '更新人',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
+    INDEX idx_device_name (device_name),
+    INDEX idx_point_id (point_id),
+    INDEX idx_created_at (created_at),
+    INDEX idx_is_deleted (is_deleted),
+    UNIQUE KEY uk_device_name_active (device_name, is_deleted),
+    FOREIGN KEY (point_id) REFERENCES tb_point(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='设备表';
+
+-- 创建智能传感器表（必须在tb_device之后创建，因为tb_sensor引用tb_device）
 CREATE TABLE tb_sensor (
     id VARCHAR(36) PRIMARY KEY COMMENT '传感器ID',
     device_id VARCHAR(36) NOT NULL COMMENT '关联设备ID',
@@ -643,7 +665,7 @@ CREATE TABLE tb_sensor (
     FOREIGN KEY (device_id) REFERENCES tb_device(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='智能传感器表';
 
--- 创建传感器日程表
+-- 创建传感器日程表（必须在tb_sensor之后创建，因为tb_sensorschedule引用tb_sensor）
 CREATE TABLE tb_sensorschedule (
     id VARCHAR(36) PRIMARY KEY COMMENT '传感器日程ID',
     schedule_type VARCHAR(50) NOT NULL COMMENT '传感器日程类型',
@@ -665,7 +687,7 @@ CREATE TABLE tb_sensorschedule (
     FOREIGN KEY (sensor_id) REFERENCES tb_sensor(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='传感器日程表';
 
--- 创建传感器记录表
+-- 创建传感器记录表（必须在tb_sensor之后创建，因为tb_sensorhistory引用tb_sensor）
 CREATE TABLE tb_sensorhistory (
     id VARCHAR(36) PRIMARY KEY COMMENT '传感器记录ID',
     sensor_id VARCHAR(36) NOT NULL COMMENT '关联传感器ID',
@@ -681,26 +703,6 @@ CREATE TABLE tb_sensorhistory (
     INDEX idx_is_deleted (is_deleted),
     FOREIGN KEY (sensor_id) REFERENCES tb_sensor(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='传感器记录表';
-
--- 创建巡检点表
-CREATE TABLE tb_point (
-    id VARCHAR(36) PRIMARY KEY COMMENT '巡检点ID',
-    point_name VARCHAR(100) NOT NULL COMMENT '巡检点名称',
-    map_id VARCHAR(36) NOT NULL COMMENT '所属地图ID',
-    point_actions JSON NULL COMMENT '巡检点动作',
-    x_coordinate DECIMAL(10,4) NULL COMMENT 'X坐标（地图横坐标）',
-    y_coordinate DECIMAL(10,4) NULL COMMENT 'Y坐标（地图纵坐标）',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    created_by VARCHAR(100) NULL COMMENT '创建人',
-    updated_by VARCHAR(100) NULL COMMENT '更新人',
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
-    FOREIGN KEY (map_id) REFERENCES tb_map(id) ON DELETE CASCADE,
-    INDEX idx_point_name (point_name),
-    INDEX idx_map_id (map_id),
-    INDEX idx_point_coordinates (map_id, x_coordinate, y_coordinate),
-    INDEX idx_is_deleted (is_deleted)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='巡检点表';
 
 -- 创建任务表
 CREATE TABLE tb_task (
@@ -793,18 +795,18 @@ CREATE TABLE tb_item (
     id VARCHAR(36) PRIMARY KEY COMMENT '巡检项目ID',
     item_name VARCHAR(100) NOT NULL COMMENT '巡检项目名称',
     item_info JSON NOT NULL COMMENT '巡检参数信息',
-    point_id VARCHAR(36) NOT NULL COMMENT '所属巡检点ID',
+    device_id VARCHAR(36) NOT NULL COMMENT '所属设备ID',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     created_by VARCHAR(100) NULL COMMENT '创建人',
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     INDEX idx_item_name (item_name),
-    INDEX idx_point_id (point_id),
+    INDEX idx_device_id (device_id),
     INDEX idx_created_at (created_at),
     INDEX idx_is_deleted (is_deleted),
     UNIQUE KEY uk_item_name_active (item_name, is_deleted),
-    FOREIGN KEY (point_id) REFERENCES tb_point(id) ON DELETE CASCADE
+    FOREIGN KEY (device_id) REFERENCES tb_device(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='巡检项目表';
 
 -- 创建巡检记录表

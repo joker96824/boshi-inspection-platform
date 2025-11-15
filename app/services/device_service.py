@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 
 from ..repositories.device_repository import DeviceRepository
+from ..repositories.point_repository import PointRepository
 from ..schemas.device import DeviceCreate, DeviceUpdate, DeviceQuery
 from ..core.exceptions import (
     ResourceNotFoundError, BusinessError
@@ -24,10 +25,16 @@ class DeviceService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.device_repo = DeviceRepository(db)
+        self.point_repo = PointRepository(db)
     
     async def create_device(self, device_data: DeviceCreate, user: dict) -> Dict[str, Any]:
         """创建设备"""
         try:
+            # 检查巡检点是否存在
+            point = await self.point_repo.get_by_id(device_data.point_id)
+            if not point:
+                raise ResourceNotFoundError(f"巡检点 '{device_data.point_id}' 不存在")
+            
             # 检查设备名是否已存在
             if await self.device_repo.exists_by_name(device_data.device_name):
                 raise BusinessError(f"设备名称 '{device_data.device_name}' 已存在")
@@ -109,7 +116,7 @@ class DeviceService:
                     page=None,
                     size=None,
                     device_name=query.device_name,
-                    map_id=query.map_id
+                    point_id=query.point_id
                 )
                 devices_data = [self._format_device_response(device) for device in devices]
                 return ApiResponse.success(
@@ -121,7 +128,7 @@ class DeviceService:
                 page=query.page,
                 size=query.size,
                 device_name=query.device_name,
-                map_id=query.map_id
+                point_id=query.point_id
             )
             
             # 格式化响应数据
@@ -146,6 +153,12 @@ class DeviceService:
             existing_device = await self.device_repo.get_by_id(device_id)
             if not existing_device:
                 raise ResourceNotFoundError(f"设备ID '{device_id}' 不存在")
+            
+            # 如果更新了point_id，检查巡检点是否存在
+            if device_data.point_id and device_data.point_id != existing_device.point_id:
+                point = await self.point_repo.get_by_id(device_data.point_id)
+                if not point:
+                    raise ResourceNotFoundError(f"巡检点 '{device_data.point_id}' 不存在")
             
             # 如果更新了名称，检查是否重复
             if (device_data.device_name and 
@@ -234,7 +247,7 @@ class DeviceService:
             "id": device.id,
             "device_name": device.device_name,
             "device_params": device.device_params,
-            "map_id": device.map_id,
+            "point_id": device.point_id,
             "x_coordinate": device.x_coordinate,
             "y_coordinate": device.y_coordinate,
             "created_at": device.created_at.strftime("%Y-%m-%dT%H:%M:%S") if device.created_at else None,

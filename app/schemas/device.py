@@ -11,9 +11,9 @@ class DeviceBase(BaseSchema):
     """设备基础模式"""
     device_name: str = Field(..., min_length=1, max_length=100, description="设备名称")
     device_params: Optional[Dict[str, Any]] = Field(None, description="设备参数")
-    map_id: Optional[str] = Field(None, description="地图ID")
-    x_coordinate: float = Field(..., description="X坐标（地图横坐标）")
-    y_coordinate: float = Field(..., description="Y坐标（地图纵坐标）")
+    point_id: str = Field(..., description="所属巡检点ID")
+    x_coordinate: Optional[float] = Field(None, description="X坐标（地图横坐标）")
+    y_coordinate: Optional[float] = Field(None, description="Y坐标（地图纵坐标）")
 
 
 class DeviceCreate(DeviceBase):
@@ -25,7 +25,7 @@ class DeviceUpdate(BaseSchema):
     """设备更新模式"""
     device_name: Optional[str] = Field(None, min_length=1, max_length=100, description="设备名称")
     device_params: Optional[Dict[str, Any]] = Field(None, description="设备参数")
-    map_id: Optional[str] = Field(None, description="地图ID")
+    point_id: Optional[str] = Field(None, description="所属巡检点ID")
     x_coordinate: Optional[float] = Field(None, description="X坐标（地图横坐标）")
     y_coordinate: Optional[float] = Field(None, description="Y坐标（地图纵坐标）")
 
@@ -35,7 +35,7 @@ class DeviceResponse(BaseResponse):
     id: str = Field(..., description="设备ID")
     device_name: str = Field(..., description="设备名称")
     device_params: Optional[Dict[str, Any]] = Field(None, description="设备参数")
-    map_id: Optional[str] = Field(None, description="地图ID")
+    point_id: str = Field(..., description="所属巡检点ID")
     x_coordinate: Optional[float] = Field(None, description="X坐标（地图横坐标）")
     y_coordinate: Optional[float] = Field(None, description="Y坐标（地图纵坐标）")
     created_at: str = Field(..., description="创建时间")
@@ -49,7 +49,7 @@ class DeviceQuery(BaseSchema):
     page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
     size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
     device_name: Optional[str] = Field(None, description="设备名称（模糊查询）")
-    map_id: Optional[str] = Field(None, description="地图ID筛选")
+    point_id: Optional[str] = Field(None, description="巡检点ID筛选")
 
 
 class DeviceListResponse(BaseSchema):

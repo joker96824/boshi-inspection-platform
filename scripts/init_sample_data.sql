@@ -1,6 +1,51 @@
 -- 博实智能巡检平台 - 示例数据初始化SQL
 USE boshirobot;
 
+-- 清空所有示例数据（如果存在）
+-- 注意：使用 SET FOREIGN_KEY_CHECKS = 0 来禁用外键检查，以便可以按任意顺序删除数据
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- 按外键依赖顺序删除数据（从子表到父表）
+DELETE FROM tb_alarminfo;
+DELETE FROM tb_alarmrule;
+DELETE FROM tb_taskresult;
+DELETE FROM tb_itemhistory;
+DELETE FROM tb_item;
+DELETE FROM tb_taskhistory;
+DELETE FROM tb_taskschedule;
+DELETE FROM tb_task;
+DELETE FROM tb_point;
+DELETE FROM tb_mapnet;
+DELETE FROM tb_robot_map;
+DELETE FROM tb_robot;
+DELETE FROM tb_gimbalhistory;
+DELETE FROM tb_gimbalschedule;
+DELETE FROM tb_gimbal_inspection_project;
+DELETE FROM tb_gimbaltask;
+DELETE FROM tb_gimbal;
+DELETE FROM tb_sensorhistory;
+DELETE FROM tb_sensorschedule;
+DELETE FROM tb_sensor;
+DELETE FROM tb_device;
+DELETE FROM cfg_vehicle_controller;
+DELETE FROM cfg_environment_sensor;
+DELETE FROM cfg_dual_ptz;
+DELETE FROM cfg_motor_status;
+DELETE FROM cfg_lidar;
+DELETE FROM cfg_robot_arm;
+DELETE FROM cfg_ultrasonic;
+DELETE FROM cfg_depth_camera;
+DELETE FROM cfg_navigation_controller;
+DELETE FROM tb_operation_record;
+DELETE FROM tb_manual_operation;
+DELETE FROM tb_map;
+DELETE FROM tb_factory;
+DELETE FROM tb_sessions;
+DELETE FROM tb_users;
+
+-- 重新启用外键检查
+SET FOREIGN_KEY_CHECKS = 1;
+
 -- 插入默认用户
 -- superadmin/superadmin (超级管理员)
 -- admin/admin (管理员)
@@ -658,12 +703,60 @@ INSERT INTO tb_gimbalhistory (
     FALSE
 );
 
--- 插入示例设备数据
+-- 插入示例巡检点数据（必须在tb_device之前插入，因为tb_device引用tb_point）
+INSERT INTO tb_point (
+    id,
+    point_name,
+    map_id,
+    x_coordinate,
+    y_coordinate,
+    created_at,
+    updated_at,
+    created_by,
+    updated_by,
+    is_deleted
+) VALUES (
+    '60000000-0000-0000-0000-000000000001',
+    '巡检点001',
+    '550e8400-e29b-41d4-a716-446655440010',
+    10.0000,
+    10.0000,
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '60000000-0000-0000-0000-000000000002',
+    '巡检点002',
+    '550e8400-e29b-41d4-a716-446655440010',
+    20.0000,
+    20.0000,
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '60000000-0000-0000-0000-000000000003',
+    '巡检点003',
+    '550e8400-e29b-41d4-a716-446655440010',
+    30.0000,
+    30.0000,
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+);
+
+-- 插入示例设备数据（关联到巡检点）
+-- 为巡检点001创建设备
 INSERT INTO tb_device (
     id,
     device_name,
     device_params,
-    map_id,
+    point_id,
     x_coordinate,
     y_coordinate,
     created_at,
@@ -675,7 +768,7 @@ INSERT INTO tb_device (
     '550e8400-e29b-41d4-a716-446655440070',
     '温湿度传感器001',
     '{"type": "temperature_humidity", "model": "DHT22", "range": {"temp": "-40~80", "humidity": "0~100"}, "accuracy": {"temp": "±0.5", "humidity": "±2%"}}',
-    '550e8400-e29b-41d4-a716-446655440010',
+    '60000000-0000-0000-0000-000000000001',
     12.0000,
     8.0000,
     NOW(),
@@ -687,7 +780,7 @@ INSERT INTO tb_device (
     '550e8400-e29b-41d4-a716-446655440071',
     '气体检测仪001',
     '{"type": "gas_detector", "model": "MQ-135", "detect_gas": ["CO", "NH3", "NOx", "smoke"], "voltage": "5V"}',
-    '550e8400-e29b-41d4-a716-446655440010',
+    '60000000-0000-0000-0000-000000000001',
     28.5000,
     14.3000,
     NOW(),
@@ -699,13 +792,140 @@ INSERT INTO tb_device (
     '550e8400-e29b-41d4-a716-446655440072',
     '红外热像仪001',
     '{"type": "thermal_camera", "model": "FLIR-E8", "resolution": "320x240", "temp_range": "-20~250", "accuracy": "±2°C"}',
-    '550e8400-e29b-41d4-a716-446655440010',
+    '60000000-0000-0000-0000-000000000002',
     45.7500,
     21.9000,
     NOW(),
     NOW(),
     'operator',
     'operator',
+    FALSE
+), (
+    '550e8400-e29b-41d4-a716-446655440073',
+    '可见光相机001',
+    '{"type": "visible_camera", "model": "Hikvision-DS-2CD", "resolution": "1920x1080", "format": "JPEG"}',
+    '60000000-0000-0000-0000-000000000001',
+    15.0000,
+    10.0000,
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '550e8400-e29b-41d4-a716-446655440074',
+    '振动传感器001',
+    '{"type": "vibration", "model": "ADXL345", "range": "0~100mm/s", "accuracy": "±0.1mm/s"}',
+    '60000000-0000-0000-0000-000000000003',
+    30.0000,
+    10.0000,
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+);
+
+-- 插入示例巡检项目数据（必须在tb_device之后插入，因为tb_item引用tb_device）
+INSERT INTO tb_item (
+    id,
+    item_name,
+    item_info,
+    device_id,
+    created_at,
+    updated_at,
+    created_by,
+    updated_by,
+    is_deleted
+) VALUES (
+    '70000000-0000-0000-0000-000000000001',
+    '温度检测',
+    '{"type": "temperature", "unit": "℃", "threshold": {"min": -10, "max": 50}}',
+    '550e8400-e29b-41d4-a716-446655440070',
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '70000000-0000-0000-0000-000000000002',
+    '湿度检测',
+    '{"type": "humidity", "unit": "%RH", "threshold": {"min": 30, "max": 80}}',
+    '550e8400-e29b-41d4-a716-446655440070',
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '70000000-0000-0000-0000-000000000003',
+    '气体浓度检测',
+    '{"type": "gas_concentration", "unit": "ppm", "threshold": {"co": 50, "nh3": 25}}',
+    '550e8400-e29b-41d4-a716-446655440071',
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '70000000-0000-0000-0000-000000000005',
+    '热成像检测',
+    '{"type": "thermal_imaging", "format": "image", "resolution": "320x240"}',
+    '550e8400-e29b-41d4-a716-446655440072',
+    NOW(),
+    NOW(),
+    'operator',
+    'operator',
+    FALSE
+), (
+    '70000000-0000-0000-0000-000000000006',
+    '可见光拍照',
+    '{"type": "photo", "format": "JPEG", "resolution": "1920x1080"}',
+    '550e8400-e29b-41d4-a716-446655440073',
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '70000000-0000-0000-0000-000000000007',
+    '振动检测',
+    '{"type": "vibration", "unit": "mm/s", "threshold": {"max": 50}}',
+    '550e8400-e29b-41d4-a716-446655440074',
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '70000000-0000-0000-0000-000000000010',
+    '设备状态检查',
+    '{"type": "equipment_status", "check_items": ["power", "connection", "function"]}',
+    '550e8400-e29b-41d4-a716-446655440070',
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '70000000-0000-0000-0000-000000000013',
+    '清洁度检查',
+    '{"type": "cleanliness", "check_items": ["surface", "dust", "debris"]}',
+    '550e8400-e29b-41d4-a716-446655440070',
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '70000000-0000-0000-0000-000000000014',
+    '照明检查',
+    '{"type": "lighting", "check_items": ["brightness", "function", "status"]}',
+    '550e8400-e29b-41d4-a716-446655440070',
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
     FALSE
 );
 
@@ -1576,6 +1796,7 @@ INSERT INTO tb_sensorhistory (
 );
 
 -- 插入示例任务数据
+-- 插入示例任务数据（厂区一-机器人一的两个任务）
 INSERT INTO tb_task (
     id,
     task_name,
@@ -1591,7 +1812,7 @@ INSERT INTO tb_task (
     is_deleted
 ) VALUES (
     '550e8400-e29b-41d4-a716-446655440021',
-    '一楼日常巡检',
+    '任务一：环境监测',
     '550e8400-e29b-41d4-a716-446655440020',
     '["70000000-0000-0000-0000-000000000001", "70000000-0000-0000-0000-000000000002", "70000000-0000-0000-0000-000000000003"]',
     1,
@@ -1602,267 +1823,20 @@ INSERT INTO tb_task (
     'superadmin',
     'superadmin',
     FALSE
+), (
+    '550e8400-e29b-41d4-a716-446655440022',
+    '任务二：设备巡检',
+    '550e8400-e29b-41d4-a716-446655440020',
+    '["70000000-0000-0000-0000-000000000005", "70000000-0000-0000-0000-000000000006", "70000000-0000-0000-0000-000000000007"]',
+    2,
+    5,
+    3,
+    NOW(),
+    NOW(),
+    'superadmin',
+    'superadmin',
+    FALSE
 );
-
--- 插入示例巡检点数据
-INSERT INTO tb_point (
-    id,
-    point_name,
-    map_id,
-    point_actions,
-    x_coordinate,
-    y_coordinate,
-    created_at,
-    updated_at,
-    created_by,
-    updated_by,
-    is_deleted
-) VALUES
--- 巡检点001
-('60000000-0000-0000-0000-000000000001', '巡检点001', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "拍照", "duration": 5, "pan_angle": 0, "tilt_angle": 0}', 10.0000, 10.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点002
-('60000000-0000-0000-0000-000000000002', '巡检点002', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "录像", "duration": 10, "pan_angle": 45, "tilt_angle": 30}', 20.0000, 10.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点003
-('60000000-0000-0000-0000-000000000003', '巡检点003', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "测温", "duration": 3, "target": "设备表面"}', 30.0000, 10.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点004
-('60000000-0000-0000-0000-000000000004', '巡检点004', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "拍照", "duration": 5, "pan_angle": 90, "tilt_angle": 45}', 40.0000, 10.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点005
-('60000000-0000-0000-0000-000000000005', '巡检点005', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "环境检测", "duration": 8, "sensors": ["温度", "湿度", "烟雾"]}', 50.0000, 10.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点006
-('60000000-0000-0000-0000-000000000006', '巡检点006', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "拍照", "duration": 5, "pan_angle": 180, "tilt_angle": 0}', 10.0000, 20.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点007
-('60000000-0000-0000-0000-000000000007', '巡检点007', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "录像", "duration": 15, "pan_angle": 270, "tilt_angle": 60}', 20.0000, 20.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点008
-('60000000-0000-0000-0000-000000000008', '巡检点008', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "测温", "duration": 3, "target": "电机"}', 30.0000, 20.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点009
-('60000000-0000-0000-0000-000000000009', '巡检点009', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "拍照", "duration": 5, "pan_angle": 0, "tilt_angle": -30}', 40.0000, 20.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点010
-('60000000-0000-0000-0000-000000000010', '巡检点010', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "环境检测", "duration": 8, "sensors": ["温度", "湿度", "CO2", "PM2.5"]}', 50.0000, 20.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点011
-('60000000-0000-0000-0000-000000000011', '巡检点011', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "拍照", "duration": 5, "pan_angle": 45, "tilt_angle": 45}', 10.0000, 30.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点012
-('60000000-0000-0000-0000-000000000012', '巡检点012', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "录像", "duration": 12, "pan_angle": 135, "tilt_angle": 30}', 20.0000, 30.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点013
-('60000000-0000-0000-0000-000000000013', '巡检点013', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "测温", "duration": 3, "target": "管道"}', 30.0000, 30.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点014
-('60000000-0000-0000-0000-000000000014', '巡检点014', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "拍照", "duration": 5, "pan_angle": 90, "tilt_angle": 0}', 40.0000, 30.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点015
-('60000000-0000-0000-0000-000000000015', '巡检点015', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "环境检测", "duration": 8, "sensors": ["温度", "湿度", "烟雾", "CO"]}', 50.0000, 30.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点016
-('60000000-0000-0000-0000-000000000016', '巡检点016', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "拍照", "duration": 5, "pan_angle": 180, "tilt_angle": 45}', 10.0000, 40.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点017
-('60000000-0000-0000-0000-000000000017', '巡检点017', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "录像", "duration": 10, "pan_angle": 225, "tilt_angle": 60}', 20.0000, 40.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点018
-('60000000-0000-0000-0000-000000000018', '巡检点018', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "测温", "duration": 3, "target": "控制柜"}', 30.0000, 40.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点019
-('60000000-0000-0000-0000-000000000019', '巡检点019', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "拍照", "duration": 5, "pan_angle": 270, "tilt_angle": -45}', 40.0000, 40.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-
--- 巡检点020
-('60000000-0000-0000-0000-000000000020', '巡检点020', '550e8400-e29b-41d4-a716-446655440010', 
- '{"action_type": "环境检测", "duration": 8, "sensors": ["温度", "湿度", "烟雾", "CO2", "PM2.5", "噪音"]}', 50.0000, 40.0000, NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 插入示例巡检项目数据
--- 巡检点001 - 5个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000001', 'P001-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000001', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000002', 'P001-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000001', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000003', 'P001-烟雾检测', '{"sensor_type": "烟雾", "unit": "ppm", "range": {"min": 0, "max": 1000}, "threshold": {"warning": 100, "alarm": 300}}', '60000000-0000-0000-0000-000000000001', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000004', 'P001-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000001', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000005', 'P001-振动检测', '{"sensor_type": "振动", "unit": "mm/s", "range": {"min": 0, "max": 100}, "threshold": {"warning": 10, "alarm": 20}}', '60000000-0000-0000-0000-000000000001', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点002 - 4个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000006', 'P002-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000002', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000007', 'P002-视频录制', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "MP4", "duration": 10, "fps": 30}', '60000000-0000-0000-0000-000000000002', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000008', 'P002-压力检测', '{"sensor_type": "压力", "unit": "kPa", "range": {"min": 0, "max": 1000}, "threshold": {"warning": 800, "alarm": 900}}', '60000000-0000-0000-0000-000000000002', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000009', 'P002-声音检测', '{"sensor_type": "声音", "unit": "dB", "range": {"min": 0, "max": 120}, "threshold": {"warning": 80, "alarm": 100}}', '60000000-0000-0000-0000-000000000002', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点003 - 6个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000010', 'P003-红外测温', '{"sensor_type": "红外温度", "unit": "℃", "range": {"min": -20, "max": 500}, "threshold": {"warning": 100, "alarm": 150}, "target": "设备表面"}', '60000000-0000-0000-0000-000000000003', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000011', 'P003-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000003', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000012', 'P003-热成像', '{"camera_type": "热成像", "resolution": "640x480", "format": "JPEG", "temperature_range": {"min": -20, "max": 150}}', '60000000-0000-0000-0000-000000000003', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000013', 'P003-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000003', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000014', 'P003-振动检测', '{"sensor_type": "振动", "unit": "mm/s", "range": {"min": 0, "max": 100}, "threshold": {"warning": 10, "alarm": 20}}', '60000000-0000-0000-0000-000000000003', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000015', 'P003-电流检测', '{"sensor_type": "电流", "unit": "A", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 95}}', '60000000-0000-0000-0000-000000000003', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点004 - 3个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000016', 'P004-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000004', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000017', 'P004-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000004', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000018', 'P004-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000004', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点005 - 8个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000019', 'P005-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000005', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000020', 'P005-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000005', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000021', 'P005-烟雾检测', '{"sensor_type": "烟雾", "unit": "ppm", "range": {"min": 0, "max": 1000}, "threshold": {"warning": 100, "alarm": 300}}', '60000000-0000-0000-0000-000000000005', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000022', 'P005-CO2检测', '{"sensor_type": "CO2", "unit": "ppm", "range": {"min": 0, "max": 5000}, "threshold": {"warning": 1000, "alarm": 2000}}', '60000000-0000-0000-0000-000000000005', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000023', 'P005-PM2.5检测', '{"sensor_type": "PM2.5", "unit": "μg/m³", "range": {"min": 0, "max": 500}, "threshold": {"warning": 75, "alarm": 150}}', '60000000-0000-0000-0000-000000000005', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000024', 'P005-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000005', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000025', 'P005-气压检测', '{"sensor_type": "气压", "unit": "hPa", "range": {"min": 800, "max": 1200}, "threshold": {"warning": 950, "alarm": 1050}}', '60000000-0000-0000-0000-000000000005', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000026', 'P005-风速检测', '{"sensor_type": "风速", "unit": "m/s", "range": {"min": 0, "max": 30}, "threshold": {"warning": 10, "alarm": 20}}', '60000000-0000-0000-0000-000000000005', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点006 - 4个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000027', 'P006-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000006', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000028', 'P006-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000006', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000029', 'P006-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000006', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000030', 'P006-振动检测', '{"sensor_type": "振动", "unit": "mm/s", "range": {"min": 0, "max": 100}, "threshold": {"warning": 10, "alarm": 20}}', '60000000-0000-0000-0000-000000000006', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点007 - 7个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000031', 'P007-视频录制', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "MP4", "duration": 15, "fps": 30}', '60000000-0000-0000-0000-000000000007', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000032', 'P007-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000007', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000033', 'P007-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000007', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000034', 'P007-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000007', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000035', 'P007-烟雾检测', '{"sensor_type": "烟雾", "unit": "ppm", "range": {"min": 0, "max": 1000}, "threshold": {"warning": 100, "alarm": 300}}', '60000000-0000-0000-0000-000000000007', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000036', 'P007-振动检测', '{"sensor_type": "振动", "unit": "mm/s", "range": {"min": 0, "max": 100}, "threshold": {"warning": 10, "alarm": 20}}', '60000000-0000-0000-0000-000000000007', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000037', 'P007-声音检测', '{"sensor_type": "声音", "unit": "dB", "range": {"min": 0, "max": 120}, "threshold": {"warning": 80, "alarm": 100}}', '60000000-0000-0000-0000-000000000007', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点008 - 5个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000038', 'P008-红外测温', '{"sensor_type": "红外温度", "unit": "℃", "range": {"min": -20, "max": 500}, "threshold": {"warning": 100, "alarm": 150}, "target": "电机"}', '60000000-0000-0000-0000-000000000008', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000039', 'P008-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000008', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000040', 'P008-振动检测', '{"sensor_type": "振动", "unit": "mm/s", "range": {"min": 0, "max": 100}, "threshold": {"warning": 10, "alarm": 20}}', '60000000-0000-0000-0000-000000000008', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000041', 'P008-电流检测', '{"sensor_type": "电流", "unit": "A", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 95}}', '60000000-0000-0000-0000-000000000008', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000042', 'P008-电压检测', '{"sensor_type": "电压", "unit": "V", "range": {"min": 0, "max": 400}, "threshold": {"warning": 350, "alarm": 380}}', '60000000-0000-0000-0000-000000000008', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点009 - 3个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000043', 'P009-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000009', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000044', 'P009-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000009', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000045', 'P009-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000009', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点010 - 8个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000046', 'P010-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000010', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000047', 'P010-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000010', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000048', 'P010-烟雾检测', '{"sensor_type": "烟雾", "unit": "ppm", "range": {"min": 0, "max": 1000}, "threshold": {"warning": 100, "alarm": 300}}', '60000000-0000-0000-0000-000000000010', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000049', 'P010-CO2检测', '{"sensor_type": "CO2", "unit": "ppm", "range": {"min": 0, "max": 5000}, "threshold": {"warning": 1000, "alarm": 2000}}', '60000000-0000-0000-0000-000000000010', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000050', 'P010-PM2.5检测', '{"sensor_type": "PM2.5", "unit": "μg/m³", "range": {"min": 0, "max": 500}, "threshold": {"warning": 75, "alarm": 150}}', '60000000-0000-0000-0000-000000000010', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000051', 'P010-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000010', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000052', 'P010-噪音检测', '{"sensor_type": "噪音", "unit": "dB", "range": {"min": 0, "max": 120}, "threshold": {"warning": 70, "alarm": 85}}', '60000000-0000-0000-0000-000000000010', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000053', 'P010-气压检测', '{"sensor_type": "气压", "unit": "hPa", "range": {"min": 800, "max": 1200}, "threshold": {"warning": 950, "alarm": 1050}}', '60000000-0000-0000-0000-000000000010', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点011 - 4个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000054', 'P011-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000011', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000055', 'P011-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000011', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000056', 'P011-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000011', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000057', 'P011-振动检测', '{"sensor_type": "振动", "unit": "mm/s", "range": {"min": 0, "max": 100}, "threshold": {"warning": 10, "alarm": 20}}', '60000000-0000-0000-0000-000000000011', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点012 - 6个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000058', 'P012-视频录制', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "MP4", "duration": 12, "fps": 30}', '60000000-0000-0000-0000-000000000012', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000059', 'P012-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000012', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000060', 'P012-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000012', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000061', 'P012-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000012', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000062', 'P012-烟雾检测', '{"sensor_type": "烟雾", "unit": "ppm", "range": {"min": 0, "max": 1000}, "threshold": {"warning": 100, "alarm": 300}}', '60000000-0000-0000-0000-000000000012', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000063', 'P012-振动检测', '{"sensor_type": "振动", "unit": "mm/s", "range": {"min": 0, "max": 100}, "threshold": {"warning": 10, "alarm": 20}}', '60000000-0000-0000-0000-000000000012', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点013 - 5个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000064', 'P013-红外测温', '{"sensor_type": "红外温度", "unit": "℃", "range": {"min": -20, "max": 500}, "threshold": {"warning": 100, "alarm": 150}, "target": "管道"}', '60000000-0000-0000-0000-000000000013', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000065', 'P013-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000013', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000066', 'P013-压力检测', '{"sensor_type": "压力", "unit": "kPa", "range": {"min": 0, "max": 1000}, "threshold": {"warning": 800, "alarm": 900}}', '60000000-0000-0000-0000-000000000013', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000067', 'P013-流量检测', '{"sensor_type": "流量", "unit": "L/min", "range": {"min": 0, "max": 1000}, "threshold": {"warning": 800, "alarm": 950}}', '60000000-0000-0000-0000-000000000013', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000068', 'P013-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000013', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点014 - 3个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000069', 'P014-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000014', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000070', 'P014-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000014', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000071', 'P014-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000014', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点015 - 7个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000072', 'P015-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000015', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000073', 'P015-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000015', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000074', 'P015-烟雾检测', '{"sensor_type": "烟雾", "unit": "ppm", "range": {"min": 0, "max": 1000}, "threshold": {"warning": 100, "alarm": 300}}', '60000000-0000-0000-0000-000000000015', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000075', 'P015-CO检测', '{"sensor_type": "CO", "unit": "ppm", "range": {"min": 0, "max": 1000}, "threshold": {"warning": 50, "alarm": 200}}', '60000000-0000-0000-0000-000000000015', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000076', 'P015-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000015', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000077', 'P015-振动检测', '{"sensor_type": "振动", "unit": "mm/s", "range": {"min": 0, "max": 100}, "threshold": {"warning": 10, "alarm": 20}}', '60000000-0000-0000-0000-000000000015', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000078', 'P015-声音检测', '{"sensor_type": "声音", "unit": "dB", "range": {"min": 0, "max": 120}, "threshold": {"warning": 80, "alarm": 100}}', '60000000-0000-0000-0000-000000000015', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点016 - 4个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000079', 'P016-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000016', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000080', 'P016-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000016', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000081', 'P016-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000016', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000082', 'P016-振动检测', '{"sensor_type": "振动", "unit": "mm/s", "range": {"min": 0, "max": 100}, "threshold": {"warning": 10, "alarm": 20}}', '60000000-0000-0000-0000-000000000016', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点017 - 6个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000083', 'P017-视频录制', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "MP4", "duration": 10, "fps": 30}', '60000000-0000-0000-0000-000000000017', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000084', 'P017-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000017', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000085', 'P017-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000017', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000086', 'P017-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000017', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000087', 'P017-烟雾检测', '{"sensor_type": "烟雾", "unit": "ppm", "range": {"min": 0, "max": 1000}, "threshold": {"warning": 100, "alarm": 300}}', '60000000-0000-0000-0000-000000000017', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000088', 'P017-振动检测', '{"sensor_type": "振动", "unit": "mm/s", "range": {"min": 0, "max": 100}, "threshold": {"warning": 10, "alarm": 20}}', '60000000-0000-0000-0000-000000000017', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点018 - 5个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000089', 'P018-红外测温', '{"sensor_type": "红外温度", "unit": "℃", "range": {"min": -20, "max": 500}, "threshold": {"warning": 100, "alarm": 150}, "target": "控制柜"}', '60000000-0000-0000-0000-000000000018', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000090', 'P018-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000018', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000091', 'P018-电流检测', '{"sensor_type": "电流", "unit": "A", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 95}}', '60000000-0000-0000-0000-000000000018', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000092', 'P018-电压检测', '{"sensor_type": "电压", "unit": "V", "range": {"min": 0, "max": 400}, "threshold": {"warning": 350, "alarm": 380}}', '60000000-0000-0000-0000-000000000018', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000093', 'P018-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000018', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点019 - 3个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000094', 'P019-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000019', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000095', 'P019-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000019', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000096', 'P019-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000019', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
--- 巡检点020 - 8个项目
-INSERT INTO tb_item (id, item_name, item_info, point_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('70000000-0000-0000-0000-000000000097', 'P020-温度检测', '{"sensor_type": "温度", "unit": "℃", "range": {"min": -20, "max": 80}, "threshold": {"warning": 60, "alarm": 75}}', '60000000-0000-0000-0000-000000000020', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000098', 'P020-湿度检测', '{"sensor_type": "湿度", "unit": "%RH", "range": {"min": 0, "max": 100}, "threshold": {"warning": 80, "alarm": 90}}', '60000000-0000-0000-0000-000000000020', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000099', 'P020-烟雾检测', '{"sensor_type": "烟雾", "unit": "ppm", "range": {"min": 0, "max": 1000}, "threshold": {"warning": 100, "alarm": 300}}', '60000000-0000-0000-0000-000000000020', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000100', 'P020-CO2检测', '{"sensor_type": "CO2", "unit": "ppm", "range": {"min": 0, "max": 5000}, "threshold": {"warning": 1000, "alarm": 2000}}', '60000000-0000-0000-0000-000000000020', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000101', 'P020-PM2.5检测', '{"sensor_type": "PM2.5", "unit": "μg/m³", "range": {"min": 0, "max": 500}, "threshold": {"warning": 75, "alarm": 150}}', '60000000-0000-0000-0000-000000000020', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000102', 'P020-噪音检测', '{"sensor_type": "噪音", "unit": "dB", "range": {"min": 0, "max": 120}, "threshold": {"warning": 70, "alarm": 85}}', '60000000-0000-0000-0000-000000000020', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000103', 'P020-图像采集', '{"camera_type": "可见光", "resolution": "1920x1080", "format": "JPEG", "quality": 90}', '60000000-0000-0000-0000-000000000020', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('70000000-0000-0000-0000-000000000104', 'P020-气压检测', '{"sensor_type": "气压", "unit": "hPa", "range": {"min": 800, "max": 1200}, "threshold": {"warning": 950, "alarm": 1050}}', '60000000-0000-0000-0000-000000000020', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
-
 
 -- 插入示例任务日程数据
 INSERT INTO tb_taskschedule (

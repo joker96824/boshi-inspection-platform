@@ -15,21 +15,21 @@ class Device(BaseModel):
     # 基础字段
     device_name = Column(String(100), nullable=False, comment="设备名称")
     device_params = Column(JSON, nullable=True, comment="设备参数")
-    map_id = Column(String(36), ForeignKey("tb_map.id", ondelete="SET NULL"), nullable=True, index=True, comment="地图ID")
+    point_id = Column(String(36), ForeignKey("tb_point.id", ondelete="CASCADE"), nullable=False, index=True, comment="所属巡检点ID")
     x_coordinate = Column(Float, nullable=True, comment="X坐标（地图横坐标）")
     y_coordinate = Column(Float, nullable=True, comment="Y坐标（地图纵坐标）")
     
     # 关系
-    map = relationship("Map", foreign_keys=[map_id])
+    point = relationship("Point", back_populates="devices")
     sensors = relationship("Sensor", back_populates="device", cascade="all, delete-orphan")
+    items = relationship("Item", back_populates="device", cascade="all, delete-orphan")
     
     # 创建索引
     __table_args__ = (
         Index('idx_device_name', 'device_name'),
-        Index('idx_map_id', 'map_id'),
+        Index('idx_point_id', 'point_id'),
         Index('idx_created_at', 'created_at'),
         Index('idx_is_deleted', 'is_deleted'),
-        Index('idx_device_coordinates', 'map_id', 'x_coordinate', 'y_coordinate'),
     )
     
     def __repr__(self):

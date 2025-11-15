@@ -11,7 +11,6 @@ class PointBase(BaseSchema):
     """巡检点基础模式"""
     point_name: str = Field(..., min_length=1, max_length=100, description="巡检点名称")
     map_id: str = Field(..., description="所属地图ID")
-    point_actions: Optional[Dict[str, Any]] = Field(None, description="巡检点动作")
     x_coordinate: float = Field(..., description="X坐标（地图横坐标）")
     y_coordinate: float = Field(..., description="Y坐标（地图纵坐标）")
 
@@ -24,7 +23,6 @@ class PointCreate(PointBase):
 class PointUpdate(BaseSchema):
     """巡检点更新模式"""
     point_name: Optional[str] = Field(None, min_length=1, max_length=100, description="巡检点名称")
-    point_actions: Optional[Dict[str, Any]] = Field(None, description="巡检点动作")
     x_coordinate: Optional[float] = Field(None, description="X坐标（地图横坐标）")
     y_coordinate: Optional[float] = Field(None, description="Y坐标（地图纵坐标）")
 
@@ -33,7 +31,6 @@ class PointResponse(BaseResponse):
     """巡检点响应模式"""
     point_name: str = Field(..., description="巡检点名称")
     map_id: str = Field(..., description="所属地图ID")
-    point_actions: Optional[Dict[str, Any]] = Field(None, description="巡检点动作")
     x_coordinate: Optional[float] = Field(None, description="X坐标（地图横坐标）")
     y_coordinate: Optional[float] = Field(None, description="Y坐标（地图纵坐标）")
 

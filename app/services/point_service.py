@@ -25,14 +25,57 @@ class PointService:
         self.map_repo = MapRepository(db)
     
     def _format_point_response(self, point) -> Dict[str, Any]:
-        """格式化巡检点响应数据"""
+        """格式化巡检点响应数据（包含设备和巡检项目）"""
+        # 格式化设备数据
+        devices_data = []
+        if hasattr(point, 'devices') and point.devices:
+            for device in point.devices:
+                # 格式化设备下的巡检项目
+                items_data = []
+                if hasattr(device, 'items') and device.items:
+                    for item in device.items:
+                        items_data.append({
+                            "id": item.id,
+                            "item_name": item.item_name,
+                            "item_info": item.item_info,
+                            "device_id": item.device_id,
+                            "created_at": item.created_at.strftime("%Y-%m-%dT%H:%M:%S") if item.created_at else None,
+                            "updated_at": item.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if item.updated_at else None,
+                        })
+                
+                # 格式化设备下的传感器
+                sensors_data = []
+                if hasattr(device, 'sensors') and device.sensors:
+                    for sensor in device.sensors:
+                        sensors_data.append({
+                            "id": sensor.id,
+                            "sensor_name": sensor.sensor_name,
+                            "sensor_params": sensor.sensor_params,
+                            "device_id": sensor.device_id,
+                            "created_at": sensor.created_at.strftime("%Y-%m-%dT%H:%M:%S") if sensor.created_at else None,
+                            "updated_at": sensor.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if sensor.updated_at else None,
+                        })
+                
+                devices_data.append({
+                    "id": device.id,
+                    "device_name": device.device_name,
+                    "device_params": device.device_params,
+                    "point_id": device.point_id,
+                    "x_coordinate": device.x_coordinate,
+                    "y_coordinate": device.y_coordinate,
+                    "items": items_data,
+                    "sensors": sensors_data,
+                    "created_at": device.created_at.strftime("%Y-%m-%dT%H:%M:%S") if device.created_at else None,
+                    "updated_at": device.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if device.updated_at else None,
+                })
+        
         return {
             "id": point.id,
             "point_name": point.point_name,
             "map_id": point.map_id,
-            "point_actions": point.point_actions,
             "x_coordinate": point.x_coordinate,
             "y_coordinate": point.y_coordinate,
+            "devices": devices_data,
             "created_at": point.created_at.strftime("%Y-%m-%dT%H:%M:%S") if point.created_at else None,
             "updated_at": point.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if point.updated_at else None,
             "created_by": point.created_by,
@@ -188,12 +231,7 @@ class PointService:
             raise ResourceNotFoundError(f"巡检点 '{point_id}' 不存在")
         
         try:
-            # 级联删除关联的中间表记录
-            from ..repositories.point_item_repository import PointItemRepository
-            point_item_repo = PointItemRepository(self.db)
-            deleted_relations = await point_item_repo.delete_by_point_id(point_id)
-            
-            # 软删除巡检点
+            # 软删除巡检点（设备和巡检项目会通过CASCADE自动级联删除）
             success = await self.point_repo.soft_delete(point_id)
             if not success:
                 raise HTTPException(status_code=500, detail="删除巡检点失败")
@@ -203,15 +241,14 @@ class PointService:
                 user["username"],
                 "delete_point",
                 "success",
-                f"删除巡检点成功，ID: {point_id}，同时删除了 {deleted_relations} 个关联记录"
+                f"删除巡检点成功，ID: {point_id}"
             )
             
             return ApiResponse.success(
                 data={
-                    "point_id": point_id,
-                    "deleted_relations": deleted_relations
+                    "point_id": point_id
                 },
-                message=f"删除巡检点成功，同时删除了 {deleted_relations} 个关联记录"
+                message="删除巡检点成功"
             )
             
         except Exception as e:

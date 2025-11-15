@@ -43,7 +43,7 @@ class DeviceRepository:
         return list(result.scalars().all())
     
     async def get_all(self, page: Optional[int] = None, size: Optional[int] = None, 
-                     device_name: str = None, map_id: str = None) -> Tuple[List[Device], int]:
+                     device_name: str = None, point_id: str = None) -> Tuple[List[Device], int]:
         """获取设备列表"""
         # 如果未提供分页参数，返回所有数据
         if page is None or size is None:
@@ -59,8 +59,8 @@ class DeviceRepository:
         if device_name:
             conditions.append(Device.device_name.like(f"%{device_name}%"))
         
-        if map_id:
-            conditions.append(Device.map_id == map_id)
+        if point_id:
+            conditions.append(Device.point_id == point_id)
         
         # 查询总数
         count_query = select(func.count(Device.id)).where(and_(*conditions))

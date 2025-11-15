@@ -8,6 +8,8 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from ..models.point import Point
+from ..models.device import Device
+from ..models.item import Item
 from ..config.logging import get_logger
 
 logger = get_logger(__name__)
@@ -28,10 +30,17 @@ class PointRepository:
         return point
     
     async def get_by_id(self, point_id: str) -> Optional[Point]:
-        """根据ID获取巡检点"""
-        stmt = select(Point).where(
-            Point.id == point_id,
-            Point.is_deleted == False
+        """根据ID获取巡检点（预加载设备和巡检项目）"""
+        stmt = (
+            select(Point)
+            .options(
+                selectinload(Point.devices).selectinload(Device.items),
+                selectinload(Point.devices).selectinload(Device.sensors)
+            )
+            .where(
+                Point.id == point_id,
+                Point.is_deleted == False
+            )
         )
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
@@ -121,10 +130,16 @@ class PointRepository:
         count_result = await self.db.execute(count_stmt)
         total = count_result.scalar() or 0
         
-        # 查询数据
-        stmt = (select(Point)
-                .where(*conditions)
-                .order_by(Point.created_at.desc()))
+        # 查询数据（预加载设备和巡检项目）
+        stmt = (
+            select(Point)
+            .options(
+                selectinload(Point.devices).selectinload(Device.items),
+                selectinload(Point.devices).selectinload(Device.sensors)
+            )
+            .where(*conditions)
+            .order_by(Point.created_at.desc())
+        )
         if skip is not None and limit is not None:
             stmt = stmt.offset(skip).limit(limit)
         

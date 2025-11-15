@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
 from ..repositories.item_repository import ItemRepository
+from ..repositories.device_repository import DeviceRepository
 from ..schemas.item import ItemCreate, ItemUpdate, ItemQuery
 from ..core.exceptions import (
     ResourceNotFoundError, BusinessError
@@ -23,10 +24,16 @@ class ItemService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.item_repo = ItemRepository(db)
+        self.device_repo = DeviceRepository(db)
     
     async def create_item(self, item_data: ItemCreate, user: dict) -> Dict[str, Any]:
         """创建巡检项目"""
         try:
+            # 检查设备是否存在
+            device = await self.device_repo.get_by_id(item_data.device_id)
+            if not device:
+                raise ResourceNotFoundError(f"设备 '{item_data.device_id}' 不存在")
+            
             # 检查巡检项目名是否已存在
             if await self.item_repo.exists_by_name(item_data.item_name):
                 raise BusinessError(f"巡检项目名称 '{item_data.item_name}' 已存在")
@@ -94,11 +101,25 @@ class ItemService:
     async def get_items(self, query: ItemQuery, user: Optional[dict]) -> Dict[str, Any]:
         """获取巡检项目列表"""
         try:
+            # 如果未提供分页参数，返回所有数据
+            if query.page is None or query.size is None:
+                items, total = await self.item_repo.get_all(
+                    page=None,
+                    size=None,
+                    item_name=query.item_name,
+                    device_id=query.device_id
+                )
+                items_data = [self._format_item_response(item) for item in items]
+                return ApiResponse.success(
+                    data={"items": items_data, "total": total},
+                    message="获取巡检项目列表成功"
+                )
+            
             items, total = await self.item_repo.get_all(
                 page=query.page,
                 size=query.size,
                 item_name=query.item_name,
-                point_id=query.point_id
+                device_id=query.device_id
             )
             
             # 格式化响应数据
@@ -123,6 +144,12 @@ class ItemService:
             existing_item = await self.item_repo.get_by_id(item_id)
             if not existing_item:
                 raise ResourceNotFoundError(f"巡检项目ID '{item_id}' 不存在")
+            
+            # 如果更新了device_id，检查设备是否存在
+            if item_data.device_id and item_data.device_id != existing_item.device_id:
+                device = await self.device_repo.get_by_id(item_data.device_id)
+                if not device:
+                    raise ResourceNotFoundError(f"设备 '{item_data.device_id}' 不存在")
             
             # 如果更新了名称，检查是否重复
             if (item_data.item_name and 
@@ -211,7 +238,7 @@ class ItemService:
             "id": item.id,
             "item_name": item.item_name,
             "item_info": item.item_info,
-            "point_id": item.point_id,
+            "device_id": item.device_id,
             "created_at": item.created_at.strftime("%Y-%m-%dT%H:%M:%S") if item.created_at else None,
             "updated_at": item.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if item.updated_at else None,
             "created_by": item.created_by,

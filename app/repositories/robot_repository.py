@@ -34,8 +34,8 @@ class RobotRepository:
             select(Robot)
             .options(selectinload(Robot.maps).selectinload(RobotMap.map))
             .where(
-                Robot.id == robot_id,
-                Robot.is_deleted == False
+            Robot.id == robot_id,
+            Robot.is_deleted == False
             )
         )
         result = await self.db.execute(stmt)

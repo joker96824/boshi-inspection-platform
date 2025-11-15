@@ -28,18 +28,18 @@ class ItemRepository:
     async def get_by_id(self, item_id: str) -> Optional[Item]:
         """根据ID获取巡检项目"""
         query = (select(Item)
-                .options(selectinload(Item.point))
+                .options(selectinload(Item.device))
                 .where(Item.id == item_id, Item.is_deleted == False))
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
     
     async def get_by_ids(self, item_ids: List[str]) -> List[Item]:
-        """根据ID列表获取巡检项目（预加载 point 关系）"""
+        """根据ID列表获取巡检项目（预加载 device 关系）"""
         if not item_ids:
             return []
         
         query = (select(Item)
-                .options(selectinload(Item.point))
+                .options(selectinload(Item.device))
                 .where(
                     Item.id.in_(item_ids),
                     Item.is_deleted == False
@@ -47,10 +47,16 @@ class ItemRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
-    async def get_all(self, page: int = 1, size: int = 20, 
-                     item_name: str = None, point_id: str = None) -> Tuple[List[Item], int]:
+    async def get_all(self, page: Optional[int] = None, size: Optional[int] = None, 
+                     item_name: str = None, device_id: str = None) -> Tuple[List[Item], int]:
         """获取巡检项目列表"""
-        skip = (page - 1) * size
+        # 如果未提供分页参数，返回所有数据
+        if page is None or size is None:
+            skip = None
+            limit = None
+        else:
+            skip = (page - 1) * size
+            limit = size
         
         # 构建查询条件
         conditions = [Item.is_deleted == False]
@@ -58,8 +64,8 @@ class ItemRepository:
         if item_name:
             conditions.append(Item.item_name.like(f"%{item_name}%"))
         
-        if point_id:
-            conditions.append(Item.point_id == point_id)
+        if device_id:
+            conditions.append(Item.device_id == device_id)
         
         # 查询总数
         count_query = select(func.count(Item.id)).where(and_(*conditions))
@@ -69,19 +75,19 @@ class ItemRepository:
         # 查询数据
         query = (select(Item)
                 .where(and_(*conditions))
-                .order_by(Item.created_at.desc())
-                .offset(skip)
-                .limit(size))
+                .order_by(Item.created_at.desc()))
+        if skip is not None and limit is not None:
+            query = query.offset(skip).limit(limit)
         
         result = await self.db.execute(query)
         items = list(result.scalars().all())
         
         return items, total
     
-    async def get_by_point_id(self, point_id: str) -> List[Item]:
-        """根据巡检点ID获取所有巡检项目"""
+    async def get_by_device_id(self, device_id: str) -> List[Item]:
+        """根据设备ID获取所有巡检项目"""
         query = select(Item).where(
-            Item.point_id == point_id,
+            Item.device_id == device_id,
             Item.is_deleted == False
         ).order_by(Item.created_at.desc())
         

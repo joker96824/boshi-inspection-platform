@@ -15,13 +15,12 @@ class Point(BaseModel):
     # 基础字段
     point_name = Column(String(100), nullable=False, comment="巡检点名称")
     map_id = Column(String(36), ForeignKey("tb_map.id", ondelete="CASCADE"), nullable=False, comment="所属地图ID")
-    point_actions = Column(JSON, nullable=True, comment="巡检点动作")
     x_coordinate = Column(Float, nullable=True, comment="X坐标（地图横坐标）")
     y_coordinate = Column(Float, nullable=True, comment="Y坐标（地图纵坐标）")
     
     # 关系
     map = relationship("Map", back_populates="points")
-    items = relationship("Item", back_populates="point", cascade="all, delete-orphan")
+    devices = relationship("Device", back_populates="point", cascade="all, delete-orphan")
     
     # 索引
     __table_args__ = (
