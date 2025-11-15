@@ -5,6 +5,7 @@
 from typing import List, Optional, Dict, Any, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
+from sqlalchemy.orm import selectinload
 
 from ..models.device import Device
 from ..core.exceptions import ResourceNotFoundError
@@ -26,7 +27,14 @@ class DeviceRepository:
     
     async def get_by_id(self, device_id: str) -> Optional[Device]:
         """根据ID获取设备"""
-        query = select(Device).where(Device.id == device_id, Device.is_deleted == False)
+        query = (
+            select(Device)
+            .options(
+                selectinload(Device.items),
+                selectinload(Device.sensors)
+            )
+            .where(Device.id == device_id, Device.is_deleted == False)
+        )
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
     
@@ -35,9 +43,16 @@ class DeviceRepository:
         if not device_ids:
             return []
         
-        query = select(Device).where(
-            Device.id.in_(device_ids),
-            Device.is_deleted == False
+        query = (
+            select(Device)
+            .options(
+                selectinload(Device.items),
+                selectinload(Device.sensors)
+            )
+            .where(
+                Device.id.in_(device_ids),
+                Device.is_deleted == False
+            )
         )
         result = await self.db.execute(query)
         return list(result.scalars().all())
@@ -68,9 +83,15 @@ class DeviceRepository:
         total = count_result.scalar() or 0
         
         # 查询数据
-        query = (select(Device)
-                .where(and_(*conditions))
-                .order_by(Device.created_at.desc()))
+        query = (
+            select(Device)
+            .options(
+                selectinload(Device.items),
+                selectinload(Device.sensors)
+            )
+            .where(and_(*conditions))
+            .order_by(Device.created_at.desc())
+        )
         if skip is not None and limit is not None:
             query = query.offset(skip).limit(limit)
         
@@ -90,7 +111,18 @@ class DeviceRepository:
         
         await self.db.commit()
         await self.db.refresh(device)
-        return device
+        
+        # 重新加载关联数据
+        query = (
+            select(Device)
+            .options(
+                selectinload(Device.items),
+                selectinload(Device.sensors)
+            )
+            .where(Device.id == device_id)
+        )
+        result = await self.db.execute(query)
+        return result.scalar_one_or_none()
     
     async def soft_delete(self, device_id: str, deleted_by: str) -> bool:
         """软删除设备"""

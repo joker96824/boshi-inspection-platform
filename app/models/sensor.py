@@ -19,7 +19,6 @@ class Sensor(BaseModel):
     
     # 关系
     device = relationship("Device", back_populates="sensors")
-    schedules = relationship("SensorSchedule", back_populates="sensor", cascade="all, delete-orphan")
     histories = relationship("SensorHistory", back_populates="sensor", cascade="all, delete-orphan")
     
     # 创建索引

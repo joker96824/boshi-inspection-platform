@@ -242,7 +242,39 @@ class DeviceService:
             raise BusinessError(f"获取设备统计失败: {str(e)}")
     
     def _format_device_response(self, device) -> Dict[str, Any]:
-        """格式化设备响应数据"""
+        """格式化设备响应数据（包含巡检项目和智能传感器）"""
+        # 格式化巡检项目数据
+        items_data = []
+        if hasattr(device, 'items') and device.items:
+            for item in device.items:
+                if not item.is_deleted:
+                    items_data.append({
+                        "id": item.id,
+                        "item_name": item.item_name,
+                        "item_info": item.item_info,
+                        "device_id": item.device_id,
+                        "created_at": item.created_at.strftime("%Y-%m-%dT%H:%M:%S") if item.created_at else None,
+                        "updated_at": item.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if item.updated_at else None,
+                        "created_by": item.created_by,
+                        "updated_by": item.updated_by,
+                    })
+        
+        # 格式化智能传感器数据
+        sensors_data = []
+        if hasattr(device, 'sensors') and device.sensors:
+            for sensor in device.sensors:
+                if not sensor.is_deleted:
+                    sensors_data.append({
+                        "id": sensor.id,
+                        "sensor_name": sensor.sensor_name,
+                        "sensor_params": sensor.sensor_params,
+                        "device_id": sensor.device_id,
+                        "created_at": sensor.created_at.strftime("%Y-%m-%dT%H:%M:%S") if sensor.created_at else None,
+                        "updated_at": sensor.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if sensor.updated_at else None,
+                        "created_by": sensor.created_by,
+                        "updated_by": sensor.updated_by,
+                    })
+        
         return {
             "id": device.id,
             "device_name": device.device_name,
@@ -250,6 +282,8 @@ class DeviceService:
             "point_id": device.point_id,
             "x_coordinate": device.x_coordinate,
             "y_coordinate": device.y_coordinate,
+            "items": items_data,
+            "sensors": sensors_data,
             "created_at": device.created_at.strftime("%Y-%m-%dT%H:%M:%S") if device.created_at else None,
             "updated_at": device.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if device.updated_at else None,
             "created_by": device.created_by,

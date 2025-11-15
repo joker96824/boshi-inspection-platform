@@ -24,7 +24,6 @@ DELETE FROM tb_gimbal_inspection_project;
 DELETE FROM tb_gimbaltask;
 DELETE FROM tb_gimbal;
 DELETE FROM tb_sensorhistory;
-DELETE FROM tb_sensorschedule;
 DELETE FROM tb_sensor;
 DELETE FROM tb_device;
 DELETE FROM cfg_vehicle_controller;
@@ -1684,57 +1683,6 @@ INSERT INTO tb_sensor (
     '550e8400-e29b-41d4-a716-446655440072',
     '热成像传感器',
     '{"resolution": "320x240", "frame_rate": "9Hz", "temp_range": "-20~250", "accuracy": "±2°C"}',
-    NOW(),
-    NOW(),
-    'operator',
-    'operator',
-    FALSE
-);
-
--- 插入示例传感器日程数据
-INSERT INTO tb_sensorschedule (
-    id,
-    schedule_type,
-    schedule_is_active,
-    sensor_id,
-    schedule_param,
-    set_time,
-    created_at,
-    updated_at,
-    created_by,
-    updated_by,
-    is_deleted
-) VALUES (
-    '550e8400-e29b-41d4-a716-446655440090',
-    'interval',
-    TRUE,
-    '550e8400-e29b-41d4-a716-446655440080',
-    '{"interval_seconds": 60, "repeat": true}',
-    UNIX_TIMESTAMP(NOW()),
-    NOW(),
-    NOW(),
-    'admin',
-    'admin',
-    FALSE
-), (
-    '550e8400-e29b-41d4-a716-446655440091',
-    'interval',
-    TRUE,
-    '550e8400-e29b-41d4-a716-446655440082',
-    '{"interval_seconds": 30, "repeat": true, "threshold_check": true}',
-    UNIX_TIMESTAMP(NOW()),
-    NOW(),
-    NOW(),
-    'admin',
-    'admin',
-    FALSE
-), (
-    '550e8400-e29b-41d4-a716-446655440092',
-    'daily',
-    FALSE,
-    '550e8400-e29b-41d4-a716-446655440083',
-    '{"hour": 9, "minute": 0, "repeat": true}',
-    UNIX_TIMESTAMP(NOW()),
     NOW(),
     NOW(),
     'operator',

@@ -24,7 +24,6 @@ from .gimbalschedule import GimbalSchedule
 from .gimbalhistory import GimbalHistory
 from .device import Device
 from .sensor import Sensor
-from .sensorschedule import SensorSchedule
 from .sensorhistory import SensorHistory
 from .vehiclecontroller import VehicleController
 from .environmentsensor import EnvironmentSensor
@@ -64,7 +63,6 @@ __all__ = [
     "GimbalHistory",
     "Device",
     "Sensor",
-    "SensorSchedule",
     "SensorHistory",
     "VehicleController",
     "EnvironmentSensor",

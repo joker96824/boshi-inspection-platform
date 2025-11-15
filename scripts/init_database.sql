@@ -665,28 +665,6 @@ CREATE TABLE tb_sensor (
     FOREIGN KEY (device_id) REFERENCES tb_device(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='智能传感器表';
 
--- 创建传感器日程表（必须在tb_sensor之后创建，因为tb_sensorschedule引用tb_sensor）
-CREATE TABLE tb_sensorschedule (
-    id VARCHAR(36) PRIMARY KEY COMMENT '传感器日程ID',
-    schedule_type VARCHAR(50) NOT NULL COMMENT '传感器日程类型',
-    schedule_is_active BOOLEAN NOT NULL DEFAULT TRUE COMMENT '传感器日程是否激活',
-    sensor_id VARCHAR(36) NOT NULL COMMENT '关联传感器ID',
-    schedule_param JSON NULL COMMENT '日程参数',
-    set_time INT NOT NULL COMMENT '设置时间（Unix时间戳）',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    created_by VARCHAR(100) NULL COMMENT '创建人',
-    updated_by VARCHAR(100) NULL COMMENT '更新人',
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
-    INDEX idx_schedule_type (schedule_type),
-    INDEX idx_schedule_is_active (schedule_is_active),
-    INDEX idx_sensor_id (sensor_id),
-    INDEX idx_set_time (set_time),
-    INDEX idx_created_at (created_at),
-    INDEX idx_is_deleted (is_deleted),
-    FOREIGN KEY (sensor_id) REFERENCES tb_sensor(id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='传感器日程表';
-
 -- 创建传感器记录表（必须在tb_sensor之后创建，因为tb_sensorhistory引用tb_sensor）
 CREATE TABLE tb_sensorhistory (
     id VARCHAR(36) PRIMARY KEY COMMENT '传感器记录ID',

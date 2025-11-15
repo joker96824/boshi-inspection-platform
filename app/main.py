@@ -31,7 +31,6 @@ from .api.v1 import (
     gimbalhistories,
     devices,
     sensors,
-    sensorschedules,
     sensorhistories,
     vehiclecontrollers,
     environmentsensors,
@@ -101,7 +100,6 @@ def register_routes():
     # 设备相关模块（按添加顺序）
     app.include_router(devices.router, prefix="/api/v1/devices", tags=["设备管理"])
     app.include_router(sensors.router, prefix="/api/v1/sensors", tags=["智能传感器管理"])
-    app.include_router(sensorschedules.router, prefix="/api/v1/sensorschedules", tags=["传感器日程管理"])
     app.include_router(sensorhistories.router, prefix="/api/v1/sensorhistories", tags=["传感器记录管理"])
     
     # 配置管理模块（按添加顺序）
