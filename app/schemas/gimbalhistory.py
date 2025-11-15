@@ -1,35 +1,41 @@
 """
-云台记录Pydantic模式
+云台巡检记录Pydantic模式
 """
 
-from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
-from .base import BaseSchema, BaseResponse
+from typing import Any, Dict, List, Optional
+
+from pydantic import Field
+
+from .base import BaseResponse, BaseSchema
 
 
 class GimbalHistoryBase(BaseSchema):
-    """云台记录基础模式"""
-    gimbaltask_id: str = Field(..., description="关联云台任务ID")
+    """云台巡检记录基础模式"""
+
+    inspection_project_id: str = Field(..., description="关联云台巡检项目ID")
     record_data: Optional[Dict[str, Any]] = Field(None, description="记录数据")
     media_url: Optional[str] = Field(None, max_length=500, description="图像/视频链接")
 
 
 class GimbalHistoryCreate(GimbalHistoryBase):
-    """云台记录创建模式"""
-    pass
+    """云台巡检记录创建模式"""
 
 
 class GimbalHistoryUpdate(BaseSchema):
-    """云台记录更新模式"""
-    gimbaltask_id: Optional[str] = Field(None, description="关联云台任务ID")
+    """云台巡检记录更新模式"""
+
+    inspection_project_id: Optional[str] = Field(
+        None, description="关联云台巡检项目ID"
+    )
     record_data: Optional[Dict[str, Any]] = Field(None, description="记录数据")
     media_url: Optional[str] = Field(None, max_length=500, description="图像/视频链接")
 
 
 class GimbalHistoryResponse(BaseResponse):
-    """云台记录响应模式"""
+    """云台巡检记录响应模式"""
+
     id: str = Field(..., description="云台记录ID")
-    gimbaltask_id: str = Field(..., description="关联云台任务ID")
+    inspection_project_id: str = Field(..., description="关联云台巡检项目ID")
     record_data: Optional[Dict[str, Any]] = Field(None, description="记录数据")
     media_url: Optional[str] = Field(None, description="图像/视频链接")
     created_at: str = Field(..., description="创建时间")
@@ -39,13 +45,17 @@ class GimbalHistoryResponse(BaseResponse):
 
 
 class GimbalHistoryQuery(BaseSchema):
-    """云台记录查询模式"""
+    """云台巡检记录查询模式"""
+
     page: int = Field(1, ge=1, description="页码")
     size: int = Field(20, ge=1, le=100, description="每页数量")
-    gimbaltask_id: Optional[str] = Field(None, description="云台任务ID筛选")
+    inspection_project_id: Optional[str] = Field(
+        None, description="云台巡检项目ID筛选"
+    )
 
 
 class GimbalHistoryListResponse(BaseSchema):
-    """云台记录列表响应模式"""
-    items: List[GimbalHistoryResponse] = Field(..., description="云台记录列表")
+    """云台巡检记录列表响应模式"""
+
+    items: List[GimbalHistoryResponse] = Field(..., description="云台巡检记录列表")
     pagination: Dict[str, Any] = Field(..., description="分页信息")

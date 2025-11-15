@@ -31,6 +31,8 @@ class PointService:
             "point_name": point.point_name,
             "map_id": point.map_id,
             "point_actions": point.point_actions,
+            "x_coordinate": point.x_coordinate,
+            "y_coordinate": point.y_coordinate,
             "created_at": point.created_at.strftime("%Y-%m-%dT%H:%M:%S") if point.created_at else None,
             "updated_at": point.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if point.updated_at else None,
             "created_by": point.created_by,
@@ -46,13 +48,9 @@ class PointService:
                 raise ResourceNotFoundError(f"地图 '{point_data.map_id}' 不存在")
             
             
-            create_data = {
-                "point_name": point_data.point_name,
-                "map_id": point_data.map_id,
-                "point_actions": point_data.point_actions,
-                "created_by": user["username"],
-                "updated_by": user["username"]
-            }
+            create_data = point_data.dict()
+            create_data["created_by"] = user["username"]
+            create_data["updated_by"] = user["username"]
             
             point = await self.point_repo.create(create_data)
             
@@ -144,11 +142,7 @@ class PointService:
         
         try:
             # 准备更新数据
-            update_data = {}
-            if point_data.point_name is not None:
-                update_data["point_name"] = point_data.point_name
-            if point_data.point_actions is not None:
-                update_data["point_actions"] = point_data.point_actions
+            update_data = point_data.dict(exclude_unset=True)
             update_data["updated_by"] = user["username"]
             
             # 更新巡检点

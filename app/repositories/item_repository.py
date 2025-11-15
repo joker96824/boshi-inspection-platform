@@ -5,6 +5,7 @@
 from typing import List, Optional, Dict, Any, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
+from sqlalchemy.orm import selectinload
 
 from ..models.item import Item
 from ..core.exceptions import ResourceNotFoundError
@@ -26,19 +27,23 @@ class ItemRepository:
     
     async def get_by_id(self, item_id: str) -> Optional[Item]:
         """根据ID获取巡检项目"""
-        query = select(Item).where(Item.id == item_id, Item.is_deleted == False)
+        query = (select(Item)
+                .options(selectinload(Item.point))
+                .where(Item.id == item_id, Item.is_deleted == False))
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
     
     async def get_by_ids(self, item_ids: List[str]) -> List[Item]:
-        """根据ID列表获取巡检项目"""
+        """根据ID列表获取巡检项目（预加载 point 关系）"""
         if not item_ids:
             return []
         
-        query = select(Item).where(
-            Item.id.in_(item_ids),
-            Item.is_deleted == False
-        )
+        query = (select(Item)
+                .options(selectinload(Item.point))
+                .where(
+                    Item.id.in_(item_ids),
+                    Item.is_deleted == False
+                ))
         result = await self.db.execute(query)
         return list(result.scalars().all())
     

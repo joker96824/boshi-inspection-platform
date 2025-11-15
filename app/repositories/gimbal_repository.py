@@ -5,8 +5,10 @@
 from typing import List, Optional, Dict, Any, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
+from sqlalchemy.orm import selectinload
 
 from ..models.gimbal import Gimbal
+from ..models.gimbaltask import GimbalTask
 from ..core.exceptions import ResourceNotFoundError
 
 
@@ -25,25 +27,40 @@ class GimbalRepository:
         return gimbal
     
     async def get_by_id(self, gimbal_id: str) -> Optional[Gimbal]:
-        """根据ID获取云台"""
-        query = select(Gimbal).where(Gimbal.id == gimbal_id, Gimbal.is_deleted == False)
+        """根据ID获取云台（预加载任务和日程）"""
+        query = (
+            select(Gimbal)
+            .options(
+                selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.schedules),
+                selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.inspection_projects),
+            )
+            .where(Gimbal.id == gimbal_id, Gimbal.is_deleted == False)
+        )
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
     
     async def get_by_ids(self, gimbal_ids: List[str]) -> List[Gimbal]:
-        """根据ID列表获取云台"""
+        """根据ID列表获取云台（预加载任务和日程）"""
         if not gimbal_ids:
             return []
         
-        query = select(Gimbal).where(
-            Gimbal.id.in_(gimbal_ids),
-            Gimbal.is_deleted == False
+        query = (
+            select(Gimbal)
+            .options(
+                selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.schedules),
+                selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.inspection_projects),
+            )
+            .where(
+                Gimbal.id.in_(gimbal_ids),
+                Gimbal.is_deleted == False
+            )
         )
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
     async def get_all(self, page: int = 1, size: int = 20, 
-                     gimbal_name: str = None, map_id: str = None) -> Tuple[List[Gimbal], int]:
+                     gimbal_name: str = None, map_id: str = None,
+                     sort_by: str = "created_at", sort_order: str = "desc") -> Tuple[List[Gimbal], int]:
         """获取云台列表"""
         skip = (page - 1) * size
         
@@ -61,12 +78,25 @@ class GimbalRepository:
         count_result = await self.db.execute(count_query)
         total = count_result.scalar() or 0
         
-        # 查询数据
-        query = (select(Gimbal)
-                .where(and_(*conditions))
-                .order_by(Gimbal.created_at.desc())
-                .offset(skip)
-                .limit(size))
+        # 构建排序
+        order_column = getattr(Gimbal, sort_by, Gimbal.created_at)
+        if sort_order == "desc":
+            order_column = order_column.desc()
+        else:
+            order_column = order_column.asc()
+        
+        # 查询数据（预加载任务和日程）
+        query = (
+            select(Gimbal)
+            .options(
+                selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.schedules),
+                selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.inspection_projects),
+            )
+            .where(and_(*conditions))
+            .order_by(order_column)
+            .offset(skip)
+            .limit(size)
+        )
         
         result = await self.db.execute(query)
         gimbals = list(result.scalars().all())

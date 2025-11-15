@@ -11,6 +11,7 @@ from ..repositories.map_repository import MapRepository
 from ..repositories.robot_repository import RobotRepository
 from ..repositories.item_repository import ItemRepository
 from ..schemas.task import TaskCreate, TaskUpdate, TaskQuery
+from ..models.taskschedule import TaskSchedule
 from ..core.exceptions import (
     ResourceNotFoundError, PermissionDeniedError, BusinessError
 )
@@ -33,11 +34,6 @@ class TaskService:
     async def create_task(self, task_data: TaskCreate, user: dict) -> Dict[str, Any]:
         """创建任务"""
         try:
-            # 检查地图是否存在
-            map_obj = await self.map_repo.get_by_id(task_data.map_id)
-            if not map_obj:
-                raise ResourceNotFoundError(f"地图ID '{task_data.map_id}' 不存在")
-            
             # 检查机器人是否存在
             robot = await self.robot_repo.get_by_id(task_data.robot_id)
             if not robot:
@@ -46,8 +42,6 @@ class TaskService:
             # 验证task_items中的所有item_id是否存在
             if task_data.task_items:
                 await self._validate_task_items(task_data.task_items)
-            
-            # 地图存在性检查已完成，无需额外权限检查
             
             create_data = task_data.dict()
             create_data["created_by"] = user["username"]
@@ -63,7 +57,7 @@ class TaskService:
             )
             
             return ApiResponse.success(
-                data=self._format_task_response(task),
+                data=await self._format_task_response(task),
                 message="创建任务成功"
             )
             
@@ -84,7 +78,7 @@ class TaskService:
             # 任务存在性检查已完成，无需额外权限检查
             
             return ApiResponse.success(
-                data=self._format_task_response(task),
+                data=await self._format_task_response(task),
                 message="获取任务成功"
             )
             
@@ -100,7 +94,9 @@ class TaskService:
         try:
             tasks = await self.task_repo.get_by_ids(task_ids)
             
-            items_data = [self._format_task_response(task) for task in tasks]
+            items_data = []
+            for task in tasks:
+                items_data.append(await self._format_task_response(task))
             
             return ApiResponse.success(
                 data={"items": items_data, "total": len(items_data)},
@@ -112,17 +108,19 @@ class TaskService:
             raise HTTPException(status_code=500, detail="获取任务列表失败")
     
     async def get_tasks(self, user: Optional[dict], page: int = 1, size: int = 20, 
-                        task_name: str = None, map_id: str = None, robot_id: str = None,
+                        task_name: str = None, robot_id: str = None,
                         sort_by: str = "task_order", sort_order: str = "asc") -> Dict[str, Any]:
         """获取任务列表"""
         try:
             # 获取所有任务，无需基于用户ID过滤
             tasks, total = await self.task_repo.get_all(
-                page, size, task_name, map_id, robot_id, sort_by, sort_order
+                page, size, task_name, robot_id, sort_by, sort_order
             )
             
             # 格式化响应数据
-            items = [self._format_task_response(task) for task in tasks]
+            items = []
+            for task in tasks:
+                items.append(await self._format_task_response(task))
             
             return ApiResponse.paginated(
                 items=items,
@@ -165,7 +163,7 @@ class TaskService:
             )
             
             return ApiResponse.success(
-                data=self._format_task_response(updated_task),
+                data=await self._format_task_response(updated_task),
                 message="更新任务成功"
             )
             
@@ -224,14 +222,44 @@ class TaskService:
             if not item:
                 raise ResourceNotFoundError(f"巡检项目ID '{item_id}' 不存在")
     
-    def _format_task_response(self, task) -> Dict[str, Any]:
+    async def _format_task_response(self, task) -> Dict[str, Any]:
         """格式化任务响应数据"""
+        # 加载 task_items 的完整信息
+        task_items_info = []
+        if task.task_items and isinstance(task.task_items, list) and len(task.task_items) > 0:
+            items = await self.item_repo.get_by_ids(task.task_items)
+            # 保持原始顺序，按照 task.task_items 的顺序排列
+            item_dict = {item.id: item for item in items}
+            for item_id in task.task_items:
+                if item_id in item_dict:
+                    item = item_dict[item_id]
+                    task_items_info.append({
+                        "id": item.id,
+                        "item_name": item.item_name,
+                        "item_info": item.item_info,
+                        "point_id": item.point_id,
+                        "point_name": item.point.point_name if item.point else None,
+                        "created_at": item.created_at.strftime("%Y-%m-%dT%H:%M:%S") if item.created_at else None,
+                        "updated_at": item.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if item.updated_at else None,
+                        "created_by": item.created_by,
+                        "updated_by": item.updated_by,
+                    })
+        
+        # 格式化 schedules 列表
+        schedules_info = []
+        if task.schedules:
+            # 只包含未删除的日程
+            active_schedules = [s for s in task.schedules if not s.is_deleted]
+            for schedule in active_schedules:
+                schedules_info.append(self._format_schedule_response(schedule))
+        
         return {
             "id": task.id,
             "task_name": task.task_name,
-            "map_id": task.map_id,
             "robot_id": task.robot_id,
-            "task_items": task.task_items,
+            "robot_name": task.robot.robot_name if task.robot else None,
+            "task_items": task_items_info,  # 完整的 item 信息列表
+            "schedules": schedules_info,  # 日程列表
             "task_order": task.task_order,
             "task_res_prior": task.task_res_prior,
             "task_int_prior": task.task_int_prior,
@@ -239,4 +267,37 @@ class TaskService:
             "updated_at": task.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if task.updated_at else None,
             "created_by": task.created_by,
             "updated_by": task.updated_by,
+        }
+    
+    def _format_schedule_response(self, schedule: TaskSchedule) -> Dict[str, Any]:
+        """格式化任务日程响应数据（用于 task 响应中）"""
+        # 格式化时间显示字段（使用 %H:%M 格式，前端期望格式）
+        time_display_start_str = schedule.time_display_start.strftime("%H:%M") if schedule.time_display_start else None
+        time_display_end_str = schedule.time_display_end.strftime("%H:%M") if schedule.time_display_end else None
+        
+        return {
+            "id": schedule.id,
+            "task_id": schedule.task_id,
+            "schedule_name": schedule.schedule_name,
+            "start_date": schedule.start_date.strftime("%Y-%m-%d") if schedule.start_date else None,
+            "end_date": schedule.end_date.strftime("%Y-%m-%d") if schedule.end_date else None,
+            "enabled": schedule.enabled,
+            "item_count": schedule.item_count,
+            "cycle_type": schedule.cycle_type,
+            "cycle_config": schedule.cycle_config,
+            "time_mode": schedule.time_mode,
+            "time_config": schedule.time_config,
+            "frequency_display": schedule.frequency_display,
+            "time_display_start": time_display_start_str,
+            "time_display_end": time_display_end_str,
+            "frequency": schedule.frequency_display,
+            "cycle": schedule.frequency_display,
+            "startTime": time_display_start_str,
+            "endTime": time_display_end_str,
+            "start_time": time_display_start_str,
+            "end_time": time_display_end_str,
+            "created_at": schedule.created_at.strftime("%Y-%m-%dT%H:%M:%S") if schedule.created_at else None,
+            "updated_at": schedule.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if schedule.updated_at else None,
+            "created_by": schedule.created_by,
+            "updated_by": schedule.updated_by,
         }

@@ -22,7 +22,7 @@ class Map(BaseModel):
     factory = relationship("Factory", foreign_keys=[factory_id])
     mapnets = relationship("MapNet", back_populates="map")
     points = relationship("Point", back_populates="map")
-    tasks = relationship("Task", back_populates="map")
+    robots = relationship("RobotMap", back_populates="map", cascade="all, delete-orphan")
     
     def __repr__(self) -> str:
         return f"<Map(map_name={self.map_name})>"

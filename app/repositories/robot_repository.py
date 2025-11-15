@@ -8,6 +8,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from ..models.robot import Robot
+from ..models.robotmap import RobotMap
 from ..config.logging import get_logger
 
 logger = get_logger(__name__)
@@ -29,9 +30,13 @@ class RobotRepository:
     
     async def get_by_id(self, robot_id: str) -> Optional[Robot]:
         """根据ID获取机器人"""
-        stmt = select(Robot).where(
-            Robot.id == robot_id,
-            Robot.is_deleted == False
+        stmt = (
+            select(Robot)
+            .options(selectinload(Robot.maps).selectinload(RobotMap.map))
+            .where(
+                Robot.id == robot_id,
+                Robot.is_deleted == False
+            )
         )
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
@@ -45,7 +50,7 @@ class RobotRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
-    async def get_all(self, page: int = 1, size: int = 20, robot_name: str = None, map_id: str = None) -> tuple[List[Robot], int]:
+    async def get_all(self, page: int = 1, size: int = 20, robot_name: str = None, factory_id: str = None, map_id: str = None) -> tuple[List[Robot], int]:
         """获取所有机器人列表（分页）"""
         # 计算偏移量
         skip = (page - 1) * size
@@ -57,17 +62,50 @@ class RobotRepository:
         if robot_name:
             conditions.append(Robot.robot_name.like(f"%{robot_name}%"))
         
-        # 添加地图ID筛选条件
+        # 添加厂区ID筛选条件
+        if factory_id:
+            conditions.append(Robot.factory_id == factory_id)
+        
+        # 添加地图ID筛选条件（通过中间表）
         if map_id:
-            conditions.append(Robot.map_id == map_id)
+            # 通过中间表筛选
+            stmt = (
+                select(Robot)
+                .options(selectinload(Robot.maps).selectinload(RobotMap.map))
+                .join(RobotMap, Robot.id == RobotMap.robot_id)
+                .where(
+                    RobotMap.map_id == map_id,
+                    RobotMap.is_deleted == False,
+                    *conditions
+                )
+                .distinct()
+            )
+            count_stmt = (
+                select(func.count(func.distinct(Robot.id)))
+                .join(RobotMap, Robot.id == RobotMap.robot_id)
+                .where(
+                    RobotMap.map_id == map_id,
+                    RobotMap.is_deleted == False,
+                    *conditions
+                )
+            )
+        else:
+            stmt = (
+                select(Robot)
+                .options(selectinload(Robot.maps).selectinload(RobotMap.map))
+                .where(*conditions)
+            )
+            count_stmt = select(func.count(Robot.id)).where(*conditions)
         
         # 查询总数
-        count_stmt = select(func.count(Robot.id)).where(*conditions)
         count_result = await self.db.execute(count_stmt)
         total = count_result.scalar()
         
         # 查询数据
-        stmt = select(Robot).where(*conditions).order_by(Robot.created_at.desc()).offset(skip).limit(size)
+        if map_id:
+            stmt = stmt.order_by(Robot.created_at.desc()).offset(skip).limit(size)
+        else:
+            stmt = stmt.order_by(Robot.created_at.desc()).offset(skip).limit(size)
         
         result = await self.db.execute(stmt)
         robots = result.scalars().all()

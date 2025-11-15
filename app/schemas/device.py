@@ -12,6 +12,8 @@ class DeviceBase(BaseSchema):
     device_name: str = Field(..., min_length=1, max_length=100, description="设备名称")
     device_params: Optional[Dict[str, Any]] = Field(None, description="设备参数")
     map_id: Optional[str] = Field(None, description="地图ID")
+    x_coordinate: float = Field(..., description="X坐标（地图横坐标）")
+    y_coordinate: float = Field(..., description="Y坐标（地图纵坐标）")
 
 
 class DeviceCreate(DeviceBase):
@@ -24,6 +26,8 @@ class DeviceUpdate(BaseSchema):
     device_name: Optional[str] = Field(None, min_length=1, max_length=100, description="设备名称")
     device_params: Optional[Dict[str, Any]] = Field(None, description="设备参数")
     map_id: Optional[str] = Field(None, description="地图ID")
+    x_coordinate: Optional[float] = Field(None, description="X坐标（地图横坐标）")
+    y_coordinate: Optional[float] = Field(None, description="Y坐标（地图纵坐标）")
 
 
 class DeviceResponse(BaseResponse):
@@ -31,6 +35,9 @@ class DeviceResponse(BaseResponse):
     id: str = Field(..., description="设备ID")
     device_name: str = Field(..., description="设备名称")
     device_params: Optional[Dict[str, Any]] = Field(None, description="设备参数")
+    map_id: Optional[str] = Field(None, description="地图ID")
+    x_coordinate: Optional[float] = Field(None, description="X坐标（地图横坐标）")
+    y_coordinate: Optional[float] = Field(None, description="Y坐标（地图纵坐标）")
     created_at: str = Field(..., description="创建时间")
     updated_at: str = Field(..., description="更新时间")
     created_by: Optional[str] = Field(None, description="创建者")

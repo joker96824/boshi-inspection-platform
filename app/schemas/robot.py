@@ -11,7 +11,8 @@ class RobotBase(BaseSchema):
     """机器人基础模式"""
     robot_name: str = Field(..., min_length=1, max_length=100, description="机器人名称")
     robot_info: Optional[Dict[str, Any]] = Field(None, description="机器人信息")
-    map_id: str = Field(..., description="地图ID")
+    factory_id: Optional[str] = Field(None, description="厂区ID")
+    map_ids: Optional[List[str]] = Field(None, description="关联地图ID列表")
 
 
 class RobotCreate(RobotBase):
@@ -23,7 +24,8 @@ class RobotUpdate(BaseSchema):
     """机器人更新模式"""
     robot_name: Optional[str] = Field(None, min_length=1, max_length=100, description="机器人名称")
     robot_info: Optional[Dict[str, Any]] = Field(None, description="机器人信息")
-    map_id: Optional[str] = Field(None, description="地图ID")
+    factory_id: Optional[str] = Field(None, description="厂区ID")
+    map_ids: Optional[List[str]] = Field(None, description="关联地图ID列表")
 
 
 class RobotResponse(BaseResponse):
@@ -38,7 +40,8 @@ class RobotQuery(BaseSchema):
     page: int = Field(1, ge=1, description="页码")
     size: int = Field(20, ge=1, le=100, description="每页数量")
     robot_name: Optional[str] = Field(None, description="机器人名称（模糊匹配）")
-    map_id: Optional[str] = Field(None, description="地图ID筛选")
+    factory_id: Optional[str] = Field(None, description="厂区ID筛选")
+    map_id: Optional[str] = Field(None, description="地图ID筛选（通过中间表）")
 
 
 class RobotListResponse(BaseSchema):

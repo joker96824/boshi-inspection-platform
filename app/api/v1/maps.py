@@ -71,6 +71,35 @@ async def get_user_maps(
     return await map_service.get_user_maps(query, current_user)
 
 
+@router.get("/{map_id}/robots-points-with-items", response_model=dict)
+async def get_map_with_robots_points_items(
+    map_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[dict] = Depends(require_no_auth())
+):
+    """获取地图及其关联的机器人、巡检点和巡检项目数据
+    
+    一次请求获取所有数据，返回树形结构：
+    - map: 地图信息
+    - robots: 该地图下的所有机器人列表
+    - points: 该地图下的所有巡检点列表（每个巡检点包含其下的巡检项目）
+    
+    Args:
+        map_id: 地图ID
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        包含地图、机器人、巡检点和巡检项目的树形结构数据
+    
+    Raises:
+        404: 地图不存在
+        401: 用户未认证
+    """
+    map_service = MapService(db)
+    return await map_service.get_map_with_robots_points_items(map_id, current_user)
+
+
 @router.get("/{map_id}", response_model=dict)
 async def get_map_by_id(
     map_id: str,

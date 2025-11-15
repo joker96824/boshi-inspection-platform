@@ -40,8 +40,8 @@ async def get_gimbal_tasks(
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(20, ge=1, le=100, description="每页数量"),
     task_name: Optional[str] = Query(None, description="云台任务名称（模糊查询）"),
-    task_type: Optional[str] = Query(None, description="任务类别筛选：image/video"),
     gimbal_id: Optional[str] = Query(None, description="云台ID筛选"),
+    map_id: Optional[str] = Query(None, description="地图ID筛选（通过关联云台）"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[dict] = Depends(require_no_auth())
 ):
@@ -51,7 +51,7 @@ async def get_gimbal_tasks(
         page: 页码
         size: 每页数量
         task_name: 云台任务名称（模糊查询）
-        task_type: 任务类别筛选
+        map_id: 地图ID筛选（通过关联云台）
         db: 数据库会话
         current_user: 当前用户
     
@@ -62,8 +62,8 @@ async def get_gimbal_tasks(
         page=page,
         size=size,
         task_name=task_name,
-        task_type=task_type,
-        gimbal_id=gimbal_id
+        gimbal_id=gimbal_id,
+        map_id=map_id
     )
     service = GimbalTaskService(db)
     return await service.get_gimbal_tasks(query, current_user)

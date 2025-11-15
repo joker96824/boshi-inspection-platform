@@ -3,6 +3,7 @@
 """
 
 from sqlalchemy import Column, String, Index
+from sqlalchemy.orm import relationship
 from .base import BaseModel
 
 
@@ -13,6 +14,9 @@ class Factory(BaseModel):
     
     # 厂区基本信息
     factory_name = Column(String(100), nullable=False, comment="厂区名称")
+    
+    # 关系
+    robots = relationship("Robot", back_populates="factory", cascade="all, delete-orphan")
     
     # 创建索引
     __table_args__ = (

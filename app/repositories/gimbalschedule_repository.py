@@ -3,10 +3,13 @@
 """
 
 from typing import List, Optional, Dict, Any, Tuple
+from datetime import date as date_type
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_
+from sqlalchemy.orm import selectinload
 
 from ..models.gimbalschedule import GimbalSchedule
+from ..models.gimbaltask import GimbalTask
 from ..core.exceptions import ResourceNotFoundError
 
 
@@ -46,7 +49,7 @@ class GimbalScheduleRepository:
         return list(result.scalars().all())
     
     async def get_all(self, page: int = 1, size: int = 20,
-                     schedule_type: str = None, schedule_is_active: bool = None,
+                     cycle_type: str = None, enabled: bool = None,
                      gimbaltask_id: str = None) -> Tuple[List[GimbalSchedule], int]:
         """获取云台日程列表"""
         skip = (page - 1) * size
@@ -54,11 +57,11 @@ class GimbalScheduleRepository:
         # 构建查询条件
         conditions = [GimbalSchedule.is_deleted == False]
         
-        if schedule_type:
-            conditions.append(GimbalSchedule.schedule_type == schedule_type)
+        if cycle_type:
+            conditions.append(GimbalSchedule.cycle_type == cycle_type)
         
-        if schedule_is_active is not None:
-            conditions.append(GimbalSchedule.schedule_is_active == schedule_is_active)
+        if enabled is not None:
+            conditions.append(GimbalSchedule.enabled == enabled)
         
         if gimbaltask_id:
             conditions.append(GimbalSchedule.gimbaltask_id == gimbaltask_id)
@@ -71,7 +74,7 @@ class GimbalScheduleRepository:
         # 查询数据
         query = (select(GimbalSchedule)
                 .where(and_(*conditions))
-                .order_by(GimbalSchedule.set_time.desc())
+                .order_by(GimbalSchedule.created_at.desc())
                 .offset(skip)
                 .limit(size))
         
@@ -109,7 +112,7 @@ class GimbalScheduleRepository:
         query = select(GimbalSchedule).where(
             GimbalSchedule.gimbaltask_id == gimbaltask_id,
             GimbalSchedule.is_deleted == False
-        ).order_by(GimbalSchedule.set_time.desc())
+        ).order_by(GimbalSchedule.created_at.desc())
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
@@ -123,7 +126,34 @@ class GimbalScheduleRepository:
         """统计激活的云台日程数量"""
         stmt = select(func.count(GimbalSchedule.id)).where(
             GimbalSchedule.is_deleted == False,
-            GimbalSchedule.schedule_is_active == True
+            GimbalSchedule.enabled == True
         )
         result = await self.db.execute(stmt)
         return result.scalar() or 0
+    
+    async def get_by_date(self, target_date: date_type, gimbal_ids: Optional[List[str]] = None) -> List[GimbalSchedule]:
+        """根据日期获取所有相关的云台日程（可选择按云台ID筛选）"""
+        # 构建查询条件
+        conditions = [
+            GimbalSchedule.is_deleted == False,
+            GimbalSchedule.enabled == True,
+            GimbalSchedule.start_date <= target_date,
+            GimbalSchedule.end_date >= target_date
+        ]
+        
+        # 如果指定了云台ID，通过关联 GimbalTask 来筛选
+        if gimbal_ids:
+            conditions.append(GimbalTask.gimbal_id.in_(gimbal_ids))
+            query = (select(GimbalSchedule)
+                    .options(selectinload(GimbalSchedule.gimbal_task))
+                    .join(GimbalTask, GimbalSchedule.gimbaltask_id == GimbalTask.id)
+                    .where(and_(*conditions))
+                    .order_by(GimbalSchedule.created_at.desc()))
+        else:
+            query = (select(GimbalSchedule)
+                    .options(selectinload(GimbalSchedule.gimbal_task))
+                    .where(and_(*conditions))
+                    .order_by(GimbalSchedule.created_at.desc()))
+        
+        result = await self.db.execute(query)
+        return list(result.scalars().all())

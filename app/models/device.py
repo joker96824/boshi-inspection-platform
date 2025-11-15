@@ -2,7 +2,7 @@
 设备数据模型
 """
 
-from sqlalchemy import Column, String, JSON, Index, ForeignKey
+from sqlalchemy import Column, String, JSON, Index, ForeignKey, Float
 from sqlalchemy.orm import relationship
 from .base import BaseModel
 
@@ -16,6 +16,8 @@ class Device(BaseModel):
     device_name = Column(String(100), nullable=False, comment="设备名称")
     device_params = Column(JSON, nullable=True, comment="设备参数")
     map_id = Column(String(36), ForeignKey("tb_map.id", ondelete="SET NULL"), nullable=True, index=True, comment="地图ID")
+    x_coordinate = Column(Float, nullable=True, comment="X坐标（地图横坐标）")
+    y_coordinate = Column(Float, nullable=True, comment="Y坐标（地图纵坐标）")
     
     # 关系
     map = relationship("Map", foreign_keys=[map_id])
@@ -27,7 +29,11 @@ class Device(BaseModel):
         Index('idx_map_id', 'map_id'),
         Index('idx_created_at', 'created_at'),
         Index('idx_is_deleted', 'is_deleted'),
+        Index('idx_device_coordinates', 'map_id', 'x_coordinate', 'y_coordinate'),
     )
     
     def __repr__(self):
-        return f"<Device(id='{self.id}', device_name='{self.device_name}')>"
+        return (
+            f"<Device(id='{self.id}', device_name='{self.device_name}', "
+            f"x={self.x_coordinate}, y={self.y_coordinate})>"
+        )

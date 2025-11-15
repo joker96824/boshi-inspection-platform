@@ -7,6 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.orm import selectinload
 from ..models.map import Map
+from ..models.robot import Robot
+from ..models.robotmap import RobotMap
+from ..models.point import Point
+from ..models.item import Item
 from ..models.user import User
 
 
@@ -159,3 +163,45 @@ class MapRepository:
         )
         result = await self.db.execute(query)
         return result.scalar()
+
+    async def get_map_with_related_data(self, map_id: str) -> Optional[Dict[str, Any]]:
+        """获取地图及其关联的机器人、巡检点和巡检项目数据"""
+        # 获取地图
+        map_obj = await self.get_by_id(map_id)
+        if not map_obj:
+            return None
+
+        # 通过中间表获取该地图下的所有机器人
+        robots_query = (
+            select(Robot)
+            .join(RobotMap, Robot.id == RobotMap.robot_id)
+            .where(
+                RobotMap.map_id == map_id,
+                RobotMap.is_deleted == False,
+                Robot.is_deleted == False
+            )
+            .order_by(Robot.created_at.desc())
+        )
+        robots_result = await self.db.execute(robots_query)
+        robots = list(robots_result.scalars().all())
+
+        # 获取该地图下的所有巡检点（包含巡检项目）
+        points_query = (
+            select(Point)
+            .options(
+                selectinload(Point.items)
+            )
+            .where(
+                Point.map_id == map_id,
+                Point.is_deleted == False
+            )
+            .order_by(Point.created_at.desc())
+        )
+        points_result = await self.db.execute(points_query)
+        points = list(points_result.scalars().all())
+
+        return {
+            "map": map_obj,
+            "robots": robots,
+            "points": points
+        }

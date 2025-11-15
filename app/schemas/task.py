@@ -10,7 +10,6 @@ from .base import BaseSchema, BaseResponse
 class TaskBase(BaseSchema):
     """任务基础模式"""
     task_name: str = Field(..., min_length=1, max_length=100, description="任务名称")
-    map_id: str = Field(..., description="所属地图ID")
     robot_id: str = Field(..., description="执行机器人ID")
     task_items: Optional[List[str]] = Field(None, description="任务巡检项目ID列表")
     task_order: int = Field(0, ge=0, description="任务执行顺序")
@@ -35,8 +34,8 @@ class TaskUpdate(BaseSchema):
 class TaskResponse(BaseResponse):
     """任务响应模式"""
     task_name: str = Field(..., description="任务名称")
-    map_id: str = Field(..., description="所属地图ID")
     robot_id: str = Field(..., description="执行机器人ID")
+    robot_name: Optional[str] = Field(None, description="机器人名称")
     task_items: Optional[List[str]] = Field(None, description="任务巡检项目ID列表")
     task_order: int = Field(..., description="任务执行顺序")
     task_res_prior: int = Field(..., description="响应优先级")
@@ -48,7 +47,6 @@ class TaskQuery(BaseSchema):
     page: int = Field(1, ge=1, description="页码")
     size: int = Field(20, ge=1, le=100, description="每页数量")
     task_name: Optional[str] = Field(None, description="任务名称（模糊匹配）")
-    map_id: Optional[str] = Field(None, description="地图ID")
     robot_id: Optional[str] = Field(None, description="机器人ID")
     sort_by: Optional[str] = Field("task_order", description="排序字段: task_order, task_res_prior, task_int_prior")
     sort_order: Optional[str] = Field("asc", description="排序顺序: asc(正序), desc(反序)")

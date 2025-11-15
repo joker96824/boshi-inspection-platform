@@ -221,6 +221,8 @@ class DeviceService:
             "device_name": device.device_name,
             "device_params": device.device_params,
             "map_id": device.map_id,
+            "x_coordinate": device.x_coordinate,
+            "y_coordinate": device.y_coordinate,
             "created_at": device.created_at.strftime("%Y-%m-%dT%H:%M:%S") if device.created_at else None,
             "updated_at": device.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if device.updated_at else None,
             "created_by": device.created_by,

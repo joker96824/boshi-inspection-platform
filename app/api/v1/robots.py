@@ -41,7 +41,8 @@ async def get_user_robots(
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(20, ge=1, le=100, description="每页数量"),
     robot_name: str = Query(None, description="机器人名称（模糊匹配）"),
-    map_id: str = Query(None, description="地图ID筛选"),
+    factory_id: str = Query(None, description="厂区ID筛选"),
+    map_id: str = Query(None, description="地图ID筛选（通过中间表）"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[dict] = Depends(require_no_auth())
 ):
@@ -51,7 +52,8 @@ async def get_user_robots(
         page: 页码
         size: 每页数量
         robot_name: 机器人名称（模糊匹配）
-        map_id: 地图ID筛选
+        factory_id: 厂区ID筛选
+        map_id: 地图ID筛选（通过中间表）
         db: 数据库会话
         current_user: 当前用户
     
@@ -59,7 +61,7 @@ async def get_user_robots(
         机器人列表
     """
     robot_service = RobotService(db)
-    return await robot_service.get_user_robots(current_user, page, size, robot_name, map_id)
+    return await robot_service.get_user_robots(current_user, page, size, robot_name, factory_id, map_id)
 
 
 @router.get("/by-ids", response_model=dict)

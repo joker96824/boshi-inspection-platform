@@ -14,7 +14,6 @@ class Task(BaseModel):
     
     # 基础字段
     task_name = Column(String(100), nullable=False, comment="任务名称")
-    map_id = Column(String(36), ForeignKey("tb_map.id", ondelete="CASCADE"), nullable=False, comment="所属地图ID")
     robot_id = Column(String(36), ForeignKey("tb_robot.id", ondelete="CASCADE"), nullable=False, comment="执行机器人ID")
     task_items = Column(JSON, nullable=True, comment="任务巡检项目ID列表")
     task_order = Column(Integer, nullable=False, default=0, comment="任务执行顺序")
@@ -22,10 +21,9 @@ class Task(BaseModel):
     task_int_prior = Column(Integer, nullable=False, default=1, comment="打断优先级")
     
     # 关系
-    map = relationship("Map", back_populates="tasks")
     robot = relationship("Robot", back_populates="tasks")
     schedules = relationship("TaskSchedule", back_populates="task")
     taskhistories = relationship("TaskHistory", back_populates="task")
     
     def __repr__(self):
-        return f"<Task(id='{self.id}', task_name='{self.task_name}', map_id='{self.map_id}', robot_id='{self.robot_id}')>"
+        return f"<Task(id='{self.id}', task_name='{self.task_name}', robot_id='{self.robot_id}')>"

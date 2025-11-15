@@ -32,6 +32,8 @@ class GimbalService:
                 raise BusinessError(f"云台名称 '{gimbal_data.gimbal_name}' 已存在")
             
             create_data = gimbal_data.dict()
+            if create_data.get("ip_address") is not None:
+                create_data["ip_address"] = str(create_data["ip_address"])
             create_data["created_by"] = user["username"]
             create_data["updated_by"] = user["username"]
             
@@ -98,7 +100,9 @@ class GimbalService:
                 page=query.page,
                 size=query.size,
                 gimbal_name=query.gimbal_name,
-                map_id=query.map_id
+                map_id=query.map_id,
+                sort_by=query.sort_by,
+                sort_order=query.sort_order
             )
             
             # 格式化响应数据
@@ -131,6 +135,8 @@ class GimbalService:
                 raise BusinessError(f"云台名称 '{gimbal_data.gimbal_name}' 已存在")
             
             update_data = gimbal_data.dict(exclude_unset=True)
+            if update_data.get("ip_address") is not None:
+                update_data["ip_address"] = str(update_data["ip_address"])
             update_data["updated_by"] = user["username"]
             
             updated_gimbal = await self.gimbal_repo.update(gimbal_id, update_data)
@@ -206,12 +212,137 @@ class GimbalService:
             raise BusinessError(f"获取云台统计失败: {str(e)}")
     
     def _format_gimbal_response(self, gimbal) -> Dict[str, Any]:
-        """格式化云台响应数据"""
+        """格式化云台响应数据（包含任务和日程列表）"""
+        # 格式化任务列表（包含日程）
+        gimbal_tasks_info = []
+        if gimbal.gimbal_tasks:
+            active_tasks = [t for t in gimbal.gimbal_tasks if not t.is_deleted]
+            for task in active_tasks:
+                schedules_info = []
+                if task.schedules:
+                    active_schedules = [s for s in task.schedules if not s.is_deleted]
+                    for schedule in active_schedules:
+                        time_display_start_str = (
+                            schedule.time_display_start.strftime("%H:%M")
+                            if schedule.time_display_start
+                            else None
+                        )
+                        time_display_end_str = (
+                            schedule.time_display_end.strftime("%H:%M")
+                            if schedule.time_display_end
+                            else None
+                        )
+
+                        schedules_info.append(
+                            {
+                                "id": schedule.id,
+                                "gimbaltask_id": schedule.gimbaltask_id,
+                                "schedule_name": schedule.schedule_name,
+                                "start_date": schedule.start_date.strftime("%Y-%m-%d")
+                                if schedule.start_date
+                                else None,
+                                "end_date": schedule.end_date.strftime("%Y-%m-%d")
+                                if schedule.end_date
+                                else None,
+                                "enabled": schedule.enabled,
+                                "cycle_type": schedule.cycle_type,
+                                "cycle_config": schedule.cycle_config,
+                                "time_mode": schedule.time_mode,
+                                "time_config": schedule.time_config,
+                                "frequency_display": schedule.frequency_display,
+                                "time_display_start": time_display_start_str,
+                                "time_display_end": time_display_end_str,
+                                "frequency": schedule.frequency_display,
+                                "cycle": schedule.frequency_display,
+                                "startTime": time_display_start_str,
+                                "endTime": time_display_end_str,
+                                "start_time": time_display_start_str,
+                                "end_time": time_display_end_str,
+                                "created_at": schedule.created_at.strftime(
+                                    "%Y-%m-%dT%H:%M:%S"
+                                )
+                                if schedule.created_at
+                                else None,
+                                "updated_at": schedule.updated_at.strftime(
+                                    "%Y-%m-%dT%H:%M:%S"
+                                )
+                                if schedule.updated_at
+                                else None,
+                            }
+                        )
+
+                inspection_projects_info = []
+                if task.inspection_projects:
+                    active_projects = sorted(
+                        [p for p in task.inspection_projects if not p.is_deleted],
+                        key=lambda project: project.sort_order,
+                    )
+                    for project in active_projects:
+                        inspection_projects_info.append(
+                            {
+                                "id": project.id,
+                                "task_name": project.task_name,
+                                "detection_type": project.detection_type,
+                                "x_coordinate": project.x_coordinate,
+                                "y_coordinate": project.y_coordinate,
+                                "sort_order": project.sort_order,
+                                "zoom_level": project.zoom_level,
+                                "focus": project.focus,
+                                "aperture": project.aperture,
+                                "shutter": project.shutter,
+                                "backlight_compensation": project.backlight_compensation,
+                                "wide_dynamic": project.wide_dynamic,
+                                "strong_light_suppression": project.strong_light_suppression,
+                                "fill_light": project.fill_light,
+                                "created_at": project.created_at.strftime(
+                                    "%Y-%m-%dT%H:%M:%S"
+                                )
+                                if project.created_at
+                                else None,
+                                "updated_at": project.updated_at.strftime(
+                                    "%Y-%m-%dT%H:%M:%S"
+                                )
+                                if project.updated_at
+                                else None,
+                            }
+                        )
+
+                gimbal_tasks_info.append(
+                    {
+                        "id": task.id,
+                        "task_name": task.task_name,
+                        "gimbal_id": task.gimbal_id,
+                        "inspection_project_count": len(inspection_projects_info),
+                        "inspection_projects": inspection_projects_info,
+                        "schedule_count": len(schedules_info),
+                        "schedules": schedules_info,
+                        "created_at": task.created_at.strftime("%Y-%m-%dT%H:%M:%S")
+                        if task.created_at
+                        else None,
+                        "updated_at": task.updated_at.strftime("%Y-%m-%dT%H:%M:%S")
+                        if task.updated_at
+                        else None,
+                    }
+                )
+
         return {
             "id": gimbal.id,
             "gimbal_name": gimbal.gimbal_name,
-            "gimbal_params": gimbal.gimbal_params,
             "map_id": gimbal.map_id,
+            "ip_address": str(gimbal.ip_address) if gimbal.ip_address else None,
+            "port": gimbal.port,
+            "username": gimbal.username,
+            "password": gimbal.password,
+            "rtsp_main_url": gimbal.rtsp_main_url,
+            "rtsp_sub_url": gimbal.rtsp_sub_url,
+            "channel": gimbal.channel,
+            "x_coordinate": gimbal.x_coordinate,
+            "y_coordinate": gimbal.y_coordinate,
+            "p_coordinate": gimbal.p_coordinate,
+            "t_coordinate": gimbal.t_coordinate,
+            "z_coordinate": gimbal.z_coordinate,
+            "f_coordinate": gimbal.f_coordinate,
+            "gimbal_tasks": gimbal_tasks_info,  # 添加任务列表（包含日程）
             "created_at": gimbal.created_at.strftime("%Y-%m-%dT%H:%M:%S") if gimbal.created_at else None,
             "updated_at": gimbal.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if gimbal.updated_at else None,
             "created_by": gimbal.created_by,

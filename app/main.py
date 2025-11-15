@@ -5,7 +5,46 @@
 from fastapi import FastAPI, WebSocket
 
 from .core.app_factory import create_app, setup_lifespan_events
-from .api.v1 import auth, users, ros2, system, logs, maps, factories, mapnets, robots, points, items, itemhistories, tasks, taskschedules, taskhistories, taskresults, alarmrules, alarminfos, gimbals, gimbaltasks, gimbalschedules, gimbalhistories, devices, sensors, sensorschedules, sensorhistories, vehiclecontrollers, environmentsensors, dualptzs, motorstatuses, lidars, robotarms, ultrasonics, depthcameras, navigationcontrollers, manualoperations, operationrecords
+from .api.v1 import (
+    auth,
+    users,
+    ros2,
+    system,
+    logs,
+    maps,
+    factories,
+    mapnets,
+    robots,
+    points,
+    items,
+    itemhistories,
+    tasks,
+    taskschedules,
+    taskhistories,
+    taskresults,
+    alarmrules,
+    alarminfos,
+    gimbals,
+    gimbaltasks,
+    gimbalinspectionprojects,
+    gimbalschedules,
+    gimbalhistories,
+    devices,
+    sensors,
+    sensorschedules,
+    sensorhistories,
+    vehiclecontrollers,
+    environmentsensors,
+    dualptzs,
+    motorstatuses,
+    lidars,
+    robotarms,
+    ultrasonics,
+    depthcameras,
+    navigationcontrollers,
+    manualoperations,
+    operationrecords,
+)
 from .config.settings import settings
 from .utils.response import ApiResponse
 
@@ -51,8 +90,13 @@ def register_routes():
     # 云台相关模块（按添加顺序）
     app.include_router(gimbals.router, prefix="/api/v1/gimbals", tags=["云台管理"])
     app.include_router(gimbaltasks.router, prefix="/api/v1/gimbaltasks", tags=["云台任务管理"])
+    app.include_router(
+        gimbalinspectionprojects.router,
+        prefix="/api/v1/gimbalinspectionprojects",
+        tags=["云台巡检项目管理"],
+    )
     app.include_router(gimbalschedules.router, prefix="/api/v1/gimbalschedules", tags=["云台日程管理"])
-    app.include_router(gimbalhistories.router, prefix="/api/v1/gimbalhistories", tags=["云台记录管理"])
+    app.include_router(gimbalhistories.router, prefix="/api/v1/gimbalhistories", tags=["云台巡检记录管理"])
     
     # 设备相关模块（按添加顺序）
     app.include_router(devices.router, prefix="/api/v1/devices", tags=["设备管理"])

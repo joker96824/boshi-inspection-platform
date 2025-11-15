@@ -1,31 +1,38 @@
 """
-云台记录数据模型
+云台巡检记录数据模型
 """
 
 from sqlalchemy import Column, String, ForeignKey, JSON, Index
 from sqlalchemy.orm import relationship
+
 from .base import BaseModel
 
 
 class GimbalHistory(BaseModel):
-    """云台记录模型"""
-    
+    """云台巡检记录模型"""
+
     __tablename__ = "tb_gimbalhistory"
-    
-    # 基础字段
-    gimbaltask_id = Column(String(36), ForeignKey("tb_gimbaltask.id", ondelete="CASCADE"), nullable=False, comment="关联云台任务ID")
+
+    inspection_project_id = Column(
+        String(36),
+        ForeignKey("tb_gimbal_inspection_project.id", ondelete="CASCADE"),
+        nullable=False,
+        comment="关联云台巡检项目ID",
+    )
     record_data = Column(JSON, nullable=True, comment="记录数据")
     media_url = Column(String(500), nullable=True, comment="图像/视频链接")
-    
-    # 关系
-    gimbal_task = relationship("GimbalTask", back_populates="histories")
-    
-    # 创建索引
-    __table_args__ = (
-        Index('idx_gimbaltask_id', 'gimbaltask_id'),
-        Index('idx_created_at', 'created_at'),
-        Index('idx_is_deleted', 'is_deleted'),
+
+    inspection_project = relationship(
+        "GimbalInspectionProject", back_populates="histories"
     )
-    
+
+    __table_args__ = (
+        Index("idx_inspection_project_id", "inspection_project_id"),
+        Index("idx_created_at", "created_at"),
+        Index("idx_is_deleted", "is_deleted"),
+    )
+
     def __repr__(self) -> str:
-        return f"<GimbalHistory(id='{self.id}', gimbaltask_id='{self.gimbaltask_id}')>"
+        return (
+            f"<GimbalHistory(id='{self.id}', inspection_project_id='{self.inspection_project_id}')>"
+        )

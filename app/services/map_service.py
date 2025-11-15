@@ -2,7 +2,7 @@
 地图业务逻辑服务
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from ..repositories.map_repository import MapRepository
 from ..schemas.map import MapCreate, MapUpdate, MapQuery
@@ -92,7 +92,7 @@ class MapService:
             )
             raise
     
-    async def get_map_by_id(self, map_id: str, user: dict) -> Dict[str, Any]:
+    async def get_map_by_id(self, map_id: str, user: Optional[dict] = None) -> Dict[str, Any]:
         """根据ID获取地图详情"""
         map_obj = await self.map_repo.get_by_id(map_id)
         if not map_obj:
@@ -270,3 +270,76 @@ class MapService:
                 exc_info=True
             )
             raise
+
+    def _format_robot_response(self, robot) -> Dict[str, Any]:
+        """格式化机器人响应数据"""
+        return {
+            "id": robot.id,
+            "robot_name": robot.robot_name,
+            "robot_info": robot.robot_info,
+            "factory_id": robot.factory_id,
+            "created_at": robot.created_at.strftime("%Y-%m-%dT%H:%M:%S") if robot.created_at else None,
+            "updated_at": robot.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if robot.updated_at else None,
+            "created_by": robot.created_by,
+            "updated_by": robot.updated_by,
+        }
+
+    def _format_point_response(self, point) -> Dict[str, Any]:
+        """格式化巡检点响应数据（包含巡检项目）"""
+        return {
+            "id": point.id,
+            "point_name": point.point_name,
+            "map_id": point.map_id,
+            "point_actions": point.point_actions,
+            "x_coordinate": point.x_coordinate,
+            "y_coordinate": point.y_coordinate,
+            "items": [
+                {
+                    "id": item.id,
+                    "item_name": item.item_name,
+                    "item_info": item.item_info,
+                    "point_id": item.point_id,
+                    "created_at": item.created_at.strftime("%Y-%m-%dT%H:%M:%S") if item.created_at else None,
+                    "updated_at": item.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if item.updated_at else None,
+                    "created_by": item.created_by,
+                    "updated_by": item.updated_by,
+                }
+                for item in point.items if not item.is_deleted
+            ],
+            "created_at": point.created_at.strftime("%Y-%m-%dT%H:%M:%S") if point.created_at else None,
+            "updated_at": point.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if point.updated_at else None,
+            "created_by": point.created_by,
+            "updated_by": point.updated_by,
+        }
+
+    async def get_map_with_robots_points_items(self, map_id: str, user: Optional[dict] = None) -> Dict[str, Any]:
+        """获取地图及其关联的机器人、巡检点和巡检项目数据"""
+        try:
+            # 获取地图及其关联数据
+            related_data = await self.map_repo.get_map_with_related_data(map_id)
+            
+            if not related_data:
+                raise ResourceNotFoundError(f"地图 '{map_id}' 不存在")
+            
+            # 格式化响应数据
+            result = {
+                "map": self._format_map_response(related_data["map"]),
+                "robots": [self._format_robot_response(robot) for robot in related_data["robots"]],
+                "points": [self._format_point_response(point) for point in related_data["points"]]
+            }
+            
+            return ApiResponse.success(
+                data=result,
+                message="获取地图关联数据成功"
+            )
+            
+        except ResourceNotFoundError:
+            raise
+        except Exception as e:
+            logger.error(
+                "获取地图关联数据失败: %s",
+                str(e),
+                extra={"map_id": map_id},
+                exc_info=True
+            )
+            raise BusinessError(f"获取地图关联数据失败: {str(e)}")

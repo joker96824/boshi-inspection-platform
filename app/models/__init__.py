@@ -19,6 +19,7 @@ from .alarmrule import AlarmRule
 from .alarminfo import AlarmInfo
 from .gimbal import Gimbal
 from .gimbaltask import GimbalTask
+from .gimbalinspectionproject import GimbalInspectionProject
 from .gimbalschedule import GimbalSchedule
 from .gimbalhistory import GimbalHistory
 from .device import Device
@@ -37,6 +38,7 @@ from .navigationcontroller import NavigationController
 from .factory import Factory
 from .manualoperation import ManualOperation
 from .operationrecord import OperationRecord
+from .robotmap import RobotMap
 
 __all__ = [
     "BaseModel",
@@ -45,6 +47,7 @@ __all__ = [
     "Map",
     "MapNet",
     "Robot",
+    "RobotMap",
     "Point",
     "Task",
     "TaskSchedule",
@@ -56,6 +59,7 @@ __all__ = [
     "AlarmInfo",
     "Gimbal",
     "GimbalTask",
+    "GimbalInspectionProject",
     "GimbalSchedule",
     "GimbalHistory",
     "Device",

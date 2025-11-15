@@ -41,7 +41,6 @@ async def get_tasks(
     page: int = Query(1, ge=1, description="页码"),
     size: int = Query(20, ge=1, le=100, description="每页数量"),
     task_name: str = Query(None, description="任务名称（模糊匹配）"),
-    map_id: str = Query(None, description="地图ID"),
     robot_id: str = Query(None, description="机器人ID"),
     sort_by: str = Query("task_order", description="排序字段: task_order, task_res_prior, task_int_prior"),
     sort_order: str = Query("asc", description="排序顺序: asc(正序), desc(反序)"),
@@ -54,7 +53,6 @@ async def get_tasks(
         page: 页码
         size: 每页数量
         task_name: 任务名称（模糊匹配）
-        map_id: 地图ID
         robot_id: 机器人ID
         sort_by: 排序字段
         sort_order: 排序顺序
@@ -66,7 +64,7 @@ async def get_tasks(
     """
     service = TaskService(db)
     return await service.get_tasks(
-        current_user, page, size, task_name, map_id, robot_id, sort_by, sort_order
+        current_user, page, size, task_name, robot_id, sort_by, sort_order
     )
 
 

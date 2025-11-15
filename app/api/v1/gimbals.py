@@ -41,6 +41,8 @@ async def get_gimbals(
     size: int = Query(20, ge=1, le=100, description="每页数量"),
     gimbal_name: Optional[str] = Query(None, description="云台名称（模糊查询）"),
     map_id: Optional[str] = Query(None, description="地图ID筛选"),
+    sort_by: str = Query("created_at", description="排序字段：created_at/gimbal_name/updated_at"),
+    sort_order: str = Query("desc", description="排序方向：asc/desc"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[dict] = Depends(require_no_auth())
 ):
@@ -51,6 +53,8 @@ async def get_gimbals(
         size: 每页数量
         gimbal_name: 云台名称（模糊查询）
         map_id: 地图ID筛选
+        sort_by: 排序字段
+        sort_order: 排序方向
         db: 数据库会话
         current_user: 当前用户
     
@@ -61,7 +65,9 @@ async def get_gimbals(
         page=page,
         size=size,
         gimbal_name=gimbal_name,
-        map_id=map_id
+        map_id=map_id,
+        sort_by=sort_by,
+        sort_order=sort_order
     )
     service = GimbalService(db)
     return await service.get_gimbals(query, current_user)
