@@ -239,6 +239,7 @@ class ItemService:
             "item_name": item.item_name,
             "item_info": item.item_info,
             "device_id": item.device_id,
+            "enabled": item.enabled,
             "created_at": item.created_at.strftime("%Y-%m-%dT%H:%M:%S") if item.created_at else None,
             "updated_at": item.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if item.updated_at else None,
             "created_by": item.created_by,

@@ -11,6 +11,7 @@ class PointBase(BaseSchema):
     """巡检点基础模式"""
     point_name: str = Field(..., min_length=1, max_length=100, description="巡检点名称")
     map_id: str = Field(..., description="所属地图ID")
+    enabled: bool = Field(True, description="启用状态：True-启用，False-禁用")
     x_coordinate: float = Field(..., description="X坐标（地图横坐标）")
     y_coordinate: float = Field(..., description="Y坐标（地图纵坐标）")
 
@@ -23,6 +24,7 @@ class PointCreate(PointBase):
 class PointUpdate(BaseSchema):
     """巡检点更新模式"""
     point_name: Optional[str] = Field(None, min_length=1, max_length=100, description="巡检点名称")
+    enabled: Optional[bool] = Field(None, description="启用状态：True-启用，False-禁用")
     x_coordinate: Optional[float] = Field(None, description="X坐标（地图横坐标）")
     y_coordinate: Optional[float] = Field(None, description="Y坐标（地图纵坐标）")
 
@@ -31,6 +33,7 @@ class PointResponse(BaseResponse):
     """巡检点响应模式"""
     point_name: str = Field(..., description="巡检点名称")
     map_id: str = Field(..., description="所属地图ID")
+    enabled: bool = Field(..., description="启用状态：True-启用，False-禁用")
     x_coordinate: Optional[float] = Field(None, description="X坐标（地图横坐标）")
     y_coordinate: Optional[float] = Field(None, description="Y坐标（地图纵坐标）")
 

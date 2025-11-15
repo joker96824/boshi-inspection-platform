@@ -12,6 +12,7 @@ class DeviceBase(BaseSchema):
     device_name: str = Field(..., min_length=1, max_length=100, description="设备名称")
     device_params: Optional[Dict[str, Any]] = Field(None, description="设备参数")
     point_id: str = Field(..., description="所属巡检点ID")
+    enabled: bool = Field(True, description="启用状态：True-启用，False-禁用")
     x_coordinate: Optional[float] = Field(None, description="X坐标（地图横坐标）")
     y_coordinate: Optional[float] = Field(None, description="Y坐标（地图纵坐标）")
 
@@ -26,6 +27,7 @@ class DeviceUpdate(BaseSchema):
     device_name: Optional[str] = Field(None, min_length=1, max_length=100, description="设备名称")
     device_params: Optional[Dict[str, Any]] = Field(None, description="设备参数")
     point_id: Optional[str] = Field(None, description="所属巡检点ID")
+    enabled: Optional[bool] = Field(None, description="启用状态：True-启用，False-禁用")
     x_coordinate: Optional[float] = Field(None, description="X坐标（地图横坐标）")
     y_coordinate: Optional[float] = Field(None, description="Y坐标（地图纵坐标）")
 
@@ -36,6 +38,7 @@ class DeviceResponse(BaseResponse):
     device_name: str = Field(..., description="设备名称")
     device_params: Optional[Dict[str, Any]] = Field(None, description="设备参数")
     point_id: str = Field(..., description="所属巡检点ID")
+    enabled: bool = Field(..., description="启用状态：True-启用，False-禁用")
     x_coordinate: Optional[float] = Field(None, description="X坐标（地图横坐标）")
     y_coordinate: Optional[float] = Field(None, description="Y坐标（地图纵坐标）")
     created_at: str = Field(..., description="创建时间")

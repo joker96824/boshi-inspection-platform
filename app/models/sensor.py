@@ -2,7 +2,7 @@
 智能传感器数据模型
 """
 
-from sqlalchemy import Column, String, ForeignKey, JSON, Index
+from sqlalchemy import Column, String, ForeignKey, JSON, Index, Boolean
 from sqlalchemy.orm import relationship
 from .base import BaseModel
 
@@ -16,6 +16,7 @@ class Sensor(BaseModel):
     device_id = Column(String(36), ForeignKey("tb_device.id", ondelete="CASCADE"), nullable=False, comment="关联设备ID")
     sensor_name = Column(String(100), nullable=False, comment="传感器名称")
     sensor_params = Column(JSON, nullable=True, comment="传感器参数")
+    enabled = Column(Boolean, nullable=False, default=True, comment="启用状态：0-禁用，1-启用")
     
     # 关系
     device = relationship("Device", back_populates="sensors")
@@ -25,6 +26,7 @@ class Sensor(BaseModel):
     __table_args__ = (
         Index('idx_device_id', 'device_id'),
         Index('idx_sensor_name', 'sensor_name'),
+        Index('idx_enabled', 'enabled'),
         Index('idx_created_at', 'created_at'),
         Index('idx_is_deleted', 'is_deleted'),
     )

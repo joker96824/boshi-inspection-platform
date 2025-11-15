@@ -11,6 +11,7 @@ class GimbalBase(BaseSchema):
     """云台基础模式"""
     gimbal_name: str = Field(..., min_length=1, max_length=100, description="云台名称")
     map_id: Optional[str] = Field(None, description="地图ID")
+    enabled: bool = Field(True, description="启用状态：True-启用，False-禁用")
     ip_address: IPvAnyAddress = Field(..., description="云台IP地址")
     port: int = Field(..., ge=1, le=65535, description="云台端口")
     username: str = Field(..., min_length=1, max_length=100, description="登录用户名")
@@ -35,6 +36,7 @@ class GimbalUpdate(BaseSchema):
     """云台更新模式"""
     gimbal_name: Optional[str] = Field(None, min_length=1, max_length=100, description="云台名称")
     map_id: Optional[str] = Field(None, description="地图ID")
+    enabled: Optional[bool] = Field(None, description="启用状态：True-启用，False-禁用")
     ip_address: Optional[IPvAnyAddress] = Field(None, description="云台IP地址")
     port: Optional[int] = Field(None, ge=1, le=65535, description="云台端口")
     username: Optional[str] = Field(None, min_length=1, max_length=100, description="登录用户名")
@@ -55,6 +57,7 @@ class GimbalResponse(BaseResponse):
     id: str = Field(..., description="云台ID")
     gimbal_name: str = Field(..., description="云台名称")
     map_id: Optional[str] = Field(None, description="地图ID")
+    enabled: bool = Field(..., description="启用状态：True-启用，False-禁用")
     ip_address: str = Field(..., description="云台IP地址")
     port: int = Field(..., description="云台端口")
     username: str = Field(..., description="登录用户名")

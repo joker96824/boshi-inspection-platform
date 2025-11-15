@@ -39,6 +39,7 @@ class PointService:
                             "item_name": item.item_name,
                             "item_info": item.item_info,
                             "device_id": item.device_id,
+                            "enabled": item.enabled,
                             "created_at": item.created_at.strftime("%Y-%m-%dT%H:%M:%S") if item.created_at else None,
                             "updated_at": item.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if item.updated_at else None,
                         })
@@ -52,6 +53,7 @@ class PointService:
                             "sensor_name": sensor.sensor_name,
                             "sensor_params": sensor.sensor_params,
                             "device_id": sensor.device_id,
+                            "enabled": sensor.enabled,
                             "created_at": sensor.created_at.strftime("%Y-%m-%dT%H:%M:%S") if sensor.created_at else None,
                             "updated_at": sensor.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if sensor.updated_at else None,
                         })
@@ -61,6 +63,7 @@ class PointService:
                     "device_name": device.device_name,
                     "device_params": device.device_params,
                     "point_id": device.point_id,
+                    "enabled": device.enabled,
                     "x_coordinate": device.x_coordinate,
                     "y_coordinate": device.y_coordinate,
                     "items": items_data,
@@ -73,6 +76,7 @@ class PointService:
             "id": point.id,
             "point_name": point.point_name,
             "map_id": point.map_id,
+            "enabled": point.enabled,
             "x_coordinate": point.x_coordinate,
             "y_coordinate": point.y_coordinate,
             "devices": devices_data,

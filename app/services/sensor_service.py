@@ -227,6 +227,7 @@ class SensorService:
             "device_id": sensor.device_id,
             "sensor_name": sensor.sensor_name,
             "sensor_params": sensor.sensor_params,
+            "enabled": sensor.enabled,
             "created_at": sensor.created_at.strftime("%Y-%m-%dT%H:%M:%S") if sensor.created_at else None,
             "updated_at": sensor.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if sensor.updated_at else None,
             "created_by": sensor.created_by,

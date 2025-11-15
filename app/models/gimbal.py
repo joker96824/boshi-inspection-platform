@@ -2,7 +2,7 @@
 云台数据模型
 """
 
-from sqlalchemy import Column, String, Index, ForeignKey, Float, Integer
+from sqlalchemy import Column, String, Index, ForeignKey, Float, Integer, Boolean
 from sqlalchemy.orm import relationship
 from .base import BaseModel
 
@@ -15,6 +15,7 @@ class Gimbal(BaseModel):
     # 基础字段
     gimbal_name = Column(String(100), nullable=False, comment="云台名称")
     map_id = Column(String(36), ForeignKey("tb_map.id", ondelete="SET NULL"), nullable=True, index=True, comment="地图ID")
+    enabled = Column(Boolean, nullable=False, default=True, comment="启用状态：0-禁用，1-启用")
     ip_address = Column(String(45), nullable=False, comment="云台IP地址")
     port = Column(Integer, nullable=False, comment="云台端口")
     username = Column(String(100), nullable=False, comment="登录用户名")
@@ -37,6 +38,7 @@ class Gimbal(BaseModel):
     __table_args__ = (
         Index('idx_gimbal_name', 'gimbal_name'),
         Index('idx_map_id', 'map_id'),
+        Index('idx_enabled', 'enabled'),
         Index('idx_created_at', 'created_at'),
         Index('idx_is_deleted', 'is_deleted'),
         Index('idx_gimbal_coordinates', 'map_id', 'x_coordinate', 'y_coordinate'),

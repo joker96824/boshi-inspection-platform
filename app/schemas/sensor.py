@@ -12,6 +12,7 @@ class SensorBase(BaseSchema):
     device_id: str = Field(..., description="关联设备ID")
     sensor_name: str = Field(..., min_length=1, max_length=100, description="传感器名称")
     sensor_params: Optional[Dict[str, Any]] = Field(None, description="传感器参数")
+    enabled: bool = Field(True, description="启用状态：True-启用，False-禁用")
 
 
 class SensorCreate(SensorBase):
@@ -24,6 +25,7 @@ class SensorUpdate(BaseSchema):
     device_id: Optional[str] = Field(None, description="关联设备ID")
     sensor_name: Optional[str] = Field(None, min_length=1, max_length=100, description="传感器名称")
     sensor_params: Optional[Dict[str, Any]] = Field(None, description="传感器参数")
+    enabled: Optional[bool] = Field(None, description="启用状态：True-启用，False-禁用")
 
 
 class SensorResponse(BaseResponse):
@@ -32,6 +34,7 @@ class SensorResponse(BaseResponse):
     device_id: str = Field(..., description="关联设备ID")
     sensor_name: str = Field(..., description="传感器名称")
     sensor_params: Optional[Dict[str, Any]] = Field(None, description="传感器参数")
+    enabled: bool = Field(..., description="启用状态：True-启用，False-禁用")
     created_at: str = Field(..., description="创建时间")
     updated_at: str = Field(..., description="更新时间")
     created_by: Optional[str] = Field(None, description="创建者")

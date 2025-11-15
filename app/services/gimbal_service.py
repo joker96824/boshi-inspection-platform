@@ -345,6 +345,7 @@ class GimbalService:
             "id": gimbal.id,
             "gimbal_name": gimbal.gimbal_name,
             "map_id": gimbal.map_id,
+            "enabled": gimbal.enabled,
             "ip_address": str(gimbal.ip_address) if gimbal.ip_address else None,
             "port": gimbal.port,
             "username": gimbal.username,
