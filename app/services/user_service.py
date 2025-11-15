@@ -67,8 +67,20 @@ class UserService:
             message="用户创建成功"
         )
     
-    async def get_user_list(self, page: int = 1, size: int = 20) -> dict:
+    async def get_user_list(self, page: Optional[int] = None, size: Optional[int] = None) -> dict:
         """获取用户列表"""
+        # 如果未提供分页参数，返回所有数据
+        if page is None or size is None:
+            users = await self.user_repo.get_all(None, None)
+            total = await self.user_repo.get_total_count()
+            return ApiResponse.success(
+                data={
+                    "items": [self._format_user_response(user) for user in users],
+                    "total": total
+                },
+                message="获取用户列表成功"
+            )
+        
         # 计算 skip 和 limit
         skip = (page - 1) * size
         limit = size

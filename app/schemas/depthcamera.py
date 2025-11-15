@@ -150,8 +150,8 @@ class DepthCameraResponse(BaseResponse):
 
 class DepthCameraQuery(BaseSchema):
     """深度相机配置查询模式"""
-    page: int = Field(1, ge=1, description="页码")
-    size: int = Field(20, ge=1, le=100, description="每页数量")
+    page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
+    size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
     camera_type: Optional[str] = Field(None, description="相机类型筛选")
     protocol: Optional[str] = Field(None, description="连接协议筛选")
     frame_rate: Optional[int] = Field(None, description="帧率筛选")

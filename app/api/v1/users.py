@@ -4,9 +4,10 @@
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
 
-from ...core.deps import get_db
-from ...core.permissions import require_admin, get_current_user
+from ...core.deps import get_db, validate_pagination_params
+from ...core.permissions import require_admin, get_current_user, require_no_auth
 from ...services.user_service import UserService
 from ...schemas.user import UserCreate, UserUpdate, UserPasswordUpdate
 from ...core.exceptions import ParameterError
@@ -44,10 +45,10 @@ async def create_user(
 
 @router.get("/", response_model=dict)
 async def get_users(
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取用户列表
     
@@ -64,7 +65,7 @@ async def get_users(
 async def get_user(
     user_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_admin)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取指定用户信息"""
     user_service = UserService(db)

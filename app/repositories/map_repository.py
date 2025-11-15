@@ -136,7 +136,7 @@ class MapRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
-    async def get_all(self, map_name: str = None, skip: int = 0, limit: int = 20) -> Tuple[List[Map], int]:
+    async def get_all(self, map_name: str = None, skip: Optional[int] = None, limit: Optional[int] = None) -> Tuple[List[Map], int]:
         """获取所有地图列表"""
         # 构建查询条件
         conditions = [Map.is_deleted == False]
@@ -149,7 +149,9 @@ class MapRepository:
         total = count_result.scalar() or 0
         
         # 查询数据
-        query = select(Map).where(and_(*conditions)).offset(skip).limit(limit)
+        query = select(Map).where(and_(*conditions))
+        if skip is not None and limit is not None:
+            query = query.offset(skip).limit(limit)
         result = await self.db.execute(query)
         maps = list(result.scalars().all())
         

@@ -7,7 +7,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...core.deps import get_db
+from ...core.deps import get_db, validate_pagination_params
 from ...core.permissions import require_no_auth, require_write_permission
 from ...schemas.gimbalinspectionproject import (
     GimbalInspectionProjectCreate,
@@ -43,8 +43,8 @@ async def create_gimbal_inspection_project(
 
 @router.get("/", response_model=dict)
 async def get_gimbal_inspection_projects(
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     task_name: Optional[str] = Query(None, description="巡检项目名称（模糊查询）"),
     detection_type: Optional[str] = Query(
         None, description="检测类型筛选：可见光视频/可见光图片/热成像图片/热成像视频"

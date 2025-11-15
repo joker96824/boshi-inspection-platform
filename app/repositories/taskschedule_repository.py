@@ -50,11 +50,17 @@ class TaskScheduleRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
-    async def get_all(self, page: int = 1, size: int = 20, task_id: str = None, 
+    async def get_all(self, page: Optional[int] = None, size: Optional[int] = None, task_id: str = None, 
                        cycle_type: str = None, enabled: bool = None) -> tuple[List[TaskSchedule], int]:
         """获取任务日程列表"""
-        # 计算偏移量
-        skip = (page - 1) * size
+        # 如果未提供分页参数，返回所有数据
+        if page is None or size is None:
+            skip = None
+            limit = None
+        else:
+            # 计算偏移量
+            skip = (page - 1) * size
+            limit = size
         
         # 构建查询条件
         conditions = [TaskSchedule.is_deleted == False]
@@ -75,9 +81,9 @@ class TaskScheduleRepository:
         stmt = (select(TaskSchedule)
                 .options(selectinload(TaskSchedule.task))
                 .where(*conditions)
-                .order_by(TaskSchedule.created_at.desc())
-                .offset(skip)
-                .limit(size))
+                .order_by(TaskSchedule.created_at.desc()))
+        if skip is not None and limit is not None:
+            stmt = stmt.offset(skip).limit(limit)
         
         result = await self.db.execute(stmt)
         taskschedules = result.scalars().all()

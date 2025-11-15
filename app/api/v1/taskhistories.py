@@ -4,11 +4,11 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import List, Optional
 
-from ...core.deps import get_db
+from ...core.deps import get_db, validate_pagination_params
 from ...core.auth import get_current_user
-from ...core.permissions import require_write_permission, require_read_permission
+from ...core.permissions import require_write_permission, require_no_auth
 from ...services.taskhistory_service import TaskHistoryService
 from ...schemas.taskhistory import TaskHistoryCreate, TaskHistoryUpdate, TaskHistoryResponse, TaskHistoryQuery, TaskHistoryListResponse
 from ...utils.response import ApiResponse
@@ -38,8 +38,8 @@ async def create_taskhistory(
 
 @router.get("/", response_model=dict)
 async def get_taskhistories(
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     task_id: str = Query(None, description="任务ID"),
     record_status: str = Query(None, description="任务状态"),
     record_batch: int = Query(None, description="任务批次号"),
@@ -48,7 +48,7 @@ async def get_taskhistories(
     end_time_from: str = Query(None, description="结束时间范围-起始（格式：YYYY-MM-DDTHH:MM:SS）"),
     end_time_to: str = Query(None, description="结束时间范围-结束（格式：YYYY-MM-DDTHH:MM:SS）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取任务记录列表
     
@@ -79,7 +79,7 @@ async def get_taskhistories(
 async def get_taskhistories_by_ids(
     taskhistory_ids: List[str] = Query(..., description="任务记录ID列表（支持单个或多个ID查询）"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID列表查询任务记录
     
@@ -101,7 +101,7 @@ async def get_taskhistories_by_ids(
 async def get_taskhistory_by_id(
     taskhistory_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """根据ID获取任务记录
     
@@ -162,7 +162,7 @@ async def delete_taskhistory(
 @router.get("/stats/overview", response_model=dict)
 async def get_taskhistory_stats(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_read_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取任务记录统计信息
     

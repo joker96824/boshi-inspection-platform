@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from ...core.deps import get_db
+from ...core.deps import get_db, validate_pagination_params
 from ...core.permissions import require_write_permission, require_no_auth
 from ...services.navigation_controller_service import NavigationControllerService
 from ...schemas.navigationcontroller import (
@@ -20,8 +20,8 @@ router = APIRouter()
 
 @router.get("/", response_model=dict)
 async def get_navigation_controllers(
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     module_group: Optional[int] = Query(None, description="模块组筛选"),
     ethernet_ip: Optional[str] = Query(None, description="以太网IP筛选"),
     ethernet_port: Optional[int] = Query(None, description="以太网端口筛选"),

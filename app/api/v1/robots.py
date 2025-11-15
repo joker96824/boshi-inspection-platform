@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from ...core.deps import get_db
+from ...core.deps import get_db, validate_pagination_params
 from ...core.auth import get_current_user
 from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...schemas.robot import RobotCreate, RobotUpdate, RobotQuery
@@ -38,8 +38,8 @@ async def create_robot(
 
 @router.get("/", response_model=dict)
 async def get_user_robots(
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     robot_name: str = Query(None, description="机器人名称（模糊匹配）"),
     factory_id: str = Query(None, description="厂区ID筛选"),
     map_id: str = Query(None, description="地图ID筛选（通过中间表）"),
@@ -49,8 +49,8 @@ async def get_user_robots(
     """获取当前用户的机器人列表
     
     Args:
-        page: 页码
-        size: 每页数量
+        page: 页码（必须与size同时提供或同时不提供）
+        size: 每页数量（必须与page同时提供或同时不提供）
         robot_name: 机器人名称（模糊匹配）
         factory_id: 厂区ID筛选
         map_id: 地图ID筛选（通过中间表）
@@ -60,6 +60,7 @@ async def get_user_robots(
     Returns:
         机器人列表
     """
+    validate_pagination_params(page, size)
     robot_service = RobotService(db)
     return await robot_service.get_user_robots(current_user, page, size, robot_name, factory_id, map_id)
 

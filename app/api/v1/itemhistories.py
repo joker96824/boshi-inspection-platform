@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from ...core.deps import get_db
+from ...core.deps import get_db, validate_pagination_params
 from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...schemas.itemhistory import ItemHistoryCreate, ItemHistoryUpdate, ItemHistoryQuery
 from ...services.itemhistory_service import ItemHistoryService
@@ -37,8 +37,8 @@ async def create_itemhistory(
 @router.get("/from-taskhistories", response_model=dict)
 async def get_itemhistories_from_taskhistories(
     taskhistory_ids: Optional[List[str]] = Query(None, description="任务记录ID列表（可选）"),
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     with_details: bool = Query(False, description="是否返回详细信息（显示巡检项目信息）"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[dict] = Depends(require_no_auth())
@@ -73,8 +73,8 @@ async def get_itemhistories_from_taskhistories(
 @router.get("/from-items", response_model=dict)
 async def get_itemhistories_from_items(
     item_ids: Optional[List[str]] = Query(None, description="巡检项目ID列表（可选）"),
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     with_details: bool = Query(False, description="是否返回详细信息（显示任务记录信息）"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[dict] = Depends(require_no_auth())

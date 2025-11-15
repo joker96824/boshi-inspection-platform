@@ -33,10 +33,16 @@ class FactoryRepository:
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
     
-    async def get_all(self, page: int = 1, size: int = 20, 
+    async def get_all(self, page: Optional[int] = None, size: Optional[int] = None, 
                       factory_name: str = None) -> Tuple[List[Factory], int]:
         """获取厂区列表"""
-        skip = (page - 1) * size
+        # 如果未提供分页参数，返回所有数据
+        if page is None or size is None:
+            skip = None
+            limit = None
+        else:
+            skip = (page - 1) * size
+            limit = size
         conditions = [Factory.is_deleted == False]
         
         if factory_name is not None:
@@ -50,9 +56,9 @@ class FactoryRepository:
         # 查询数据
         query = (select(Factory)
                 .where(and_(*conditions))
-                .order_by(Factory.created_at.desc())
-                .offset(skip)
-                .limit(size))
+                .order_by(Factory.created_at.desc()))
+        if skip is not None and limit is not None:
+            query = query.offset(skip).limit(limit)
         
         result = await self.db.execute(query)
         factories = list(result.scalars().all())

@@ -37,8 +37,8 @@ class RobotResponse(BaseResponse):
 
 class RobotQuery(BaseSchema):
     """机器人查询模式"""
-    page: int = Field(1, ge=1, description="页码")
-    size: int = Field(20, ge=1, le=100, description="每页数量")
+    page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
+    size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
     robot_name: Optional[str] = Field(None, description="机器人名称（模糊匹配）")
     factory_id: Optional[str] = Field(None, description="厂区ID筛选")
     map_id: Optional[str] = Field(None, description="地图ID筛选（通过中间表）")

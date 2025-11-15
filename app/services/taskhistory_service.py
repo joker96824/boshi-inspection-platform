@@ -2,7 +2,7 @@
 任务记录业务逻辑服务
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
@@ -103,12 +103,24 @@ class TaskHistoryService:
             logger.error(f"获取任务记录列表失败: {e}")
             raise HTTPException(status_code=500, detail="获取任务记录列表失败")
     
-    async def get_taskhistories(self, user: dict, page: int = 1, size: int = 20, 
+    async def get_taskhistories(self, user: dict, page: Optional[int] = None, size: Optional[int] = None, 
                         task_id: str = None, record_status: str = None, record_batch: int = None,
                         start_time_from: str = None, start_time_to: str = None,
                         end_time_from: str = None, end_time_to: str = None) -> Dict[str, Any]:
         """获取任务记录列表"""
         try:
+            # 如果未提供分页参数，返回所有数据
+            if page is None or size is None:
+                taskhistories, total = await self.taskhistory_repo.get_all(
+                    None, None, task_id, record_status, record_batch,
+                    start_time_from, start_time_to, end_time_from, end_time_to
+                )
+                items = [self._format_taskhistory_response(taskhistory) for taskhistory in taskhistories]
+                return ApiResponse.success(
+                    data={"items": items, "total": total},
+                    message="获取任务记录列表成功"
+                )
+            
             # 获取所有任务记录，无需基于用户ID过滤
             taskhistories, total = await self.taskhistory_repo.get_all(
                 page, size, task_id, record_status, record_batch,

@@ -48,7 +48,7 @@ class UserRepository:
         )
         return result.scalar_one_or_none()
     
-    async def get_all(self, skip: int = 0, limit: int = 100) -> List[User]:
+    async def get_all(self, skip: Optional[int] = None, limit: Optional[int] = None) -> List[User]:
         """获取用户列表"""
         # 定义角色权限排序（数字越小权限越高）
         role_order = case(
@@ -60,16 +60,18 @@ class UserRepository:
             else_=6  # 未知角色排在最后
         )
         
-        result = await self.db.execute(
+        stmt = (
             select(User)
             .where(User.is_deleted == False)
             .order_by(
                 role_order,  # 首先按角色权限排序（权限高到低）
                 User.created_at.desc()  # 然后按创建时间排序（新到旧）
             )
-            .offset(skip)
-            .limit(limit)
         )
+        if skip is not None and limit is not None:
+            stmt = stmt.offset(skip).limit(limit)
+        
+        result = await self.db.execute(stmt)
         return result.scalars().all()
     
     async def get_total_count(self) -> int:

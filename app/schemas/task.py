@@ -44,8 +44,8 @@ class TaskResponse(BaseResponse):
 
 class TaskQuery(BaseSchema):
     """任务查询模式"""
-    page: int = Field(1, ge=1, description="页码")
-    size: int = Field(20, ge=1, le=100, description="每页数量")
+    page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
+    size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
     task_name: Optional[str] = Field(None, description="任务名称（模糊匹配）")
     robot_id: Optional[str] = Field(None, description="机器人ID")
     sort_by: Optional[str] = Field("task_order", description="排序字段: task_order, task_res_prior, task_int_prior")

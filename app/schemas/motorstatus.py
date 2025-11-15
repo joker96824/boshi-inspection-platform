@@ -154,8 +154,8 @@ class MotorStatusResponse(BaseResponse):
 
 class MotorStatusQuery(BaseSchema):
     """电机状态配置查询模式"""
-    page: int = Field(1, ge=1, description="页码")
-    size: int = Field(20, ge=1, le=100, description="每页数量")
+    page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
+    size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
     motor_id: Optional[int] = Field(None, description="电机ID筛选")
     baud_rate: Optional[int] = Field(None, description="波特率筛选")
 

@@ -89,6 +89,19 @@ class FactoryService:
     async def list_factories(self, query: FactoryQuery, user: Optional[dict]) -> Dict[str, Any]:
         """获取厂区列表"""
         try:
+            # 如果未提供分页参数，返回所有数据
+            if query.page is None or query.size is None:
+                factories, total = await self.factory_repo.get_all(
+                    page=None,
+                    size=None,
+                    factory_name=query.factory_name
+                )
+                items = [self._format_factory_response(f) for f in factories]
+                return ApiResponse.success(
+                    data={"items": items, "total": total},
+                    message="获取厂区列表成功"
+                )
+            
             factories, total = await self.factory_repo.get_all(
                 page=query.page,
                 size=query.size,

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from ...core.deps import get_db
+from ...core.deps import get_db, validate_pagination_params
 from ...core.auth import get_current_user
 from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...services.task_service import TaskService
@@ -38,8 +38,8 @@ async def create_task(
 
 @router.get("/", response_model=dict)
 async def get_tasks(
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     task_name: str = Query(None, description="任务名称（模糊匹配）"),
     robot_id: str = Query(None, description="机器人ID"),
     sort_by: str = Query("task_order", description="排序字段: task_order, task_res_prior, task_int_prior"),
@@ -62,6 +62,7 @@ async def get_tasks(
     Returns:
         任务列表
     """
+    validate_pagination_params(page, size)
     service = TaskService(db)
     return await service.get_tasks(
         current_user, page, size, task_name, robot_id, sort_by, sort_order

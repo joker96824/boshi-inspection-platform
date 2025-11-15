@@ -2,7 +2,7 @@
 巡检点业务逻辑服务
 """
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
@@ -105,7 +105,7 @@ class PointService:
             logger.error(f"获取巡检点列表失败: {e}")
             raise HTTPException(status_code=500, detail="获取巡检点列表失败")
     
-    async def get_points(self, user: dict, page: int = 1, size: int = 20, point_name: str = None, map_id: str = None) -> Dict[str, Any]:
+    async def get_points(self, user: dict, page: Optional[int] = None, size: Optional[int] = None, point_name: str = None, map_id: str = None) -> Dict[str, Any]:
         """获取巡检点列表"""
         try:
             # 如果指定了map_id，检查地图是否存在
@@ -113,6 +113,15 @@ class PointService:
                 map_obj = await self.map_repo.get_by_id(map_id)
                 if not map_obj:
                     raise ResourceNotFoundError(f"地图 '{map_id}' 不存在")
+            
+            # 如果未提供分页参数，返回所有数据
+            if page is None or size is None:
+                points, total = await self.point_repo.get_all(None, None, point_name, map_id)
+                items = [self._format_point_response(point) for point in points]
+                return ApiResponse.success(
+                    data={"items": items, "total": total},
+                    message="获取巡检点列表成功"
+                )
             
             points, total = await self.point_repo.get_all(page, size, point_name, map_id)
             

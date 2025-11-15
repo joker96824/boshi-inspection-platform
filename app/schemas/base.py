@@ -38,7 +38,7 @@ class BaseResponse(IDMixin, TimestampMixin, BaseSchema):
 
 class PaginationParams(BaseSchema):
     """分页参数"""
-    page: int = Field(1, ge=1, description="页码")
+    page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
     size: int = Field(10, ge=1, le=100, description="每页数量")
     sort_by: Optional[str] = Field(None, description="排序字段")
     sort_order: str = Field("asc", pattern="^(asc|desc)$", description="排序方向")

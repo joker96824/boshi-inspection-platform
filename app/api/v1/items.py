@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from ...core.deps import get_db
+from ...core.deps import get_db, validate_pagination_params
 from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...services.item_service import ItemService
 from ...schemas.item import ItemCreate, ItemUpdate, ItemResponse, ItemQuery, ItemListResponse
@@ -37,8 +37,8 @@ async def create_item(
 
 @router.get("/", response_model=dict)
 async def get_items(
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     item_name: Optional[str] = Query(None, description="巡检项目名称（模糊查询）"),
     point_id: Optional[str] = Query(None, description="巡检点ID（筛选）"),
     db: AsyncSession = Depends(get_db),

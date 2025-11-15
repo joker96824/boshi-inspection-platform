@@ -167,10 +167,21 @@ class TaskScheduleService:
             logger.error(f"获取任务日程失败: {e}")
             raise HTTPException(status_code=500, detail="获取任务日程失败")
     
-    async def get_taskschedules(self, user: dict, page: int = 1, size: int = 20, 
+    async def get_taskschedules(self, user: dict, page: Optional[int] = None, size: Optional[int] = None, 
                                 task_id: str = None, cycle_type: str = None, enabled: bool = None) -> Dict[str, Any]:
         """获取任务日程列表"""
         try:
+            # 如果未提供分页参数，返回所有数据
+            if page is None or size is None:
+                taskschedules, total = await self.taskschedule_repo.get_all(
+                    None, None, task_id, cycle_type, enabled
+                )
+                items = [self._format_taskschedule_response(ts) for ts in taskschedules]
+                return ApiResponse.success(
+                    data={"items": items, "total": total},
+                    message="获取任务日程列表成功"
+                )
+            
             # 获取所有任务日程，无需基于用户ID过滤
             taskschedules, total = await self.taskschedule_repo.get_all(
                 page, size, task_id, cycle_type, enabled

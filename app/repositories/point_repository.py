@@ -97,9 +97,15 @@ class PointRepository:
         await self.db.commit()
         return True
     
-    async def get_all(self, page: int = 1, size: int = 20, point_name: str = None, map_id: str = None) -> Tuple[List[Point], int]:
+    async def get_all(self, page: Optional[int] = None, size: Optional[int] = None, point_name: str = None, map_id: str = None) -> Tuple[List[Point], int]:
         """获取所有巡检点列表"""
-        skip = (page - 1) * size
+        # 如果未提供分页参数，返回所有数据
+        if page is None or size is None:
+            skip = None
+            limit = None
+        else:
+            skip = (page - 1) * size
+            limit = size
         
         # 构建查询条件
         conditions = [Point.is_deleted == False]
@@ -118,9 +124,9 @@ class PointRepository:
         # 查询数据
         stmt = (select(Point)
                 .where(*conditions)
-                .order_by(Point.created_at.desc())
-                .offset(skip)
-                .limit(size))
+                .order_by(Point.created_at.desc()))
+        if skip is not None and limit is not None:
+            stmt = stmt.offset(skip).limit(limit)
         
         result = await self.db.execute(stmt)
         points = result.scalars().all()

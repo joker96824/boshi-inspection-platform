@@ -136,8 +136,8 @@ class DualPTZResponse(BaseResponse):
 
 class DualPTZQuery(BaseSchema):
     """双光云台配置查询模式"""
-    page: int = Field(1, ge=1, description="页码")
-    size: int = Field(20, ge=1, le=100, description="每页数量")
+    page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
+    size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
     ptz_ip: Optional[str] = Field(None, description="云台IP筛选")
     operating_speed: Optional[int] = Field(None, description="运行速度筛选")
 

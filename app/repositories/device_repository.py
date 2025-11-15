@@ -42,10 +42,16 @@ class DeviceRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
-    async def get_all(self, page: int = 1, size: int = 20, 
+    async def get_all(self, page: Optional[int] = None, size: Optional[int] = None, 
                      device_name: str = None, map_id: str = None) -> Tuple[List[Device], int]:
         """获取设备列表"""
-        skip = (page - 1) * size
+        # 如果未提供分页参数，返回所有数据
+        if page is None or size is None:
+            skip = None
+            limit = None
+        else:
+            skip = (page - 1) * size
+            limit = size
         
         # 构建查询条件
         conditions = [Device.is_deleted == False]
@@ -64,9 +70,9 @@ class DeviceRepository:
         # 查询数据
         query = (select(Device)
                 .where(and_(*conditions))
-                .order_by(Device.created_at.desc())
-                .offset(skip)
-                .limit(size))
+                .order_by(Device.created_at.desc()))
+        if skip is not None and limit is not None:
+            query = query.offset(skip).limit(limit)
         
         result = await self.db.execute(query)
         devices = list(result.scalars().all())

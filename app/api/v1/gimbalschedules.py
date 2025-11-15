@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from ...core.deps import get_db
+from ...core.deps import get_db, validate_pagination_params
 from ...core.permissions import require_write_permission, require_no_auth
 from ...services.gimbalschedule_service import GimbalScheduleService
 from ...schemas.gimbalschedule import (
@@ -60,8 +60,8 @@ async def create_gimbal_schedule_from_frontend(
 
 @router.get("/", response_model=dict)
 async def get_gimbal_schedules(
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     cycle_type: Optional[str] = Query(None, description="周期类型筛选：daily/monthly_days/weekly/interval"),
     enabled: Optional[bool] = Query(None, description="启用状态筛选"),
     gimbaltask_id: Optional[str] = Query(None, description="云台任务ID筛选"),

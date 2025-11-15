@@ -88,8 +88,8 @@ class GimbalInspectionProjectResponse(BaseResponse):
 class GimbalInspectionProjectQuery(BaseSchema):
     """云台巡检项目查询模式"""
 
-    page: int = Field(1, ge=1, description="页码")
-    size: int = Field(20, ge=1, le=100, description="每页数量")
+    page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
+    size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
     task_name: Optional[str] = Field(None, description="巡检项目名称（模糊查询）")
     detection_type: Optional[Literal["可见光视频", "可见光图片", "热成像图片", "热成像视频"]] = Field(
         None, description="检测类型筛选"

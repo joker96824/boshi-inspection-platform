@@ -103,6 +103,19 @@ class MapService:
     async def get_user_maps(self, query: MapQuery, user: dict) -> Dict[str, Any]:
         """获取所有地图列表"""
         try:
+            # 如果未提供分页参数，返回所有数据
+            if query.page is None or query.size is None:
+                maps, total = await self.map_repo.get_all(
+                    map_name=query.map_name,
+                    skip=None,
+                    limit=None
+                )
+                maps_dict = [self._format_map_response(map_obj) for map_obj in maps]
+                return ApiResponse.success(
+                    data={"items": maps_dict, "total": total},
+                    message="获取地图列表成功"
+                )
+            
             # 计算分页参数
             skip = (query.page - 1) * query.size
             

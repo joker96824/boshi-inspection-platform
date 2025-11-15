@@ -4,6 +4,7 @@
 
 from datetime import date
 from pathlib import Path
+from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,8 +13,8 @@ import tempfile
 import shutil
 import logging
 
-from ...core.deps import get_db
-from ...core.permissions import require_admin, get_current_user
+from ...core.deps import get_db, validate_pagination_params
+from ...core.permissions import require_admin, get_current_user, require_no_auth
 from ...services.log_service import LogService
 from ...schemas.log import LogQuery, LogContentQuery, LogDownloadRequest
 from ...core.exceptions import ValidationError
@@ -29,13 +30,11 @@ async def get_log_files(
     start_date: date = Query(None, description="开始日期 (YYYY-MM-DD)"),
     end_date: date = Query(None, description="结束日期 (YYYY-MM-DD)"),
     log_type: str = Query("app", description="日志类型: app/error/debug/all"),
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
-    current_user: dict = Depends(require_admin)
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取日志文件列表
-    
-    权限要求：admin 及以上
     
     Args:
         start_date: 开始日期，默认为7天前
@@ -67,11 +66,9 @@ async def get_log_content(
     start_line: int = Query(1, ge=1, description="开始行号"),
     limit: int = Query(100, ge=1, le=1000, description="读取行数"),
     search_keyword: str = Query(None, description="搜索关键词"),
-    current_user: dict = Depends(require_admin)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取日志文件内容
-    
-    权限要求：admin 及以上
     
     Args:
         log_date: 日志日期
@@ -100,11 +97,9 @@ async def get_log_content(
 async def download_log_file(
     log_date: date = Query(..., description="日志日期 (YYYY-MM-DD)"),
     log_type: str = Query("app", description="日志类型: app/error/debug"),
-    current_user: dict = Depends(require_admin)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """下载日志文件
-    
-    权限要求：admin 及以上
     
     策略：创建文件快照副本避免下载过程中文件被修改
     
@@ -168,11 +163,9 @@ async def download_log_file(
 
 @router.get("/stats", response_model=dict)
 async def get_log_stats(
-    current_user: dict = Depends(require_admin)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
     """获取日志统计信息
-    
-    权限要求：admin 及以上
     
     Args:
         current_user: 当前用户

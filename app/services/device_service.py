@@ -103,6 +103,20 @@ class DeviceService:
     async def get_devices(self, query: DeviceQuery, user: Optional[dict]) -> Dict[str, Any]:
         """获取设备列表"""
         try:
+            # 如果未提供分页参数，返回所有数据
+            if query.page is None or query.size is None:
+                devices, total = await self.device_repo.get_all(
+                    page=None,
+                    size=None,
+                    device_name=query.device_name,
+                    map_id=query.map_id
+                )
+                devices_data = [self._format_device_response(device) for device in devices]
+                return ApiResponse.success(
+                    data={"items": devices_data, "total": total},
+                    message="获取设备列表成功"
+                )
+            
             devices, total = await self.device_repo.get_all(
                 page=query.page,
                 size=query.size,

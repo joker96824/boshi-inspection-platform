@@ -101,11 +101,17 @@ class TaskRepository:
         
         return list(tasks), total
     
-    async def get_all(self, page: int = 1, size: int = 20, task_name: str = None, 
+    async def get_all(self, page: Optional[int] = None, size: Optional[int] = None, task_name: str = None, 
                      robot_id: str = None, 
                      sort_by: str = "task_order", sort_order: str = "asc") -> Tuple[List[Task], int]:
         """获取所有任务列表"""
-        skip = (page - 1) * size
+        # 如果未提供分页参数，返回所有数据
+        if page is None or size is None:
+            skip = None
+            limit = None
+        else:
+            skip = (page - 1) * size
+            limit = size
         
         # 构建查询条件
         conditions = [Task.is_deleted == False]
@@ -131,9 +137,9 @@ class TaskRepository:
                     selectinload(Task.schedules)
                 )
                 .where(and_(*conditions))
-                .order_by(order_column, Task.created_at.desc())
-                .offset(skip)
-                .limit(size))
+                .order_by(order_column, Task.created_at.desc()))
+        if skip is not None and limit is not None:
+            stmt = stmt.offset(skip).limit(limit)
         
         result = await self.db.execute(stmt)
         tasks = result.scalars().all()

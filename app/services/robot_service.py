@@ -126,9 +126,18 @@ class RobotService:
             logger.error(f"获取机器人列表失败: {e}")
             raise HTTPException(status_code=500, detail="获取机器人列表失败")
     
-    async def get_user_robots(self, user: Optional[dict], page: int = 1, size: int = 20, robot_name: str = None, factory_id: str = None, map_id: str = None) -> Dict[str, Any]:
+    async def get_user_robots(self, user: Optional[dict], page: Optional[int] = None, size: Optional[int] = None, robot_name: str = None, factory_id: str = None, map_id: str = None) -> Dict[str, Any]:
         """获取所有机器人列表"""
         try:
+            # 如果未提供分页参数，返回所有数据
+            if page is None or size is None:
+                robots, total = await self.robot_repo.get_all(None, None, robot_name, factory_id, map_id)
+                items = [self._format_robot_response(robot) for robot in robots]
+                return ApiResponse.success(
+                    data={"items": items, "total": total},
+                    message="获取机器人列表成功"
+                )
+            
             robots, total = await self.robot_repo.get_all(page, size, robot_name, factory_id, map_id)
             
             # 格式化响应数据

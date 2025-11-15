@@ -96,6 +96,22 @@ class GimbalService:
     async def get_gimbals(self, query: GimbalQuery, user: Optional[dict]) -> Dict[str, Any]:
         """获取云台列表"""
         try:
+            # 如果未提供分页参数，返回所有数据
+            if query.page is None or query.size is None:
+                gimbals, total = await self.gimbal_repo.get_all(
+                    page=None,
+                    size=None,
+                    gimbal_name=query.gimbal_name,
+                    map_id=query.map_id,
+                    sort_by=query.sort_by,
+                    sort_order=query.sort_order
+                )
+                gimbals_data = [self._format_gimbal_response(gimbal) for gimbal in gimbals]
+                return ApiResponse.success(
+                    data={"items": gimbals_data, "total": total},
+                    message="获取云台列表成功"
+                )
+            
             gimbals, total = await self.gimbal_repo.get_all(
                 page=query.page,
                 size=query.size,

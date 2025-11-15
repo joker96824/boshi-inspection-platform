@@ -65,8 +65,8 @@ class UltrasonicResponse(BaseResponse):
 
 class UltrasonicQuery(BaseSchema):
     """超声波状态配置查询模式"""
-    page: int = Field(1, ge=1, description="页码")
-    size: int = Field(20, ge=1, le=100, description="每页数量")
+    page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
+    size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
     ultrasonic_id: Optional[int] = Field(None, description="超声波ID筛选")
     baud_rate: Optional[int] = Field(None, description="波特率筛选")
     obstacle_avoidance_distance_min: Optional[Decimal] = Field(None, description="避障距离最小值筛选")

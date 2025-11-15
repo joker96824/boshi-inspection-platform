@@ -50,10 +50,16 @@ class RobotRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
-    async def get_all(self, page: int = 1, size: int = 20, robot_name: str = None, factory_id: str = None, map_id: str = None) -> tuple[List[Robot], int]:
+    async def get_all(self, page: Optional[int] = None, size: Optional[int] = None, robot_name: str = None, factory_id: str = None, map_id: str = None) -> tuple[List[Robot], int]:
         """获取所有机器人列表（分页）"""
-        # 计算偏移量
-        skip = (page - 1) * size
+        # 如果未提供分页参数，返回所有数据
+        if page is None or size is None:
+            skip = None
+            limit = None
+        else:
+            # 计算偏移量
+            skip = (page - 1) * size
+            limit = size
         
         # 构建查询条件
         conditions = [Robot.is_deleted == False]
@@ -102,10 +108,9 @@ class RobotRepository:
         total = count_result.scalar()
         
         # 查询数据
-        if map_id:
-            stmt = stmt.order_by(Robot.created_at.desc()).offset(skip).limit(size)
-        else:
-            stmt = stmt.order_by(Robot.created_at.desc()).offset(skip).limit(size)
+        stmt = stmt.order_by(Robot.created_at.desc())
+        if skip is not None and limit is not None:
+            stmt = stmt.offset(skip).limit(limit)
         
         result = await self.db.execute(stmt)
         robots = result.scalars().all()

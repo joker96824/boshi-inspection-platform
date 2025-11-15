@@ -44,13 +44,19 @@ class TaskHistoryRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
-    async def get_all(self, page: int = 1, size: int = 20, 
+    async def get_all(self, page: Optional[int] = None, size: Optional[int] = None, 
                       task_id: str = None, record_status: str = None, record_batch: int = None,
                       start_time_from: str = None, start_time_to: str = None,
                       end_time_from: str = None, end_time_to: str = None) -> tuple[List[TaskHistory], int]:
         """获取任务记录列表"""
-        # 计算偏移量
-        skip = (page - 1) * size
+        # 如果未提供分页参数，返回所有数据
+        if page is None or size is None:
+            skip = None
+            limit = None
+        else:
+            # 计算偏移量
+            skip = (page - 1) * size
+            limit = size
         
         # 构建查询条件
         conditions = [TaskHistory.is_deleted == False]
@@ -86,9 +92,9 @@ class TaskHistoryRepository:
         # 查询数据，按创建时间降序
         stmt = (select(TaskHistory)
                 .where(*conditions)
-                .order_by(TaskHistory.created_at.desc())
-                .offset(skip)
-                .limit(size))
+                .order_by(TaskHistory.created_at.desc()))
+        if skip is not None and limit is not None:
+            stmt = stmt.offset(skip).limit(limit)
         
         result = await self.db.execute(stmt)
         taskhistories = result.scalars().all()

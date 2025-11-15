@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from ...core.deps import get_db
+from ...core.deps import get_db, validate_pagination_params
 from ...core.permissions import require_write_permission, require_no_auth
 from ...services.device_service import DeviceService
 from ...schemas.device import DeviceCreate, DeviceUpdate, DeviceResponse, DeviceQuery, DeviceListResponse
@@ -37,8 +37,8 @@ async def create_device(
 
 @router.get("/", response_model=dict)
 async def get_devices(
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     device_name: Optional[str] = Query(None, description="设备名称（模糊查询）"),
     map_id: Optional[str] = Query(None, description="地图ID筛选"),
     db: AsyncSession = Depends(get_db),
@@ -57,6 +57,7 @@ async def get_devices(
     Returns:
         设备列表和分页信息
     """
+    validate_pagination_params(page, size)
     query = DeviceQuery(
         page=page,
         size=size,

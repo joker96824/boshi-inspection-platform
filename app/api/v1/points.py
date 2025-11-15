@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from ...core.deps import get_db
+from ...core.deps import get_db, validate_pagination_params
 from ...core.auth import get_current_user
 from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...schemas.point import PointCreate, PointUpdate, PointQuery
@@ -38,8 +38,8 @@ async def create_point(
 
 @router.get("/", response_model=dict)
 async def get_points(
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     point_name: str = Query(None, description="巡检点名称（模糊匹配）"),
     map_id: str = Query(None, description="地图ID（可选过滤）"),
     db: AsyncSession = Depends(get_db),

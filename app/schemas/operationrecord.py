@@ -44,8 +44,8 @@ class OperationRecordResponse(BaseResponse):
 
 class OperationRecordQuery(BaseSchema):
     """操作记录查询模式"""
-    page: int = Field(1, ge=1, description="页码")
-    size: int = Field(20, ge=1, le=100, description="每页数量")
+    page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
+    size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
     user_id: Optional[str] = Field(None, description="用户ID筛选")
     username: Optional[str] = Field(None, description="用户名筛选")
     start_time: Optional[datetime] = Field(None, description="开始时间筛选")

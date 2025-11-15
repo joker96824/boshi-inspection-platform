@@ -58,11 +58,17 @@ class GimbalRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
-    async def get_all(self, page: int = 1, size: int = 20, 
+    async def get_all(self, page: Optional[int] = None, size: Optional[int] = None, 
                      gimbal_name: str = None, map_id: str = None,
                      sort_by: str = "created_at", sort_order: str = "desc") -> Tuple[List[Gimbal], int]:
         """获取云台列表"""
-        skip = (page - 1) * size
+        # 如果未提供分页参数，返回所有数据
+        if page is None or size is None:
+            skip = None
+            limit = None
+        else:
+            skip = (page - 1) * size
+            limit = size
         
         # 构建查询条件
         conditions = [Gimbal.is_deleted == False]
@@ -94,9 +100,9 @@ class GimbalRepository:
             )
             .where(and_(*conditions))
             .order_by(order_column)
-            .offset(skip)
-            .limit(size)
         )
+        if skip is not None and limit is not None:
+            query = query.offset(skip).limit(limit)
         
         result = await self.db.execute(query)
         gimbals = list(result.scalars().all())

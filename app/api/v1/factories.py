@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, List
 
-from ...core.deps import get_db
+from ...core.deps import get_db, validate_pagination_params
 from ...core.permissions import require_write_permission, require_no_auth
 from ...services.factory_service import FactoryService
 from ...schemas.factory import (
@@ -45,8 +45,8 @@ async def create_factory(
 @router.get("/", response_model=dict)
 async def list_factories(
     factory_name: Optional[str] = Query(None, description="厂区名称筛选"),
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[dict] = Depends(require_no_auth())
 ):
@@ -65,6 +65,7 @@ async def list_factories(
     Raises:
         401: 用户未认证
     """
+    validate_pagination_params(page, size)
     query = FactoryQuery(factory_name=factory_name, page=page, size=size)
     factory_service = FactoryService(db)
     return await factory_service.list_factories(query, current_user)

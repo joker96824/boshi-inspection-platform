@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
-from ...core.deps import get_db
+from ...core.deps import get_db, validate_pagination_params
 from ...core.auth import get_current_user
 from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...services.taskschedule_service import TaskScheduleService
@@ -64,8 +64,8 @@ async def create_taskschedule_from_frontend(
 
 @router.get("/", response_model=dict)
 async def get_taskschedules(
-    page: int = Query(1, ge=1, description="页码"),
-    size: int = Query(20, ge=1, le=100, description="每页数量"),
+    page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
+    size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     task_id: str = Query(None, description="任务ID"),
     cycle_type: str = Query(None, description="周期类型：daily/monthly_days/weekly/interval"),
     enabled: bool = Query(None, description="启用状态"),

@@ -40,8 +40,8 @@ class ItemHistoryResponse(BaseResponse):
 
 class ItemHistoryQuery(BaseSchema):
     """巡检记录查询模式"""
-    page: int = Field(1, ge=1, description="页码")
-    size: int = Field(20, ge=1, le=100, description="每页数量")
+    page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
+    size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
     taskhistory_id: Optional[str] = Field(None, description="任务记录ID（精确查询）")
     item_id: Optional[str] = Field(None, description="巡检项目ID（精确查询）")
     taskhistory_ids: Optional[List[str]] = Field(None, description="任务记录ID列表（精确查询）")

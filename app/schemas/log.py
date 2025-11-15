@@ -24,8 +24,8 @@ class LogQuery(BaseSchema):
     start_date: Optional[date] = Field(None, description="开始日期 (YYYY-MM-DD)")
     end_date: Optional[date] = Field(None, description="结束日期 (YYYY-MM-DD)")
     log_type: Optional[str] = Field("app", description="日志类型: app/error/debug/all")
-    page: int = Field(1, ge=1, description="页码")
-    size: int = Field(20, ge=1, le=100, description="每页数量")
+    page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
+    size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
 
     @validator('end_date')
     def validate_date_range(cls, v, values):
