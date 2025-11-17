@@ -15,6 +15,7 @@ class TaskBase(BaseSchema):
     task_order: int = Field(0, ge=0, description="任务执行顺序")
     task_res_prior: int = Field(1, ge=1, le=10, description="响应优先级 (1-10)")
     task_int_prior: int = Field(1, ge=1, le=10, description="打断优先级 (1-10)")
+    total_duration: Optional[int] = Field(None, ge=0, description="任务总用时（分钟）")
 
 
 class TaskCreate(TaskBase):
@@ -29,6 +30,7 @@ class TaskUpdate(BaseSchema):
     task_order: Optional[int] = Field(None, ge=0, description="任务执行顺序")
     task_res_prior: Optional[int] = Field(None, ge=1, le=10, description="响应优先级 (1-10)")
     task_int_prior: Optional[int] = Field(None, ge=1, le=10, description="打断优先级 (1-10)")
+    total_duration: Optional[int] = Field(None, ge=0, description="任务总用时（分钟）")
 
 
 class TaskItemResponse(BaseModel):
@@ -58,6 +60,7 @@ class TaskResponse(BaseResponse):
     task_order: int = Field(..., description="任务执行顺序")
     task_res_prior: int = Field(..., description="响应优先级")
     task_int_prior: int = Field(..., description="打断优先级")
+    total_duration: Optional[int] = Field(None, description="任务总用时（分钟）")
 
 
 class TaskQuery(BaseSchema):

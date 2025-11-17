@@ -19,6 +19,7 @@ class Task(BaseModel):
     task_order = Column(Integer, nullable=False, default=0, comment="任务执行顺序")
     task_res_prior = Column(Integer, nullable=False, default=1, comment="响应优先级")
     task_int_prior = Column(Integer, nullable=False, default=1, comment="打断优先级")
+    total_duration = Column(Integer, nullable=True, comment="任务总用时（分钟）")
     
     # 关系
     robot = relationship("Robot", back_populates="tasks")

@@ -739,6 +739,7 @@ CREATE TABLE tb_task (
     task_order INT NOT NULL DEFAULT 0 COMMENT '任务执行顺序',
     task_res_prior INT NOT NULL DEFAULT 1 COMMENT '响应优先级',
     task_int_prior INT NOT NULL DEFAULT 1 COMMENT '打断优先级',
+    total_duration INT NULL COMMENT '任务总用时（分钟）',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     created_by VARCHAR(100) NULL COMMENT '创建人',

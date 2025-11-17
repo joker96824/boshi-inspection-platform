@@ -279,6 +279,9 @@ class GimbalService:
                             if schedule.time_display_end
                             else None
                         )
+                        
+                        # 动态计算周期显示文本
+                        cycle_display = self._calculate_cycle_display(schedule.cycle_type, schedule.cycle_config)
 
                         schedules_info.append(
                             {
@@ -296,15 +299,9 @@ class GimbalService:
                                 "cycle_config": schedule.cycle_config,
                                 "time_mode": schedule.time_mode,
                                 "time_config": schedule.time_config,
-                                "frequency_display": schedule.frequency_display,
+                                "cycle_display": cycle_display,
                                 "time_display_start": time_display_start_str,
                                 "time_display_end": time_display_end_str,
-                                "frequency": schedule.frequency_display,
-                                "cycle": schedule.frequency_display,
-                                "startTime": time_display_start_str,
-                                "endTime": time_display_end_str,
-                                "start_time": time_display_start_str,
-                                "end_time": time_display_end_str,
                                 "created_at": schedule.created_at.strftime(
                                     "%Y-%m-%dT%H:%M:%S"
                                 )
@@ -414,4 +411,25 @@ class GimbalService:
             "created_by": gimbal.created_by,
             "updated_by": gimbal.updated_by,
         }
+    
+    def _calculate_cycle_display(self, cycle_type: Optional[str], cycle_config: Optional[Dict[str, Any]]) -> str:
+        """计算周期显示文本"""
+        if not cycle_type:
+            return ''
+        
+        if cycle_type == 'daily':
+            return '每天'
+        elif cycle_type == 'monthly_days' and cycle_config and 'selectedDays' in cycle_config:
+            days = cycle_config['selectedDays']
+            if days:
+                days_str = '、'.join([str(d) for d in sorted(days)])
+                return f'每月{days_str}日'
+        elif cycle_type == 'weekly' and cycle_config and 'selectedWeeks' in cycle_config:
+            week_names = ['一', '二', '三', '四', '五', '六', '日']
+            weeks = [week_names[w-1] for w in sorted(cycle_config['selectedWeeks']) if 1 <= w <= 7]
+            if weeks:
+                weeks_str = '、'.join([f'周{w}' for w in weeks])
+                return f'每{weeks_str}'
+        
+        return ''
 

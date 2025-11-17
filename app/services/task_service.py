@@ -301,6 +301,7 @@ class TaskService:
             "task_order": task.task_order,
             "task_res_prior": task.task_res_prior,
             "task_int_prior": task.task_int_prior,
+            "total_duration": task.total_duration,
             "created_at": task.created_at.strftime("%Y-%m-%dT%H:%M:%S") if task.created_at else None,
             "updated_at": task.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if task.updated_at else None,
             "created_by": task.created_by,
@@ -312,6 +313,9 @@ class TaskService:
         # 格式化时间显示字段（使用 %H:%M 格式，前端期望格式）
         time_display_start_str = schedule.time_display_start.strftime("%H:%M") if schedule.time_display_start else None
         time_display_end_str = schedule.time_display_end.strftime("%H:%M") if schedule.time_display_end else None
+        
+        # 动态计算周期显示文本
+        cycle_display = self._calculate_cycle_display(schedule.cycle_type, schedule.cycle_config)
         
         return {
             "id": schedule.id,
@@ -325,17 +329,32 @@ class TaskService:
             "cycle_config": schedule.cycle_config,
             "time_mode": schedule.time_mode,
             "time_config": schedule.time_config,
-            "frequency_display": schedule.frequency_display,
+            "cycle_display": cycle_display,
             "time_display_start": time_display_start_str,
             "time_display_end": time_display_end_str,
-            "frequency": schedule.frequency_display,
-            "cycle": schedule.frequency_display,
-            "startTime": time_display_start_str,
-            "endTime": time_display_end_str,
-            "start_time": time_display_start_str,
-            "end_time": time_display_end_str,
             "created_at": schedule.created_at.strftime("%Y-%m-%dT%H:%M:%S") if schedule.created_at else None,
             "updated_at": schedule.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if schedule.updated_at else None,
             "created_by": schedule.created_by,
             "updated_by": schedule.updated_by,
         }
+    
+    def _calculate_cycle_display(self, cycle_type: Optional[str], cycle_config: Optional[Dict[str, Any]]) -> str:
+        """计算周期显示文本"""
+        if not cycle_type:
+            return ''
+        
+        if cycle_type == 'daily':
+            return '每天'
+        elif cycle_type == 'monthly_days' and cycle_config and 'selectedDays' in cycle_config:
+            days = cycle_config['selectedDays']
+            if days:
+                days_str = '、'.join([str(d) for d in sorted(days)])
+                return f'每月{days_str}日'
+        elif cycle_type == 'weekly' and cycle_config and 'selectedWeeks' in cycle_config:
+            week_names = ['一', '二', '三', '四', '五', '六', '日']
+            weeks = [week_names[w-1] for w in sorted(cycle_config['selectedWeeks']) if 1 <= w <= 7]
+            if weeks:
+                weeks_str = '、'.join([f'周{w}' for w in weeks])
+                return f'每{weeks_str}'
+        
+        return ''
