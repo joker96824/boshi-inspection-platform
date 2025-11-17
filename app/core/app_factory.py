@@ -265,6 +265,13 @@ def setup_lifespan_events(app: FastAPI):
             except Exception as e:
                 logger.error(f"关闭ROS2 Bridge失败: {e}")
         
+        # 关闭Redis连接（如果启用）
+        try:
+            from ..config.redis import close_redis_connection
+            await close_redis_connection()
+        except Exception as e:
+            logger.warning(f"关闭Redis连接时出错: {e}")
+        
         # 关闭数据库
         await close_database()
         logger.info("应用关闭完成")

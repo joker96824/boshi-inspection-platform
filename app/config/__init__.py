@@ -4,7 +4,7 @@
 
 from .settings import settings
 from .database import get_database_url, get_async_session
-from .redis import get_redis_url, get_redis_client
+from .redis import get_redis_url, get_redis_client, is_redis_enabled
 from .logging import setup_logging
 
 __all__ = [
@@ -13,5 +13,6 @@ __all__ = [
     "get_async_session", 
     "get_redis_url",
     "get_redis_client",
+    "is_redis_enabled",
     "setup_logging",
 ]

@@ -1,58 +1,31 @@
 version: '3.8'
 
 services:
-  # MySQL数据库服务
-  mysql:
-    image: mysql:8.0
-    container_name: boshi-mysql
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-Xx147258.}
-      MYSQL_DATABASE: boshirobot
-      MYSQL_USER: boshi
-      MYSQL_PASSWORD: ${DB_PASSWORD:-Xx147258.}
-      TZ: Asia/Shanghai
-    ports:
-      - "3307:3306"  # 宿主机3307端口映射到容器3306端口
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./scripts/init_database.sql:/docker-entrypoint-initdb.d/init.sql:ro
-    networks:
-      - boshi-network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-Xx147258.}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   # 博实智能巡检平台应用
+  # 注意：数据库和Redis使用外部服务，不在Docker容器中运行
   app:
     image: boshi-inspection-platform:1.0
     container_name: boshi-app
     restart: always
-    depends_on:
-      mysql:
-        condition: service_healthy
+    # 不再依赖内部数据库服务
     environment:
-      # 数据库配置 - 支持外部.env文件配置
-      DB_HOST: ${DB_HOST:-mysql}
-      DB_PORT: ${DB_PORT:-3306}
-      DB_USER: ${DB_USER:-boshi}
-      DB_PASSWORD: ${DB_PASSWORD:-Xx147258.}
-      DB_NAME: ${DB_NAME:-boshirobot}
-      DATABASE_URL: ${DATABASE_URL:-mysql+aiomysql://boshi:Xx147258.@mysql:3306/boshirobot}
+      # 数据库配置 - 必须通过外部.env文件配置外部数据库连接
+      # MySQL 格式: mysql+aiomysql://用户名:密码@主机:端口/数据库名
+      # PostgreSQL 格式: postgresql+asyncpg://用户名:密码@主机:端口/数据库名
+      DATABASE_URL: ${DATABASE_URL:-mysql+aiomysql://boshi:password@192.168.1.100:3306/boshirobot}
       
-      # Redis配置 - 支持外部.env文件配置
-      REDIS_HOST: ${REDIS_HOST:-redis}
-      REDIS_PORT: ${REDIS_PORT:-6379}
+      # Redis配置（可选，默认禁用）
+      # 如需启用Redis，设置 REDIS_ENABLED=true 并配置 REDIS_URL
+      REDIS_ENABLED: ${REDIS_ENABLED:-false}
+      REDIS_URL: ${REDIS_URL:-redis://192.168.1.100:6379/0}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       REDIS_DB: ${REDIS_DB:-0}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
       
       # 应用配置
       HOST: ${HOST:-0.0.0.0}
       PORT: ${PORT:-8000}
-      DEBUG: ${DEBUG:-true}
-      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DEBUG: ${DEBUG:-false}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
       SECRET_KEY: ${SECRET_KEY:-change-this-to-a-random-secret-key-in-production}
       
       # ROS2配置
@@ -66,41 +39,14 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./docs:/app/docs:ro
-    networks:
-      - boshi-network
+    # 使用 host 网络模式以便访问宿主机上的数据库服务
+    # 如果数据库在远程服务器，可以保持 bridge 模式
+    network_mode: ${NETWORK_MODE:-bridge}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/system/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-
-  # Redis缓存服务（可选）
-  redis:
-    image: redis:7-alpine
-    container_name: boshi-redis
-    restart: always
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - boshi-network
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-volumes:
-  mysql_data:
-    driver: local
-  redis_data:
-    driver: local
-
-networks:
-  boshi-network:
-    driver: bridge
 
 

@@ -2,7 +2,7 @@
 应用配置设置
 """
 
-from typing import List
+from typing import List, Optional
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field
 
@@ -25,16 +25,20 @@ class Settings(BaseSettings):
     WORKERS: int = Field(1, description="工作进程数")
     LOG_LEVEL: str = Field("INFO", description="日志级别")
     
-    # 数据库配置
+    # 数据库配置（支持 MySQL 和 PostgreSQL 自动切换）
+    # MySQL 格式: mysql+aiomysql://用户名:密码@主机:端口/数据库名
+    # PostgreSQL 格式: postgresql+asyncpg://用户名:密码@主机:端口/数据库名
     DATABASE_URL: str = Field(
         "mysql+aiomysql://root:root@localhost:3306/boshirobot",
-        description="数据库连接URL"
+        description="数据库连接URL（支持 MySQL 和 PostgreSQL，根据 URL 自动识别）"
     )
     DATABASE_POOL_SIZE: int = Field(10, description="数据库连接池大小")
     DATABASE_MAX_OVERFLOW: int = Field(20, description="数据库最大溢出连接数")
     
-    # Redis配置
+    # Redis配置（可选，连接失败不影响应用启动）
+    REDIS_ENABLED: bool = Field(False, description="是否启用Redis（默认禁用）")
     REDIS_URL: str = Field("redis://localhost:6379/0", description="Redis连接URL")
+    REDIS_PASSWORD: Optional[str] = Field(None, description="Redis密码（可选）")
     REDIS_DB: int = Field(0, description="Redis数据库编号")
     
     # JWT配置

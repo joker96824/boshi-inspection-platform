@@ -34,8 +34,13 @@ Copy-Item packages/boshi-inspection-platform-1.0.tar $deployPath -Force
 Write-Host "  ✓ 已复制: boshi-inspection-platform-1.0.tar" -ForegroundColor Gray
 Copy-Item docker/docker-compose.yml $deployPath -Force
 Write-Host "  ✓ 已复制: docker-compose.yml" -ForegroundColor Gray
-Copy-Item .env.backup "$deployPath\.env" -Force
-Write-Host "  ✓ 已复制: .env" -ForegroundColor Gray
+# 复制环境变量示例文件（部署时需要用户根据实际情况修改）
+if (Test-Path .env.example) {
+    Copy-Item .env.example "$deployPath\.env.example" -Force
+    Write-Host "  ✓ 已复制: .env.example" -ForegroundColor Gray
+} else {
+    Write-Host "  ⚠️  .env.example 不存在，请手动创建环境变量配置文件" -ForegroundColor Yellow
+}
 Copy-Item scripts/init_database.sql $deployPath -Force
 Write-Host "  ✓ 已复制: init_database.sql" -ForegroundColor Gray
 Copy-Item packages/快速部署指南.md $deployPath -Force

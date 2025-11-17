@@ -82,7 +82,9 @@ WORKDIR /app
 
     # 复制应用代码
     COPY app ./app
-    COPY .env.backup .env
+    # 注意：环境变量通过 docker-compose.yml 的 environment 部分传递
+    # 如果存在 .env.example，复制它作为默认配置（可选）
+    # COPY .env.example .env
 
 # 创建必要的目录
 RUN mkdir -p logs

@@ -302,8 +302,8 @@ mysql -u root -p < scripts/init_database.sql
 ### 9.1 创建环境配置文件
 
 ```bash
-# 复制环境配置示例文件（如果存在）
-cp .env.develop .env
+# 复制环境配置示例文件
+cp .env.example .env
 ```
 
 或者手动创建 `.env` 文件：
@@ -328,11 +328,16 @@ PORT=8000
 WORKERS=1
 LOG_LEVEL=INFO
 
-# 数据库配置
+# 数据库配置（支持 MySQL 和 PostgreSQL）
+# MySQL 格式: mysql+aiomysql://用户名:密码@主机:端口/数据库名
+# PostgreSQL 格式: postgresql+asyncpg://用户名:密码@主机:端口/数据库名
 DATABASE_URL=mysql+aiomysql://root:root@localhost:3306/boshirobot
 
-# Redis配置
+# Redis配置（可选，默认禁用）
+REDIS_ENABLED=false
 REDIS_URL=redis://localhost:6379/0
+REDIS_PASSWORD=
+REDIS_DB=0
 
 # JWT配置
 SECRET_KEY=your-secret-key-change-in-production
