@@ -27,12 +27,18 @@ class GimbalRepository:
         return gimbal
     
     async def get_by_id(self, gimbal_id: str) -> Optional[Gimbal]:
-        """根据ID获取云台（预加载任务和日程）"""
+        """根据ID获取云台（预加载任务、日程和预设点）"""
+        from ..models.gimbalinspectionproject import GimbalInspectionProject
+        from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
+        
         query = (
             select(Gimbal)
             .options(
                 selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.schedules),
-                selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.inspection_projects),
+                selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.inspection_projects)
+                .selectinload(GimbalInspectionProject.preset_points)
+                .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
+                selectinload(Gimbal.preset_points),
             )
             .where(Gimbal.id == gimbal_id, Gimbal.is_deleted == False)
         )
@@ -40,15 +46,21 @@ class GimbalRepository:
         return result.scalar_one_or_none()
     
     async def get_by_ids(self, gimbal_ids: List[str]) -> List[Gimbal]:
-        """根据ID列表获取云台（预加载任务和日程）"""
+        """根据ID列表获取云台（预加载任务、日程和预设点）"""
         if not gimbal_ids:
             return []
+        
+        from ..models.gimbalinspectionproject import GimbalInspectionProject
+        from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
         
         query = (
             select(Gimbal)
             .options(
                 selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.schedules),
-                selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.inspection_projects),
+                selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.inspection_projects)
+                .selectinload(GimbalInspectionProject.preset_points)
+                .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
+                selectinload(Gimbal.preset_points),
             )
             .where(
                 Gimbal.id.in_(gimbal_ids),
@@ -91,12 +103,18 @@ class GimbalRepository:
         else:
             order_column = order_column.asc()
         
-        # 查询数据（预加载任务和日程）
+        # 查询数据（预加载任务、日程和预设点）
+        from ..models.gimbalinspectionproject import GimbalInspectionProject
+        from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
+        
         query = (
             select(Gimbal)
             .options(
                 selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.schedules),
-                selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.inspection_projects),
+                selectinload(Gimbal.gimbal_tasks).selectinload(GimbalTask.inspection_projects)
+                .selectinload(GimbalInspectionProject.preset_points)
+                .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
+                selectinload(Gimbal.preset_points),
             )
             .where(and_(*conditions))
             .order_by(order_column)

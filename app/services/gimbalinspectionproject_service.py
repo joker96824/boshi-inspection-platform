@@ -26,8 +26,6 @@ logger = get_logger(__name__)
 class GimbalInspectionProjectService:
     """云台巡检项目业务逻辑服务"""
 
-    ALLOWED_DETECTION_TYPES = ["可见光视频", "可见光图片", "热成像图片", "热成像视频"]
-
     def __init__(self, db: AsyncSession):
         self.db = db
         self.project_repo = GimbalInspectionProjectRepository(db)
@@ -38,11 +36,6 @@ class GimbalInspectionProjectService:
     ) -> Dict[str, Any]:
         """创建云台巡检项目"""
         try:
-            if project_data.detection_type not in self.ALLOWED_DETECTION_TYPES:
-                raise ValidationError(
-                    "检测类型必须是：可见光视频/可见光图片/热成像图片/热成像视频 之一"
-                )
-
             task = await self.gimbal_task_repo.get_by_id(project_data.gimbaltask_id)
             if not task:
                 raise ResourceNotFoundError(
@@ -141,7 +134,6 @@ class GimbalInspectionProjectService:
                 page=query.page,
                 size=query.size,
                 task_name=query.task_name,
-                detection_type=query.detection_type,
                 gimbaltask_id=query.gimbaltask_id,
                 gimbal_id=query.gimbal_id,
                 map_id=query.map_id,
@@ -188,14 +180,6 @@ class GimbalInspectionProjectService:
             ):
                 raise BusinessError(
                     f"巡检项目名称 '{project_data.task_name}' 在该云台任务下已存在"
-                )
-
-            if (
-                project_data.detection_type
-                and project_data.detection_type not in self.ALLOWED_DETECTION_TYPES
-            ):
-                raise ValidationError(
-                    "检测类型必须是：可见光视频/可见光图片/热成像图片/热成像视频 之一"
                 )
 
             update_data = project_data.dict(exclude_unset=True)
@@ -293,22 +277,39 @@ class GimbalInspectionProjectService:
                 "gimbal_id": project.gimbal_task.gimbal_id,
             }
 
+        # 格式化预设点关联信息
+        preset_points_info = []
+        if hasattr(project, 'preset_points') and project.preset_points:
+            active_preset_points = [pp for pp in project.preset_points if not pp.is_deleted]
+            for pp_link in active_preset_points:
+                preset_point = pp_link.preset_point if hasattr(pp_link, 'preset_point') else None
+                if preset_point and not preset_point.is_deleted:
+                    preset_points_info.append({
+                        "id": preset_point.id,
+                        "preset_name": preset_point.preset_name,
+                        "p_coordinate": preset_point.p_coordinate,
+                        "t_coordinate": preset_point.t_coordinate,
+                        "z_coordinate": preset_point.z_coordinate,
+                        "f_coordinate": preset_point.f_coordinate,
+                        "aperture": preset_point.aperture,
+                        "shutter": preset_point.shutter,
+                        "backlight_compensation": preset_point.backlight_compensation,
+                        "wide_dynamic": preset_point.wide_dynamic,
+                        "strong_light_suppression": preset_point.strong_light_suppression,
+                        "fill_light": preset_point.fill_light,
+                        "image_url": preset_point.image_url,
+                        "detection_type": pp_link.detection_type,
+                        "video_duration": pp_link.video_duration,
+                        "created_at": preset_point.created_at.strftime("%Y-%m-%dT%H:%M:%S") if preset_point.created_at else None,
+                        "updated_at": preset_point.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if preset_point.updated_at else None,
+                    })
+
         return {
             "id": project.id,
             "task_name": project.task_name,
             "gimbaltask_id": project.gimbaltask_id,
-            "x_coordinate": project.x_coordinate,
-            "y_coordinate": project.y_coordinate,
-            "zoom_level": project.zoom_level,
-            "focus": project.focus,
-            "aperture": project.aperture,
-            "shutter": project.shutter,
-            "backlight_compensation": project.backlight_compensation,
-            "wide_dynamic": project.wide_dynamic,
-            "strong_light_suppression": project.strong_light_suppression,
-            "fill_light": project.fill_light,
-            "detection_type": project.detection_type,
             "sort_order": project.sort_order,
+            "preset_points": preset_points_info,
             "gimbal_task": task_info,
             "created_at": project.created_at.strftime("%Y-%m-%dT%H:%M:%S")
             if project.created_at

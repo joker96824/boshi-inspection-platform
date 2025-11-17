@@ -20,6 +20,8 @@ DELETE FROM tb_robot_map;
 DELETE FROM tb_robot;
 DELETE FROM tb_gimbalhistory;
 DELETE FROM tb_gimbalschedule;
+DELETE FROM tb_gimbal_inspection_project_preset_point;
+DELETE FROM tb_gimbal_preset_point;
 DELETE FROM tb_gimbal_inspection_project;
 DELETE FROM tb_gimbaltask;
 DELETE FROM tb_gimbal;
@@ -487,33 +489,31 @@ INSERT INTO tb_gimbaltask (
     FALSE
 );
 
--- 插入示例云台巡检项目数据
-INSERT INTO tb_gimbal_inspection_project (
+-- 插入示例云台预设点数据
+INSERT INTO tb_gimbal_preset_point (
     id,
-    task_name,
-    gimbaltask_id,
-    sort_order,
-    x_coordinate,
-    y_coordinate,
-    zoom_level,
-    focus,
+    preset_name,
+    gimbal_id,
+    p_coordinate,
+    t_coordinate,
+    z_coordinate,
+    f_coordinate,
     aperture,
     shutter,
     backlight_compensation,
     wide_dynamic,
     strong_light_suppression,
     fill_light,
-    detection_type,
+    image_url,
     created_at,
     updated_at,
     created_by,
     updated_by,
     is_deleted
 ) VALUES (
-    '650e8400-e29b-41d4-a716-446655440040',
-    '全景拍摄项目',
-    '550e8400-e29b-41d4-a716-446655440040',
-    0,
+    '750e8400-e29b-41d4-a716-446655440040',
+    '预设点-全景',
+    '550e8400-e29b-41d4-a716-446655440030',
     0.0000,
     0.0000,
     1.0000,
@@ -524,19 +524,18 @@ INSERT INTO tb_gimbal_inspection_project (
     TRUE,
     FALSE,
     FALSE,
-    '可见光图片',
+    '/media/preset/panorama_001.jpg',
     NOW(),
     NOW(),
     'admin',
     'admin',
     FALSE
 ), (
-    '650e8400-e29b-41d4-a716-446655440041',
-    '监控录像项目',
-    '550e8400-e29b-41d4-a716-446655440041',
-    0,
-    0.0000,
-    0.0000,
+    '750e8400-e29b-41d4-a716-446655440041',
+    '预设点-监控',
+    '550e8400-e29b-41d4-a716-446655440030',
+    5.0000,
+    2.5000,
     2.5000,
     1.2000,
     55,
@@ -545,17 +544,16 @@ INSERT INTO tb_gimbal_inspection_project (
     FALSE,
     TRUE,
     TRUE,
-    '可见光视频',
+    '/media/preset/monitor_001.jpg',
     NOW(),
     NOW(),
     'admin',
     'admin',
     FALSE
 ), (
-    '650e8400-e29b-41d4-a716-446655440042',
-    '定点观察项目',
-    '550e8400-e29b-41d4-a716-446655440042',
-    0,
+    '750e8400-e29b-41d4-a716-446655440042',
+    '预设点-定点',
+    '550e8400-e29b-41d4-a716-446655440031',
     0.0000,
     0.0000,
     4.0000,
@@ -566,7 +564,108 @@ INSERT INTO tb_gimbal_inspection_project (
     TRUE,
     TRUE,
     TRUE,
+    '/media/preset/fixed_001.jpg',
+    NOW(),
+    NOW(),
+    'operator',
+    'operator',
+    FALSE
+);
+
+-- 插入示例云台巡检项目数据
+INSERT INTO tb_gimbal_inspection_project (
+    id,
+    task_name,
+    gimbaltask_id,
+    sort_order,
+    created_at,
+    updated_at,
+    created_by,
+    updated_by,
+    is_deleted
+) VALUES (
+    '650e8400-e29b-41d4-a716-446655440040',
+    '全景拍摄项目',
+    '550e8400-e29b-41d4-a716-446655440040',
+    0,
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '650e8400-e29b-41d4-a716-446655440041',
+    '监控录像项目',
+    '550e8400-e29b-41d4-a716-446655440041',
+    0,
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '650e8400-e29b-41d4-a716-446655440042',
+    '定点观察项目',
+    '550e8400-e29b-41d4-a716-446655440042',
+    0,
+    NOW(),
+    NOW(),
+    'operator',
+    'operator',
+    FALSE
+);
+
+-- 插入示例云台巡检项目-预设点关联数据
+INSERT INTO tb_gimbal_inspection_project_preset_point (
+    id,
+    inspection_project_id,
+    preset_point_id,
+    detection_type,
+    video_duration,
+    created_at,
+    updated_at,
+    created_by,
+    updated_by,
+    is_deleted
+) VALUES (
+    '850e8400-e29b-41d4-a716-446655440040',
+    '650e8400-e29b-41d4-a716-446655440040',
+    '750e8400-e29b-41d4-a716-446655440040',
+    '可见光图片',
+    NULL,
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '850e8400-e29b-41d4-a716-446655440041',
+    '650e8400-e29b-41d4-a716-446655440040',
+    '750e8400-e29b-41d4-a716-446655440041',
+    '可见光视频',
+    30,
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '850e8400-e29b-41d4-a716-446655440042',
+    '650e8400-e29b-41d4-a716-446655440041',
+    '750e8400-e29b-41d4-a716-446655440041',
+    '可见光视频',
+    60,
+    NOW(),
+    NOW(),
+    'admin',
+    'admin',
+    FALSE
+), (
+    '850e8400-e29b-41d4-a716-446655440043',
+    '650e8400-e29b-41d4-a716-446655440042',
+    '750e8400-e29b-41d4-a716-446655440042',
     '热成像图片',
+    NULL,
     NOW(),
     NOW(),
     'operator',
@@ -656,7 +755,7 @@ INSERT INTO tb_gimbalschedule (
 -- 插入示例云台记录数据
 INSERT INTO tb_gimbalhistory (
     id,
-    inspection_project_id,
+    project_preset_point_id,
     record_data,
     media_url,
     created_at,
@@ -666,7 +765,7 @@ INSERT INTO tb_gimbalhistory (
     is_deleted
 ) VALUES (
     '550e8400-e29b-41d4-a716-446655440060',
-    '650e8400-e29b-41d4-a716-446655440040',
+    '850e8400-e29b-41d4-a716-446655440040',
     '{"angle": {"pan": 0, "tilt": 0, "zoom": 1}, "status": "completed", "quality": "high"}',
     '/media/gimbal/2024/01/panorama_001.jpg',
     NOW(),
@@ -676,7 +775,7 @@ INSERT INTO tb_gimbalhistory (
     FALSE
 ), (
     '550e8400-e29b-41d4-a716-446655440061',
-    '650e8400-e29b-41d4-a716-446655440041',
+    '850e8400-e29b-41d4-a716-446655440042',
     '{"angle": {"pan": 45, "tilt": -30, "zoom": 2}, "status": "completed", "duration": 30}',
     '/media/gimbal/2024/01/monitor_001.mp4',
     NOW(),
@@ -686,7 +785,7 @@ INSERT INTO tb_gimbalhistory (
     FALSE
 ), (
     '550e8400-e29b-41d4-a716-446655440062',
-    '650e8400-e29b-41d4-a716-446655440042',
+    '850e8400-e29b-41d4-a716-446655440043',
     '{"angle": {"pan": 90, "tilt": 0, "zoom": 5}, "status": "completed", "quality": "medium"}',
     '/media/gimbal/2024/01/observation_001.jpg',
     NOW(),
@@ -696,7 +795,7 @@ INSERT INTO tb_gimbalhistory (
     FALSE
 ), (
     '550e8400-e29b-41d4-a716-446655440063',
-    '650e8400-e29b-41d4-a716-446655440040',
+    '850e8400-e29b-41d4-a716-446655440041',
     '{"angle": {"pan": 180, "tilt": 10, "zoom": 1}, "status": "completed", "quality": "high"}',
     '/media/gimbal/2024/01/panorama_002.jpg',
     NOW(),

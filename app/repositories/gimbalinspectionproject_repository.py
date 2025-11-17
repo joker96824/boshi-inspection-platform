@@ -30,13 +30,17 @@ class GimbalInspectionProjectRepository:
         return project
 
     async def get_by_id(self, project_id: str) -> Optional[GimbalInspectionProject]:
-        """根据ID获取云台巡检项目"""
+        """根据ID获取云台巡检项目（预加载预设点关联）"""
+        from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
+        
         query = (
             select(GimbalInspectionProject)
             .options(
                 selectinload(GimbalInspectionProject.gimbal_task).selectinload(
                     GimbalTask.gimbal
                 ),
+                selectinload(GimbalInspectionProject.preset_points)
+                .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
                 selectinload(GimbalInspectionProject.histories),
             )
             .where(
@@ -50,13 +54,19 @@ class GimbalInspectionProjectRepository:
     async def get_by_ids(
         self, project_ids: List[str]
     ) -> List[GimbalInspectionProject]:
-        """根据ID列表获取云台巡检项目"""
+        """根据ID列表获取云台巡检项目（预加载预设点关联）"""
         if not project_ids:
             return []
 
+        from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
+
         query = (
             select(GimbalInspectionProject)
-            .options(selectinload(GimbalInspectionProject.gimbal_task))
+            .options(
+                selectinload(GimbalInspectionProject.gimbal_task),
+                selectinload(GimbalInspectionProject.preset_points)
+                .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
+            )
             .where(
                 GimbalInspectionProject.id.in_(project_ids),
                 GimbalInspectionProject.is_deleted == False,
@@ -71,26 +81,26 @@ class GimbalInspectionProjectRepository:
 
     async def get_all(
         self,
-        page: int = 1,
-        size: int = 20,
+        page: Optional[int] = None,
+        size: Optional[int] = None,
         task_name: str = None,
-        detection_type: str = None,
         gimbaltask_id: str = None,
         gimbal_id: str = None,
         map_id: str = None,
     ) -> Tuple[List[GimbalInspectionProject], int]:
         """获取云台巡检项目列表"""
-        skip = (page - 1) * size
+        # 如果未提供分页参数，返回所有数据
+        if page is None or size is None:
+            skip = None
+            limit = None
+        else:
+            skip = (page - 1) * size
+            limit = size
 
         conditions = [GimbalInspectionProject.is_deleted == False]
 
         if task_name:
             conditions.append(GimbalInspectionProject.task_name.like(f"%{task_name}%"))
-
-        if detection_type:
-            conditions.append(
-                GimbalInspectionProject.detection_type == detection_type
-            )
 
         if gimbaltask_id:
             conditions.append(GimbalInspectionProject.gimbaltask_id == gimbaltask_id)
@@ -112,17 +122,23 @@ class GimbalInspectionProjectRepository:
         )
         total = (await self.db.execute(count_query)).scalar() or 0
 
+        from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
+
         query = (
             select(GimbalInspectionProject)
-            .options(selectinload(GimbalInspectionProject.gimbal_task))
+            .options(
+                selectinload(GimbalInspectionProject.gimbal_task),
+                selectinload(GimbalInspectionProject.preset_points)
+                .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
+            )
             .where(and_(*conditions))
             .order_by(
                 GimbalInspectionProject.sort_order.asc(),
                 GimbalInspectionProject.created_at.desc(),
             )
-            .offset(skip)
-            .limit(size)
         )
+        if skip is not None and limit is not None:
+            query = query.offset(skip).limit(limit)
 
         result = await self.db.execute(query)
         projects = list(result.scalars().all())

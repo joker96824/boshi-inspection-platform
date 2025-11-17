@@ -26,47 +26,97 @@ class GimbalHistoryRepository:
         return history
 
     async def get_by_id(self, history_id: str) -> Optional[GimbalHistory]:
-        """根据ID获取云台巡检记录"""
-        query = select(GimbalHistory).where(
-            GimbalHistory.id == history_id, GimbalHistory.is_deleted == False
+        """根据ID获取云台巡检记录（预加载关联信息）"""
+        from sqlalchemy.orm import selectinload
+        from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
+        
+        query = (
+            select(GimbalHistory)
+            .options(
+                selectinload(GimbalHistory.project_preset_point)
+                .selectinload(GimbalInspectionProjectPresetPoint.inspection_project),
+                selectinload(GimbalHistory.project_preset_point)
+                .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
+            )
+            .where(
+                GimbalHistory.id == history_id, 
+                GimbalHistory.is_deleted == False
+            )
         )
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
 
     async def get_by_ids(self, history_ids: List[str]) -> List[GimbalHistory]:
-        """根据ID列表获取云台巡检记录"""
+        """根据ID列表获取云台巡检记录（预加载关联信息）"""
         if not history_ids:
             return []
 
-        query = select(GimbalHistory).where(
-            GimbalHistory.id.in_(history_ids), GimbalHistory.is_deleted == False
+        from sqlalchemy.orm import selectinload
+        from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
+
+        query = (
+            select(GimbalHistory)
+            .options(
+                selectinload(GimbalHistory.project_preset_point)
+                .selectinload(GimbalInspectionProjectPresetPoint.inspection_project),
+                selectinload(GimbalHistory.project_preset_point)
+                .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
+            )
+            .where(
+                GimbalHistory.id.in_(history_ids), 
+                GimbalHistory.is_deleted == False
+            )
         )
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
     async def get_all(
-        self, page: int = 1, size: int = 20, inspection_project_id: str = None
+        self, page: Optional[int] = None, size: Optional[int] = None, 
+        project_preset_point_id: str = None, inspection_project_id: str = None
     ) -> Tuple[List[GimbalHistory], int]:
         """获取云台巡检记录列表"""
-        skip = (page - 1) * size
+        # 如果未提供分页参数，返回所有数据
+        if page is None or size is None:
+            skip = None
+            limit = None
+        else:
+            skip = (page - 1) * size
+            limit = size
 
         conditions = [GimbalHistory.is_deleted == False]
 
-        if inspection_project_id:
+        if project_preset_point_id:
             conditions.append(
-                GimbalHistory.inspection_project_id == inspection_project_id
+                GimbalHistory.project_preset_point_id == project_preset_point_id
+            )
+        
+        if inspection_project_id:
+            # 通过中间表关联查询
+            from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
+            conditions.append(
+                GimbalHistory.project_preset_point.has(
+                    GimbalInspectionProjectPresetPoint.inspection_project_id == inspection_project_id
+                )
             )
 
         count_query = select(func.count(GimbalHistory.id)).where(and_(*conditions))
         total = (await self.db.execute(count_query)).scalar() or 0
 
+        from sqlalchemy.orm import selectinload
+        
         query = (
             select(GimbalHistory)
+            .options(
+                selectinload(GimbalHistory.project_preset_point)
+                .selectinload(GimbalInspectionProjectPresetPoint.inspection_project),
+                selectinload(GimbalHistory.project_preset_point)
+                .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
+            )
             .where(and_(*conditions))
             .order_by(GimbalHistory.created_at.desc())
-            .offset(skip)
-            .limit(size)
         )
+        if skip is not None and limit is not None:
+            query = query.offset(skip).limit(limit)
 
         result = await self.db.execute(query)
         histories = list(result.scalars().all())
@@ -102,11 +152,24 @@ class GimbalHistoryRepository:
     async def get_by_inspection_project_id(
         self, inspection_project_id: str
     ) -> List[GimbalHistory]:
-        """根据巡检项目ID获取云台巡检记录"""
+        """根据巡检项目ID获取云台巡检记录（通过中间表关联）"""
+        from sqlalchemy.orm import selectinload
+        from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
+        
         query = (
             select(GimbalHistory)
+            .options(
+                selectinload(GimbalHistory.project_preset_point)
+                .selectinload(GimbalInspectionProjectPresetPoint.inspection_project),
+                selectinload(GimbalHistory.project_preset_point)
+                .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
+            )
+            .join(
+                GimbalInspectionProjectPresetPoint,
+                GimbalHistory.project_preset_point_id == GimbalInspectionProjectPresetPoint.id
+            )
             .where(
-                GimbalHistory.inspection_project_id == inspection_project_id,
+                GimbalInspectionProjectPresetPoint.inspection_project_id == inspection_project_id,
                 GimbalHistory.is_deleted == False,
             )
             .order_by(GimbalHistory.created_at.desc())

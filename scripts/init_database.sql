@@ -21,6 +21,8 @@ DROP TABLE IF EXISTS tb_robot_map;
 DROP TABLE IF EXISTS tb_robot;
 DROP TABLE IF EXISTS tb_gimbalhistory;
 DROP TABLE IF EXISTS tb_gimbalschedule;
+DROP TABLE IF EXISTS tb_gimbal_inspection_project_preset_point;
+DROP TABLE IF EXISTS tb_gimbal_preset_point;
 DROP TABLE IF EXISTS tb_gimbal_inspection_project;
 DROP TABLE IF EXISTS tb_gimbaltask;
 DROP TABLE IF EXISTS tb_gimbal;
@@ -229,23 +231,41 @@ CREATE TABLE tb_gimbaltask (
     FOREIGN KEY (gimbal_id) REFERENCES tb_gimbal(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='云台任务表';
 
--- 创建云台巡检项目表
-CREATE TABLE tb_gimbal_inspection_project (
-    id VARCHAR(36) PRIMARY KEY COMMENT '云台巡检项目ID',
-    task_name VARCHAR(100) NOT NULL COMMENT '巡检项目名称',
-    gimbaltask_id VARCHAR(36) NOT NULL COMMENT '关联云台任务ID',
-    sort_order INT NOT NULL DEFAULT 0 COMMENT '排序值，数字越小越靠前',
-    x_coordinate DECIMAL(10,4) NULL COMMENT '镜头X轴旋转参数',
-    y_coordinate DECIMAL(10,4) NULL COMMENT '镜头Y轴旋转参数',
-    zoom_level DECIMAL(10,4) NULL COMMENT '倍率',
-    focus DECIMAL(10,4) NULL COMMENT '聚焦',
+-- 创建云台预设点表（必须在tb_gimbal_inspection_project之前创建，因为中间表会引用）
+CREATE TABLE tb_gimbal_preset_point (
+    id VARCHAR(36) PRIMARY KEY COMMENT '云台预设点ID',
+    preset_name VARCHAR(100) NOT NULL COMMENT '预设点名称',
+    gimbal_id VARCHAR(36) NOT NULL COMMENT '关联云台ID',
+    p_coordinate DECIMAL(10,4) NULL COMMENT 'P坐标（水平旋转）',
+    t_coordinate DECIMAL(10,4) NULL COMMENT 'T坐标（垂直旋转）',
+    z_coordinate DECIMAL(10,4) NULL COMMENT 'Z坐标（变焦）',
+    f_coordinate DECIMAL(10,4) NULL COMMENT 'F坐标（聚焦）',
     aperture INT NULL COMMENT '光圈（0-100）',
     shutter INT NULL COMMENT '快门分母',
     backlight_compensation BOOLEAN NOT NULL DEFAULT FALSE COMMENT '背光补偿',
     wide_dynamic BOOLEAN NOT NULL DEFAULT FALSE COMMENT '宽动态',
     strong_light_suppression BOOLEAN NOT NULL DEFAULT FALSE COMMENT '强光抑制',
     fill_light BOOLEAN NOT NULL DEFAULT FALSE COMMENT '补光',
-    detection_type VARCHAR(20) NOT NULL COMMENT '检测类型：可见光视频/可见光图片/热成像图片/热成像视频',
+    image_url VARCHAR(500) NULL COMMENT '图片链接',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(100) NULL COMMENT '创建人',
+    updated_by VARCHAR(100) NULL COMMENT '更新人',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
+    INDEX idx_preset_name (preset_name),
+    INDEX idx_gimbal_id (gimbal_id),
+    INDEX idx_created_at (created_at),
+    INDEX idx_is_deleted (is_deleted),
+    UNIQUE KEY uk_preset_name_per_gimbal (gimbal_id, preset_name, is_deleted),
+    FOREIGN KEY (gimbal_id) REFERENCES tb_gimbal(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='云台预设点表';
+
+-- 创建云台巡检项目表
+CREATE TABLE tb_gimbal_inspection_project (
+    id VARCHAR(36) PRIMARY KEY COMMENT '云台巡检项目ID',
+    task_name VARCHAR(100) NOT NULL COMMENT '巡检项目名称',
+    gimbaltask_id VARCHAR(36) NOT NULL COMMENT '关联云台任务ID',
+    sort_order INT NOT NULL DEFAULT 0 COMMENT '排序值，数字越小越靠前',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     created_by VARCHAR(100) NULL COMMENT '创建人',
@@ -254,12 +274,33 @@ CREATE TABLE tb_gimbal_inspection_project (
     INDEX idx_project_name (task_name),
     INDEX idx_gimbaltask_id (gimbaltask_id),
     INDEX idx_gimbaltask_sort_order (gimbaltask_id, sort_order),
-    INDEX idx_detection_type (detection_type),
     INDEX idx_created_at (created_at),
     INDEX idx_is_deleted (is_deleted),
     UNIQUE KEY uk_project_name_per_task (gimbaltask_id, task_name, is_deleted),
     FOREIGN KEY (gimbaltask_id) REFERENCES tb_gimbaltask(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='云台巡检项目表';
+
+-- 创建云台巡检项目-预设点关联表（多对多中间表）
+CREATE TABLE tb_gimbal_inspection_project_preset_point (
+    id VARCHAR(36) PRIMARY KEY COMMENT '关联ID',
+    inspection_project_id VARCHAR(36) NOT NULL COMMENT '云台巡检项目ID',
+    preset_point_id VARCHAR(36) NOT NULL COMMENT '云台预设点ID',
+    detection_type VARCHAR(20) NOT NULL COMMENT '检测类型：可见光视频/可见光图片/热成像图片/热成像视频',
+    video_duration INT NULL COMMENT '拍摄时长（秒），当detection_type为可见光视频或热成像视频时使用',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(100) NULL COMMENT '创建人',
+    updated_by VARCHAR(100) NULL COMMENT '更新人',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
+    INDEX idx_inspection_project_id (inspection_project_id),
+    INDEX idx_preset_point_id (preset_point_id),
+    INDEX idx_detection_type (detection_type),
+    INDEX idx_created_at (created_at),
+    INDEX idx_is_deleted (is_deleted),
+    UNIQUE KEY uk_project_preset_detection_active (inspection_project_id, preset_point_id, detection_type, is_deleted),
+    FOREIGN KEY (inspection_project_id) REFERENCES tb_gimbal_inspection_project(id) ON DELETE CASCADE,
+    FOREIGN KEY (preset_point_id) REFERENCES tb_gimbal_preset_point(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='云台巡检项目-预设点关联表';
 
 -- 创建云台日程表
 CREATE TABLE tb_gimbalschedule (
@@ -307,7 +348,7 @@ CREATE TABLE tb_gimbalschedule (
 -- 创建云台巡检记录表
 CREATE TABLE tb_gimbalhistory (
     id VARCHAR(36) PRIMARY KEY COMMENT '云台巡检记录ID',
-    inspection_project_id VARCHAR(36) NOT NULL COMMENT '关联云台巡检项目ID',
+    project_preset_point_id VARCHAR(36) NOT NULL COMMENT '关联云台巡检项目-预设点关联ID',
     record_data JSON NULL COMMENT '记录数据',
     media_url VARCHAR(500) NULL COMMENT '图像/视频链接',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -315,10 +356,10 @@ CREATE TABLE tb_gimbalhistory (
     created_by VARCHAR(100) NULL COMMENT '创建人',
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
-    INDEX idx_inspection_project_id (inspection_project_id),
+    INDEX idx_project_preset_point_id (project_preset_point_id),
     INDEX idx_created_at (created_at),
     INDEX idx_is_deleted (is_deleted),
-    FOREIGN KEY (inspection_project_id) REFERENCES tb_gimbal_inspection_project(id) ON DELETE CASCADE
+    FOREIGN KEY (project_preset_point_id) REFERENCES tb_gimbal_inspection_project_preset_point(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='云台巡检记录表';
 
 -- 创建车体控制器配置表

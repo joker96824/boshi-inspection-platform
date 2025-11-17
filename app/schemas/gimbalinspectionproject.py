@@ -4,7 +4,7 @@
 
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from .base import BaseResponse, BaseSchema
 
@@ -16,19 +16,6 @@ class GimbalInspectionProjectBase(BaseSchema):
     gimbaltask_id: str = Field(..., description="关联云台任务ID")
     sort_order: Optional[int] = Field(
         None, ge=0, description="排序值，数字越小越靠前"
-    )
-    x_coordinate: Optional[float] = Field(None, description="镜头X轴旋转参数")
-    y_coordinate: Optional[float] = Field(None, description="镜头Y轴旋转参数")
-    zoom_level: Optional[float] = Field(None, description="倍率")
-    focus: Optional[float] = Field(None, description="聚焦")
-    aperture: Optional[int] = Field(None, ge=0, le=100, description="光圈（0-100）")
-    shutter: Optional[int] = Field(None, ge=1, description="快门分母")
-    backlight_compensation: bool = Field(False, description="背光补偿")
-    wide_dynamic: bool = Field(False, description="宽动态")
-    strong_light_suppression: bool = Field(False, description="强光抑制")
-    fill_light: bool = Field(False, description="补光")
-    detection_type: Literal["可见光视频", "可见光图片", "热成像图片", "热成像视频"] = Field(
-        ..., description="检测类型"
     )
 
 
@@ -46,19 +33,27 @@ class GimbalInspectionProjectUpdate(BaseSchema):
     sort_order: Optional[int] = Field(
         None, ge=0, description="排序值，数字越小越靠前"
     )
-    x_coordinate: Optional[float] = Field(None, description="镜头X轴旋转参数")
-    y_coordinate: Optional[float] = Field(None, description="镜头Y轴旋转参数")
-    zoom_level: Optional[float] = Field(None, description="倍率")
-    focus: Optional[float] = Field(None, description="聚焦")
-    aperture: Optional[int] = Field(None, ge=0, le=100, description="光圈（0-100）")
-    shutter: Optional[int] = Field(None, ge=1, description="快门分母")
-    backlight_compensation: Optional[bool] = Field(None, description="背光补偿")
-    wide_dynamic: Optional[bool] = Field(None, description="宽动态")
-    strong_light_suppression: Optional[bool] = Field(None, description="强光抑制")
-    fill_light: Optional[bool] = Field(None, description="补光")
-    detection_type: Optional[Literal["可见光视频", "可见光图片", "热成像图片", "热成像视频"]] = Field(
-        None, description="检测类型"
-    )
+
+
+class PresetPointLinkResponse(BaseModel):
+    """预设点关联响应模式（用于巡检项目中的预设点）"""
+    id: str = Field(..., description="预设点ID")
+    preset_name: str = Field(..., description="预设点名称")
+    p_coordinate: Optional[float] = Field(None, description="P坐标（水平旋转）")
+    t_coordinate: Optional[float] = Field(None, description="T坐标（垂直旋转）")
+    z_coordinate: Optional[float] = Field(None, description="Z坐标（变焦）")
+    f_coordinate: Optional[float] = Field(None, description="F坐标（聚焦）")
+    aperture: Optional[int] = Field(None, description="光圈（0-100）")
+    shutter: Optional[int] = Field(None, description="快门分母")
+    backlight_compensation: bool = Field(..., description="背光补偿")
+    wide_dynamic: bool = Field(..., description="宽动态")
+    strong_light_suppression: bool = Field(..., description="强光抑制")
+    fill_light: bool = Field(..., description="补光")
+    image_url: Optional[str] = Field(None, description="图片链接")
+    detection_type: str = Field(..., description="检测类型")
+    video_duration: Optional[int] = Field(None, description="拍摄时长（秒）")
+    created_at: Optional[str] = Field(None, description="创建时间")
+    updated_at: Optional[str] = Field(None, description="更新时间")
 
 
 class GimbalInspectionProjectResponse(BaseResponse):
@@ -67,18 +62,8 @@ class GimbalInspectionProjectResponse(BaseResponse):
     id: str = Field(..., description="巡检项目ID")
     task_name: str = Field(..., description="巡检项目名称")
     gimbaltask_id: str = Field(..., description="关联云台任务ID")
-    zoom_level: Optional[float] = Field(None, description="倍率")
-    x_coordinate: Optional[float] = Field(None, description="镜头X轴旋转参数")
-    y_coordinate: Optional[float] = Field(None, description="镜头Y轴旋转参数")
     sort_order: int = Field(..., ge=0, description="排序值，数字越小越靠前")
-    focus: Optional[float] = Field(None, description="聚焦")
-    aperture: Optional[int] = Field(None, description="光圈（0-100）")
-    shutter: Optional[int] = Field(None, description="快门分母")
-    backlight_compensation: bool = Field(..., description="背光补偿")
-    wide_dynamic: bool = Field(..., description="宽动态")
-    strong_light_suppression: bool = Field(..., description="强光抑制")
-    fill_light: bool = Field(..., description="补光")
-    detection_type: str = Field(..., description="检测类型")
+    preset_points: List[PresetPointLinkResponse] = Field(default_factory=list, description="关联的预设点列表")
     created_at: str = Field(..., description="创建时间")
     updated_at: str = Field(..., description="更新时间")
     created_by: Optional[str] = Field(None, description="创建者")
@@ -91,9 +76,6 @@ class GimbalInspectionProjectQuery(BaseSchema):
     page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
     size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
     task_name: Optional[str] = Field(None, description="巡检项目名称（模糊查询）")
-    detection_type: Optional[Literal["可见光视频", "可见光图片", "热成像图片", "热成像视频"]] = Field(
-        None, description="检测类型筛选"
-    )
     gimbaltask_id: Optional[str] = Field(None, description="云台任务ID筛选")
     gimbal_id: Optional[str] = Field(None, description="云台ID筛选（通过云台任务）")
     map_id: Optional[str] = Field(None, description="地图ID筛选（通过关联云台）")

@@ -20,6 +20,8 @@ from .alarminfo import AlarmInfo
 from .gimbal import Gimbal
 from .gimbaltask import GimbalTask
 from .gimbalinspectionproject import GimbalInspectionProject
+from .gimbalpresetpoint import GimbalPresetPoint
+from .gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
 from .gimbalschedule import GimbalSchedule
 from .gimbalhistory import GimbalHistory
 from .device import Device
@@ -59,6 +61,8 @@ __all__ = [
     "Gimbal",
     "GimbalTask",
     "GimbalInspectionProject",
+    "GimbalPresetPoint",
+    "GimbalInspectionProjectPresetPoint",
     "GimbalSchedule",
     "GimbalHistory",
     "Device",

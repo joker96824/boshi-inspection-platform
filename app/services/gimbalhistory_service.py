@@ -29,21 +29,14 @@ class GimbalHistoryService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.gimbal_history_repo = GimbalHistoryRepository(db)
-        self.gimbal_inspection_project_repo = GimbalInspectionProjectRepository(db)
 
     async def create_gimbal_history(
         self, history_data: GimbalHistoryCreate, user: dict
     ) -> Dict[str, Any]:
         """创建云台巡检记录"""
         try:
-            inspection_project = await self.gimbal_inspection_project_repo.get_by_id(
-                history_data.inspection_project_id
-            )
-            if not inspection_project:
-                raise ResourceNotFoundError(
-                    f"云台巡检项目ID '{history_data.inspection_project_id}' 不存在"
-                )
-
+            # 验证关联ID是否存在（通过查询历史记录来验证外键约束）
+            # 外键约束会在数据库层面验证，这里只需要创建数据
             create_data = history_data.dict()
             create_data["created_by"] = user["username"]
             create_data["updated_by"] = user["username"]
@@ -69,7 +62,7 @@ class GimbalHistoryService:
             error_msg = str(e.orig) if hasattr(e, "orig") else str(e)
             if "foreign key constraint" in error_msg.lower() or "1452" in error_msg:
                 logger.error(f"创建云台巡检记录失败-外键约束错误: {error_msg}")
-                raise BusinessError("关联的巡检项目不存在，请检查巡检项目ID是否正确")
+                raise BusinessError("关联的巡检项目-预设点关联不存在，请检查关联ID是否正确")
             else:
                 logger.error(f"创建云台巡检记录失败-数据库完整性错误: {error_msg}")
                 raise BusinessError("数据完整性验证失败")
@@ -154,18 +147,7 @@ class GimbalHistoryService:
             if not existing_history:
                 raise ResourceNotFoundError(f"云台巡检记录ID '{history_id}' 不存在")
 
-            if (
-                history_data.inspection_project_id
-                and history_data.inspection_project_id
-                != existing_history.inspection_project_id
-            ):
-                inspection_project = await self.gimbal_inspection_project_repo.get_by_id(
-                    history_data.inspection_project_id
-                )
-                if not inspection_project:
-                    raise ResourceNotFoundError(
-                        f"云台巡检项目ID '{history_data.inspection_project_id}' 不存在"
-                    )
+            # 如果更新了关联ID，外键约束会在数据库层面验证
 
             update_data = history_data.dict(exclude_unset=True)
             update_data["updated_by"] = user["username"]
@@ -246,9 +228,23 @@ class GimbalHistoryService:
 
     def _format_gimbal_history_response(self, history) -> Dict[str, Any]:
         """格式化云台巡检记录响应数据"""
+        # 从关联表中获取相关信息
+        inspection_project_id = None
+        preset_point_id = None
+        detection_type = None
+        
+        if hasattr(history, 'project_preset_point') and history.project_preset_point:
+            link = history.project_preset_point
+            inspection_project_id = link.inspection_project_id if hasattr(link, 'inspection_project_id') else None
+            preset_point_id = link.preset_point_id if hasattr(link, 'preset_point_id') else None
+            detection_type = link.detection_type if hasattr(link, 'detection_type') else None
+        
         return {
             "id": history.id,
-            "inspection_project_id": history.inspection_project_id,
+            "project_preset_point_id": history.project_preset_point_id,
+            "inspection_project_id": inspection_project_id,
+            "preset_point_id": preset_point_id,
+            "detection_type": detection_type,
             "record_data": history.record_data,
             "media_url": history.media_url,
             "created_at": history.created_at.strftime("%Y-%m-%dT%H:%M:%S")

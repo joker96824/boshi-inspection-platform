@@ -227,6 +227,37 @@ class GimbalService:
             logger.error(f"获取云台统计失败: {e}", exc_info=True)
             raise BusinessError(f"获取云台统计失败: {str(e)}")
     
+    def _format_preset_points_response(self, preset_points) -> List[Dict[str, Any]]:
+        """格式化预设点列表响应数据"""
+        if not preset_points:
+            return []
+        
+        preset_points_info = []
+        active_preset_points = [pp for pp in preset_points if not pp.is_deleted]
+        for preset_point in active_preset_points:
+            preset_points_info.append({
+                "id": preset_point.id,
+                "preset_name": preset_point.preset_name,
+                "gimbal_id": preset_point.gimbal_id,
+                "p_coordinate": preset_point.p_coordinate,
+                "t_coordinate": preset_point.t_coordinate,
+                "z_coordinate": preset_point.z_coordinate,
+                "f_coordinate": preset_point.f_coordinate,
+                "aperture": preset_point.aperture,
+                "shutter": preset_point.shutter,
+                "backlight_compensation": preset_point.backlight_compensation,
+                "wide_dynamic": preset_point.wide_dynamic,
+                "strong_light_suppression": preset_point.strong_light_suppression,
+                "fill_light": preset_point.fill_light,
+                "image_url": preset_point.image_url,
+                "created_at": preset_point.created_at.strftime("%Y-%m-%dT%H:%M:%S") if preset_point.created_at else None,
+                "updated_at": preset_point.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if preset_point.updated_at else None,
+                "created_by": preset_point.created_by,
+                "updated_by": preset_point.updated_by,
+            })
+        
+        return preset_points_info
+    
     def _format_gimbal_response(self, gimbal) -> Dict[str, Any]:
         """格式化云台响应数据（包含任务和日程列表）"""
         # 格式化任务列表（包含日程）
@@ -294,22 +325,39 @@ class GimbalService:
                         key=lambda project: project.sort_order,
                     )
                     for project in active_projects:
+                        # 格式化预设点关联信息
+                        preset_points_info = []
+                        if hasattr(project, 'preset_points') and project.preset_points:
+                            active_preset_points = [pp for pp in project.preset_points if not pp.is_deleted]
+                            for pp_link in active_preset_points:
+                                preset_point = pp_link.preset_point if hasattr(pp_link, 'preset_point') else None
+                                if preset_point and not preset_point.is_deleted:
+                                    preset_points_info.append({
+                                        "id": preset_point.id,
+                                        "preset_name": preset_point.preset_name,
+                                        "p_coordinate": preset_point.p_coordinate,
+                                        "t_coordinate": preset_point.t_coordinate,
+                                        "z_coordinate": preset_point.z_coordinate,
+                                        "f_coordinate": preset_point.f_coordinate,
+                                        "aperture": preset_point.aperture,
+                                        "shutter": preset_point.shutter,
+                                        "backlight_compensation": preset_point.backlight_compensation,
+                                        "wide_dynamic": preset_point.wide_dynamic,
+                                        "strong_light_suppression": preset_point.strong_light_suppression,
+                                        "fill_light": preset_point.fill_light,
+                                        "image_url": preset_point.image_url,
+                                        "detection_type": pp_link.detection_type,
+                                        "video_duration": pp_link.video_duration,
+                                        "created_at": preset_point.created_at.strftime("%Y-%m-%dT%H:%M:%S") if preset_point.created_at else None,
+                                        "updated_at": preset_point.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if preset_point.updated_at else None,
+                                    })
+                        
                         inspection_projects_info.append(
                             {
                                 "id": project.id,
                                 "task_name": project.task_name,
-                                "detection_type": project.detection_type,
-                                "x_coordinate": project.x_coordinate,
-                                "y_coordinate": project.y_coordinate,
                                 "sort_order": project.sort_order,
-                                "zoom_level": project.zoom_level,
-                                "focus": project.focus,
-                                "aperture": project.aperture,
-                                "shutter": project.shutter,
-                                "backlight_compensation": project.backlight_compensation,
-                                "wide_dynamic": project.wide_dynamic,
-                                "strong_light_suppression": project.strong_light_suppression,
-                                "fill_light": project.fill_light,
+                                "preset_points": preset_points_info,
                                 "created_at": project.created_at.strftime(
                                     "%Y-%m-%dT%H:%M:%S"
                                 )
@@ -360,6 +408,7 @@ class GimbalService:
             "z_coordinate": gimbal.z_coordinate,
             "f_coordinate": gimbal.f_coordinate,
             "gimbal_tasks": gimbal_tasks_info,  # 添加任务列表（包含日程）
+            "preset_points": self._format_preset_points_response(gimbal.preset_points) if hasattr(gimbal, 'preset_points') and gimbal.preset_points else [],  # 添加全部预设点列表
             "created_at": gimbal.created_at.strftime("%Y-%m-%dT%H:%M:%S") if gimbal.created_at else None,
             "updated_at": gimbal.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if gimbal.updated_at else None,
             "created_by": gimbal.created_by,

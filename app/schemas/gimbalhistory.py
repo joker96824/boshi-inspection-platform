@@ -12,7 +12,7 @@ from .base import BaseResponse, BaseSchema
 class GimbalHistoryBase(BaseSchema):
     """云台巡检记录基础模式"""
 
-    inspection_project_id: str = Field(..., description="关联云台巡检项目ID")
+    project_preset_point_id: str = Field(..., description="关联云台巡检项目-预设点关联ID")
     record_data: Optional[Dict[str, Any]] = Field(None, description="记录数据")
     media_url: Optional[str] = Field(None, max_length=500, description="图像/视频链接")
 
@@ -24,8 +24,8 @@ class GimbalHistoryCreate(GimbalHistoryBase):
 class GimbalHistoryUpdate(BaseSchema):
     """云台巡检记录更新模式"""
 
-    inspection_project_id: Optional[str] = Field(
-        None, description="关联云台巡检项目ID"
+    project_preset_point_id: Optional[str] = Field(
+        None, description="关联云台巡检项目-预设点关联ID"
     )
     record_data: Optional[Dict[str, Any]] = Field(None, description="记录数据")
     media_url: Optional[str] = Field(None, max_length=500, description="图像/视频链接")
@@ -35,7 +35,10 @@ class GimbalHistoryResponse(BaseResponse):
     """云台巡检记录响应模式"""
 
     id: str = Field(..., description="云台记录ID")
-    inspection_project_id: str = Field(..., description="关联云台巡检项目ID")
+    project_preset_point_id: str = Field(..., description="关联云台巡检项目-预设点关联ID")
+    inspection_project_id: Optional[str] = Field(None, description="关联云台巡检项目ID（从关联表获取）")
+    preset_point_id: Optional[str] = Field(None, description="关联预设点ID（从关联表获取）")
+    detection_type: Optional[str] = Field(None, description="检测类型（从关联表获取）")
     record_data: Optional[Dict[str, Any]] = Field(None, description="记录数据")
     media_url: Optional[str] = Field(None, description="图像/视频链接")
     created_at: str = Field(..., description="创建时间")

@@ -33,6 +33,7 @@ class Gimbal(BaseModel):
     # 关系
     map = relationship("Map", foreign_keys=[map_id])
     gimbal_tasks = relationship("GimbalTask", back_populates="gimbal", cascade="all, delete-orphan")
+    preset_points = relationship("GimbalPresetPoint", back_populates="gimbal", cascade="all, delete-orphan")
     
     # 创建索引
     __table_args__ = (
