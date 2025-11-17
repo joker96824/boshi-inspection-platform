@@ -11,7 +11,7 @@ from fastapi import HTTPException
 from ..repositories.gimbalschedule_repository import GimbalScheduleRepository
 from ..repositories.gimbaltask_repository import GimbalTaskRepository
 from ..schemas.gimbalschedule import (
-    GimbalScheduleCreate, GimbalScheduleUpdate, GimbalScheduleQuery, GimbalScheduleFrontendCreate
+    GimbalScheduleCreate, GimbalScheduleUpdate, GimbalScheduleQuery
 )
 from ..core.exceptions import (
     ResourceNotFoundError, BusinessError
@@ -126,6 +126,13 @@ class GimbalScheduleService:
             # 格式化响应数据
             schedules_data = [self._format_gimbal_schedule_response(schedule) for schedule in schedules]
             
+            # 如果未提供分页参数，返回所有数据
+            if query.page is None or query.size is None:
+                return ApiResponse.success(
+                    data={"items": schedules_data, "total": total},
+                    message="获取云台日程列表成功"
+                )
+            
             return ApiResponse.paginated(
                 items=schedules_data,
                 total=total,
@@ -230,12 +237,6 @@ class GimbalScheduleService:
             logger.error(f"获取云台日程统计失败: {e}", exc_info=True)
             raise BusinessError(f"获取云台日程统计失败: {str(e)}")
     
-    async def create_gimbal_schedule_from_frontend(self, frontend_data: GimbalScheduleFrontendCreate, user: dict) -> Dict[str, Any]:
-        """从前端格式创建云台日程"""
-        backend_data = frontend_data.to_backend_format()
-        schedule_data = GimbalScheduleCreate(**backend_data)
-        return await self.create_gimbal_schedule(schedule_data, user)
-    
     async def get_schedules_by_date(self, date_str: str, gimbal_ids: Optional[List[str]], user: Optional[dict]) -> Dict[str, Any]:
         """根据日期获取所有相关的云台日程"""
         try:
@@ -273,6 +274,9 @@ class GimbalScheduleService:
         time_display_start_str = schedule.time_display_start.strftime("%H:%M") if schedule.time_display_start else None
         time_display_end_str = schedule.time_display_end.strftime("%H:%M") if schedule.time_display_end else None
         
+        # 动态计算周期显示文本
+        cycle_display = self._calculate_cycle_display(schedule.cycle_type, schedule.cycle_config)
+        
         return {
             "id": schedule.id,
             "gimbaltask_id": schedule.gimbaltask_id,
@@ -284,17 +288,32 @@ class GimbalScheduleService:
             "cycle_config": schedule.cycle_config,
             "time_mode": schedule.time_mode,
             "time_config": schedule.time_config,
-            "frequency_display": schedule.frequency_display,
+            "cycle_display": cycle_display,
             "time_display_start": time_display_start_str,
             "time_display_end": time_display_end_str,
-            "frequency": schedule.frequency_display,
-            "cycle": schedule.frequency_display,
-            "startTime": time_display_start_str,
-            "endTime": time_display_end_str,
-            "start_time": time_display_start_str,
-            "end_time": time_display_end_str,
             "created_at": schedule.created_at.strftime("%Y-%m-%dT%H:%M:%S") if schedule.created_at else None,
             "updated_at": schedule.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if schedule.updated_at else None,
             "created_by": schedule.created_by,
             "updated_by": schedule.updated_by,
         }
+    
+    def _calculate_cycle_display(self, cycle_type: Optional[str], cycle_config: Optional[Dict[str, Any]]) -> str:
+        """计算周期显示文本"""
+        if not cycle_type:
+            return ''
+        
+        if cycle_type == 'daily':
+            return '每天'
+        elif cycle_type == 'monthly_days' and cycle_config and 'selectedDays' in cycle_config:
+            days = cycle_config['selectedDays']
+            if days:
+                days_str = '、'.join([str(d) for d in sorted(days)])
+                return f'每月{days_str}日'
+        elif cycle_type == 'weekly' and cycle_config and 'selectedWeeks' in cycle_config:
+            week_names = ['一', '二', '三', '四', '五', '六', '日']
+            weeks = [week_names[w-1] for w in sorted(cycle_config['selectedWeeks']) if 1 <= w <= 7]
+            if weeks:
+                weeks_str = '、'.join([f'周{w}' for w in weeks])
+                return f'每{weeks_str}'
+        
+        return ''

@@ -18,7 +18,7 @@ class TaskScheduleBase(BaseSchema):
     item_count: int = Field(0, ge=0, description="关联的巡检项目数量")
     
     # 执行周期配置
-    cycle_type: str = Field(..., description="周期类型：daily/monthly_days/weekly/interval")
+    cycle_type: str = Field(..., description="周期类型：daily/monthly_days/weekly")
     cycle_config: Optional[Dict[str, Any]] = Field(None, description="周期详细配置（JSON格式）")
     
     # 执行时间配置
@@ -26,14 +26,13 @@ class TaskScheduleBase(BaseSchema):
     time_config: Dict[str, Any] = Field(..., description="时间详细配置（JSON格式）")
     
     # 用于显示的简化字段
-    frequency_display: Optional[str] = Field(None, max_length=200, description="周期显示文本")
     time_display_start: Optional[time] = Field(None, description="开始时间（用于时间轴显示）")
     time_display_end: Optional[time] = Field(None, description="结束时间（用于时间轴显示）")
     
     @validator('cycle_type')
     def validate_cycle_type(cls, v):
         """验证周期类型"""
-        allowed_types = ['daily', 'monthly_days', 'weekly', 'interval']
+        allowed_types = ['daily', 'monthly_days', 'weekly']
         if v not in allowed_types:
             raise ValueError(f'cycle_type must be one of {allowed_types}')
         return v
@@ -81,11 +80,10 @@ class TaskScheduleUpdate(BaseSchema):
     end_date: Optional[date] = Field(None, description="结束日期")
     enabled: Optional[bool] = Field(None, description="启用状态：0-禁用，1-启用")
     item_count: Optional[int] = Field(None, ge=0, description="关联的巡检项目数量")
-    cycle_type: Optional[str] = Field(None, description="周期类型：daily/monthly_days/weekly/interval")
+    cycle_type: Optional[str] = Field(None, description="周期类型：daily/monthly_days/weekly")
     cycle_config: Optional[Dict[str, Any]] = Field(None, description="周期详细配置（JSON格式）")
     time_mode: Optional[str] = Field(None, description="时间模式：custom/interval")
     time_config: Optional[Dict[str, Any]] = Field(None, description="时间详细配置（JSON格式）")
-    frequency_display: Optional[str] = Field(None, max_length=200, description="周期显示文本")
     time_display_start: Optional[time] = Field(None, description="开始时间（用于时间轴显示）")
     time_display_end: Optional[time] = Field(None, description="结束时间（用于时间轴显示）")
 
@@ -98,11 +96,11 @@ class TaskScheduleResponse(BaseResponse):
     end_date: date = Field(..., description="结束日期")
     enabled: bool = Field(..., description="启用状态：0-禁用，1-启用")
     item_count: int = Field(..., description="关联的巡检项目数量")
-    cycle_type: str = Field(..., description="周期类型：daily/monthly_days/weekly/interval")
+    cycle_type: str = Field(..., description="周期类型：daily/monthly_days/weekly")
     cycle_config: Optional[Dict[str, Any]] = Field(None, description="周期详细配置（JSON格式）")
     time_mode: str = Field(..., description="时间模式：custom/interval")
     time_config: Dict[str, Any] = Field(..., description="时间详细配置（JSON格式）")
-    frequency_display: Optional[str] = Field(None, description="周期显示文本")
+    cycle_display: str = Field(..., description="周期显示文本（动态计算，如：每天、每月1/5/10日、每周一/三/五）")
     time_display_start: Optional[time] = Field(None, description="开始时间（用于时间轴显示）")
     time_display_end: Optional[time] = Field(None, description="结束时间（用于时间轴显示）")
 
@@ -134,10 +132,9 @@ class TaskScheduleFrontendCreate(BaseSchema):
     item_count: int = Field(0, ge=0, description="关联的巡检项目数量")
     
     # 周期配置（前端格式）
-    cycle: str = Field(..., description="周期类型：每天/日/周/间隔")
+    cycle: str = Field(..., description="周期类型：每天/日/周")
     selectedDays: Optional[List[int]] = Field(None, description="选中的日期（日模式）")
     selectedWeeks: Optional[List[int]] = Field(None, description="选中的星期（周模式，1-7）")
-    intervalDays: Optional[int] = Field(None, ge=1, description="间隔天数（间隔模式）")
     
     # 时间配置（前端格式）
     timeMode: str = Field(..., description="时间模式：自定义/间隔")
@@ -148,7 +145,7 @@ class TaskScheduleFrontendCreate(BaseSchema):
     @validator('cycle')
     def validate_cycle(cls, v):
         """验证周期类型"""
-        allowed_cycles = ['每天', '日', '周', '间隔']
+        allowed_cycles = ['每天', '日', '周']
         if v not in allowed_cycles:
             raise ValueError(f'cycle must be one of {allowed_cycles}')
         return v
@@ -169,8 +166,7 @@ class TaskScheduleFrontendCreate(BaseSchema):
         cycle_mapping = {
             '每天': 'daily',
             '日': 'monthly_days',
-            '周': 'weekly',
-            '间隔': 'interval'
+            '周': 'weekly'
         }
         cycle_type = cycle_mapping[self.cycle]
         
@@ -180,8 +176,6 @@ class TaskScheduleFrontendCreate(BaseSchema):
             cycle_config = {"selectedDays": self.selectedDays}
         elif cycle_type == 'weekly' and self.selectedWeeks:
             cycle_config = {"selectedWeeks": self.selectedWeeks}
-        elif cycle_type == 'interval' and self.intervalDays:
-            cycle_config = {"intervalDays": self.intervalDays}
         
         # 转换时间模式
         time_mode_mapping = {
@@ -205,7 +199,6 @@ class TaskScheduleFrontendCreate(BaseSchema):
         end_date = date.fromisoformat(self.dateRange[1]) if self.dateRange and len(self.dateRange) > 1 else None
         
         # 计算显示字段
-        frequency_display = self._calculate_frequency_display(cycle_type, cycle_config)
         time_display_start, time_display_end = self._calculate_time_display(time_config)
         
         return {
@@ -219,29 +212,10 @@ class TaskScheduleFrontendCreate(BaseSchema):
             "cycle_config": cycle_config,
             "time_mode": time_mode,
             "time_config": time_config,
-            "frequency_display": frequency_display,
             "time_display_start": time_display_start,
             "time_display_end": time_display_end,
         }
     
-    @staticmethod
-    def _calculate_frequency_display(cycle_type: str, cycle_config: Optional[Dict[str, Any]]) -> str:
-        """计算周期显示文本"""
-        if cycle_type == 'daily':
-            return '每天'
-        elif cycle_type == 'monthly_days' and cycle_config and 'selectedDays' in cycle_config:
-            days = cycle_config['selectedDays']
-            days_str = '、'.join([str(d) for d in sorted(days)])
-            return f'每月{days_str}日'
-        elif cycle_type == 'weekly' and cycle_config and 'selectedWeeks' in cycle_config:
-            week_names = ['一', '二', '三', '四', '五', '六', '日']
-            weeks = [week_names[w-1] for w in sorted(cycle_config['selectedWeeks']) if 1 <= w <= 7]
-            weeks_str = '、'.join([f'周{w}' for w in weeks])
-            return f'每{weeks_str}'
-        elif cycle_type == 'interval' and cycle_config and 'intervalDays' in cycle_config:
-            days = cycle_config['intervalDays']
-            return f'每{days}天'
-        return ''
     
     @staticmethod
     def _calculate_time_display(time_config: Dict[str, Any]) -> Tuple[Optional[time], Optional[time]]:

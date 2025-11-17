@@ -48,11 +48,18 @@ class GimbalScheduleRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
-    async def get_all(self, page: int = 1, size: int = 20,
+    async def get_all(self, page: Optional[int] = None, size: Optional[int] = None,
                      cycle_type: str = None, enabled: bool = None,
                      gimbaltask_id: str = None) -> Tuple[List[GimbalSchedule], int]:
         """获取云台日程列表"""
-        skip = (page - 1) * size
+        # 如果未提供分页参数，返回所有数据
+        if page is None or size is None:
+            skip = None
+            limit = None
+        else:
+            # 计算偏移量
+            skip = (page - 1) * size
+            limit = size
         
         # 构建查询条件
         conditions = [GimbalSchedule.is_deleted == False]
@@ -74,9 +81,10 @@ class GimbalScheduleRepository:
         # 查询数据
         query = (select(GimbalSchedule)
                 .where(and_(*conditions))
-                .order_by(GimbalSchedule.created_at.desc())
-                .offset(skip)
-                .limit(size))
+                .order_by(GimbalSchedule.created_at.desc()))
+        
+        if skip is not None and limit is not None:
+            query = query.offset(skip).limit(limit)
         
         result = await self.db.execute(query)
         schedules = list(result.scalars().all())

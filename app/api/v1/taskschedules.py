@@ -10,7 +10,7 @@ from ...core.deps import get_db, validate_pagination_params
 from ...core.auth import get_current_user
 from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
 from ...services.taskschedule_service import TaskScheduleService
-from ...schemas.taskschedule import TaskScheduleCreate, TaskScheduleUpdate, TaskScheduleFrontendCreate
+from ...schemas.taskschedule import TaskScheduleCreate, TaskScheduleUpdate
 
 router = APIRouter()
 
@@ -21,7 +21,7 @@ async def create_taskschedule(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_write_permission)
 ):
-    """创建任务日程（后端格式）
+    """创建任务日程
     
     Args:
         taskschedule_data: 任务日程创建数据（后端格式）
@@ -35,39 +35,12 @@ async def create_taskschedule(
     return await taskschedule_service.create_taskschedule(taskschedule_data, current_user)
 
 
-@router.post("/frontend", response_model=dict)
-async def create_taskschedule_from_frontend(
-    frontend_data: TaskScheduleFrontendCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_write_permission)
-):
-    """从前端格式创建任务日程
-    
-    支持前端格式的数据，自动转换为后端格式：
-    - cycle: "每天"/"日"/"周"/"间隔" → cycle_type
-    - timeMode: "自定义"/"间隔" → time_mode
-    - dateRange: ["2025-01-01","2025-12-31"] → start_date, end_date
-    - selectedDays/selectedWeeks/intervalDays → cycle_config
-    - customTimes/intervalTimeRange → time_config
-    
-    Args:
-        frontend_data: 前端格式的任务日程创建数据
-        db: 数据库会话
-        current_user: 当前用户
-    
-    Returns:
-        创建的任务日程信息
-    """
-    taskschedule_service = TaskScheduleService(db)
-    return await taskschedule_service.create_taskschedule_from_frontend(frontend_data, current_user)
-
-
 @router.get("/", response_model=dict)
 async def get_taskschedules(
     page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
     size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     task_id: str = Query(None, description="任务ID"),
-    cycle_type: str = Query(None, description="周期类型：daily/monthly_days/weekly/interval"),
+    cycle_type: Optional[str] = Query(None, description="周期类型：daily/monthly_days/weekly"),
     enabled: bool = Query(None, description="启用状态"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[dict] = Depends(require_no_auth())
@@ -78,7 +51,7 @@ async def get_taskschedules(
         page: 页码
         size: 每页数量
         task_id: 任务ID
-        cycle_type: 周期类型：daily/monthly_days/weekly/interval
+        cycle_type: 周期类型：daily/monthly_days/weekly
         enabled: 启用状态
         db: 数据库会话
         current_user: 当前用户

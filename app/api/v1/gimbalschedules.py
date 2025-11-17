@@ -11,7 +11,7 @@ from ...core.permissions import require_write_permission, require_no_auth
 from ...services.gimbalschedule_service import GimbalScheduleService
 from ...schemas.gimbalschedule import (
     GimbalScheduleCreate, GimbalScheduleUpdate, GimbalScheduleResponse, 
-    GimbalScheduleQuery, GimbalScheduleListResponse, GimbalScheduleFrontendCreate
+    GimbalScheduleQuery, GimbalScheduleListResponse
 )
 from ...utils.response import ApiResponse
 
@@ -27,7 +27,7 @@ async def create_gimbal_schedule(
     """创建云台日程
     
     Args:
-        schedule_data: 云台日程创建数据
+        schedule_data: 云台日程创建数据（后端格式）
         db: 数据库会话
         current_user: 当前用户
     
@@ -38,31 +38,11 @@ async def create_gimbal_schedule(
     return await service.create_gimbal_schedule(schedule_data, current_user)
 
 
-@router.post("/frontend", response_model=dict)
-async def create_gimbal_schedule_from_frontend(
-    frontend_data: GimbalScheduleFrontendCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_write_permission)
-):
-    """从前端格式创建云台日程
-    
-    Args:
-        frontend_data: 前端格式的云台日程创建数据
-        db: 数据库会话
-        current_user: 当前用户
-    
-    Returns:
-        创建的云台日程信息
-    """
-    service = GimbalScheduleService(db)
-    return await service.create_gimbal_schedule_from_frontend(frontend_data, current_user)
-
-
 @router.get("/", response_model=dict)
 async def get_gimbal_schedules(
     page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
     size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
-    cycle_type: Optional[str] = Query(None, description="周期类型筛选：daily/monthly_days/weekly/interval"),
+    cycle_type: Optional[str] = Query(None, description="周期类型筛选：daily/monthly_days/weekly"),
     enabled: Optional[bool] = Query(None, description="启用状态筛选"),
     gimbaltask_id: Optional[str] = Query(None, description="云台任务ID筛选"),
     db: AsyncSession = Depends(get_db),

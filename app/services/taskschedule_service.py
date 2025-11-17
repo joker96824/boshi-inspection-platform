@@ -11,7 +11,7 @@ from fastapi import HTTPException
 from ..core.exceptions import PermissionDeniedError, BusinessError, ResourceNotFoundError
 from ..repositories.taskschedule_repository import TaskScheduleRepository
 from ..repositories.task_repository import TaskRepository
-from ..schemas.taskschedule import TaskScheduleCreate, TaskScheduleUpdate, TaskScheduleFrontendCreate
+from ..schemas.taskschedule import TaskScheduleCreate, TaskScheduleUpdate
 from ..models.taskschedule import TaskSchedule
 from ..utils.response import ApiResponse
 from ..config.logging import get_logger, log_user_action
@@ -44,11 +44,6 @@ class TaskScheduleService:
             create_data["updated_by"] = user["username"]
             
             # 计算显示字段（如果未提供）
-            if not create_data.get("frequency_display"):
-                create_data["frequency_display"] = self._calculate_frequency_display(
-                    create_data.get("cycle_type"),
-                    create_data.get("cycle_config")
-                )
             if not create_data.get("time_display_start") or not create_data.get("time_display_end"):
                 time_start, time_end = self._calculate_time_display(create_data.get("time_config"))
                 if not create_data.get("time_display_start"):
@@ -90,22 +85,6 @@ class TaskScheduleService:
                 f"创建任务日程失败: {str(e)}"
             )
             raise HTTPException(status_code=500, detail="创建任务日程失败")
-    
-    async def create_taskschedule_from_frontend(self, frontend_data: TaskScheduleFrontendCreate, user: dict) -> Dict[str, Any]:
-        """从前端格式数据创建任务日程"""
-        try:
-            # 将前端格式转换为后端格式
-            backend_data = frontend_data.to_backend_format()
-            
-            # 创建 TaskScheduleCreate 对象
-            taskschedule_data = TaskScheduleCreate(**backend_data)
-            
-            # 调用标准的创建方法
-            return await self.create_taskschedule(taskschedule_data, user)
-            
-        except Exception as e:
-            logger.error(f"从前端格式创建任务日程失败: {e}")
-            raise
     
     async def get_taskschedule_by_id(self, taskschedule_id: str, user: dict) -> Dict[str, Any]:
         """根据ID获取任务日程"""
@@ -218,13 +197,7 @@ class TaskScheduleService:
             update_data = taskschedule_data.dict(exclude_unset=True)
             update_data["updated_by"] = user["username"]
             
-            # 如果更新了周期或时间配置，重新计算显示字段
-            if "cycle_type" in update_data or "cycle_config" in update_data:
-                if "frequency_display" not in update_data:
-                    cycle_type = update_data.get("cycle_type", taskschedule.cycle_type)
-                    cycle_config = update_data.get("cycle_config", taskschedule.cycle_config)
-                    update_data["frequency_display"] = self._calculate_frequency_display(cycle_type, cycle_config)
-            
+            # 如果更新了时间配置，重新计算显示字段
             if "time_config" in update_data:
                 if "time_display_start" not in update_data or "time_display_end" not in update_data:
                     time_start, time_end = self._calculate_time_display(update_data.get("time_config"))
@@ -372,6 +345,9 @@ class TaskScheduleService:
         time_display_start_str = taskschedule.time_display_start.strftime("%H:%M") if taskschedule.time_display_start else None
         time_display_end_str = taskschedule.time_display_end.strftime("%H:%M") if taskschedule.time_display_end else None
         
+        # 动态计算周期显示文本
+        cycle_display = self._calculate_cycle_display(taskschedule.cycle_type, taskschedule.cycle_config)
+        
         return {
             "id": taskschedule.id,
             "task_id": taskschedule.task_id,
@@ -385,16 +361,9 @@ class TaskScheduleService:
             "cycle_config": taskschedule.cycle_config,
             "time_mode": taskschedule.time_mode,
             "time_config": taskschedule.time_config,
-            "frequency_display": taskschedule.frequency_display,
+            "cycle_display": cycle_display,
             "time_display_start": time_display_start_str,
             "time_display_end": time_display_end_str,
-            # 前端期望的字段名（映射）
-            "frequency": taskschedule.frequency_display,  # 映射自 frequency_display
-            "cycle": taskschedule.frequency_display,  # 改为映射自 frequency_display（与 frequency 保持一致）
-            "startTime": time_display_start_str,  # 映射自 time_display_start（camelCase）
-            "endTime": time_display_end_str,  # 映射自 time_display_end（camelCase）
-            "start_time": time_display_start_str,  # 映射自 time_display_start（snake_case）
-            "end_time": time_display_end_str,  # 映射自 time_display_end（snake_case）
             "created_at": taskschedule.created_at.strftime("%Y-%m-%dT%H:%M:%S") if taskschedule.created_at else None,
             "updated_at": taskschedule.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if taskschedule.updated_at else None,
             "created_by": taskschedule.created_by,
@@ -402,10 +371,10 @@ class TaskScheduleService:
             "is_deleted": taskschedule.is_deleted,
         }
     
-    def _calculate_frequency_display(self, cycle_type: Optional[str], cycle_config: Optional[Dict[str, Any]]) -> Optional[str]:
+    def _calculate_cycle_display(self, cycle_type: Optional[str], cycle_config: Optional[Dict[str, Any]]) -> str:
         """计算周期显示文本"""
         if not cycle_type:
-            return None
+            return ''
         
         if cycle_type == 'daily':
             return '每天'
@@ -420,11 +389,8 @@ class TaskScheduleService:
             if weeks:
                 weeks_str = '、'.join([f'周{w}' for w in weeks])
                 return f'每{weeks_str}'
-        elif cycle_type == 'interval' and cycle_config and 'intervalDays' in cycle_config:
-            days = cycle_config['intervalDays']
-            return f'每{days}天'
         
-        return None
+        return ''
     
     def _calculate_time_display(self, time_config: Optional[Dict[str, Any]]) -> Tuple[Optional[time], Optional[time]]:
         """计算时间显示字段"""

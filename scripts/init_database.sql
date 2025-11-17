@@ -312,10 +312,10 @@ CREATE TABLE tb_gimbalschedule (
     enabled BOOLEAN NOT NULL DEFAULT TRUE COMMENT '启用状态：0-禁用，1-启用',
     
     -- 执行周期配置
-    cycle_type VARCHAR(20) NOT NULL COMMENT '周期类型：daily/monthly_days/weekly/interval',
+    cycle_type VARCHAR(20) NOT NULL COMMENT '周期类型：daily/monthly_days/weekly',
     cycle_config JSON NULL COMMENT '周期详细配置（JSON格式）',
     -- cycle_config 结构示例：
-    -- {"selectedDays": [1,5,10]} 或 {"selectedWeeks": [1,3,5]} 或 {"intervalDays": 3}
+    -- {"selectedDays": [1,5,10]} 或 {"selectedWeeks": [1,3,5]}
     
     -- 执行时间配置
     time_mode VARCHAR(20) NOT NULL COMMENT '时间模式：custom/interval',
@@ -325,7 +325,6 @@ CREATE TABLE tb_gimbalschedule (
     -- 间隔模式: {"intervalTimeRange": ["08:00","18:00"], "intervalMinutes": 60}
     
     -- 用于显示的简化字段（便于查询和展示）
-    frequency_display VARCHAR(200) NULL COMMENT '周期显示文本（如"每天"、"每月1、5、10日"）',
     time_display_start TIME NULL COMMENT '开始时间（用于时间轴显示）',
     time_display_end TIME NULL COMMENT '结束时间（用于时间轴显示）',
     
@@ -763,10 +762,10 @@ CREATE TABLE tb_taskschedule (
     item_count INT DEFAULT 0 COMMENT '关联的巡检项目数量',
     
     -- 执行周期配置
-    cycle_type VARCHAR(20) NOT NULL COMMENT '周期类型：daily/monthly_days/weekly/interval',
+    cycle_type VARCHAR(20) NOT NULL COMMENT '周期类型：daily/monthly_days/weekly',
     cycle_config JSON COMMENT '周期详细配置（JSON格式）',
     -- cycle_config 结构示例：
-    -- {"selectedDays": [1,5,10]} 或 {"selectedWeeks": [1,3,5]} 或 {"intervalDays": 3}
+    -- {"selectedDays": [1,5,10]} 或 {"selectedWeeks": [1,3,5]}
     
     -- 执行时间配置
     time_mode VARCHAR(20) NOT NULL COMMENT '时间模式：custom/interval',

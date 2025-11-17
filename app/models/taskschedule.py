@@ -22,7 +22,7 @@ class TaskSchedule(BaseModel):
     item_count = Column(Integer, nullable=False, default=0, comment="关联的巡检项目数量")
     
     # 执行周期配置
-    cycle_type = Column(String(20), nullable=False, comment="周期类型：daily/monthly_days/weekly/interval")
+    cycle_type = Column(String(20), nullable=False, comment="周期类型：daily/monthly_days/weekly")
     cycle_config = Column(JSON, nullable=True, comment="周期详细配置（JSON格式）")
     
     # 执行时间配置
@@ -30,7 +30,6 @@ class TaskSchedule(BaseModel):
     time_config = Column(JSON, nullable=False, comment="时间详细配置（JSON格式）")
     
     # 用于显示的简化字段（便于查询和展示）
-    frequency_display = Column(String(200), nullable=True, comment="周期显示文本，例如：每天、每月1/5/10日")
     time_display_start = Column(Time, nullable=True, comment="开始时间（用于时间轴显示）")
     time_display_end = Column(Time, nullable=True, comment="结束时间（用于时间轴显示）")
     

@@ -17,7 +17,7 @@ class GimbalScheduleBase(BaseSchema):
     enabled: bool = Field(True, description="启用状态")
     
     # 执行周期配置
-    cycle_type: str = Field(..., description="周期类型：daily/monthly_days/weekly/interval")
+    cycle_type: str = Field(..., description="周期类型：daily/monthly_days/weekly")
     cycle_config: Optional[Dict[str, Any]] = Field(None, description="周期详细配置（JSON格式）")
     
     # 执行时间配置
@@ -25,13 +25,12 @@ class GimbalScheduleBase(BaseSchema):
     time_config: Dict[str, Any] = Field(..., description="时间详细配置（JSON格式）")
     
     # 用于显示的简化字段
-    frequency_display: Optional[str] = Field(None, description="周期显示文本")
     time_display_start: Optional[time] = Field(None, description="开始时间（用于时间轴显示）")
     time_display_end: Optional[time] = Field(None, description="结束时间（用于时间轴显示）")
     
     @validator('cycle_type')
     def validate_cycle_type(cls, v):
-        valid_types = ['daily', 'monthly_days', 'weekly', 'interval']
+        valid_types = ['daily', 'monthly_days', 'weekly']
         if v not in valid_types:
             raise ValueError(f'cycle_type 必须是以下之一: {", ".join(valid_types)}')
         return v
@@ -62,11 +61,10 @@ class GimbalScheduleUpdate(BaseSchema):
     start_date: Optional[date] = Field(None, description="开始日期")
     end_date: Optional[date] = Field(None, description="结束日期")
     enabled: Optional[bool] = Field(None, description="启用状态")
-    cycle_type: Optional[str] = Field(None, description="周期类型：daily/monthly_days/weekly/interval")
+    cycle_type: Optional[str] = Field(None, description="周期类型：daily/monthly_days/weekly")
     cycle_config: Optional[Dict[str, Any]] = Field(None, description="周期详细配置")
     time_mode: Optional[str] = Field(None, description="时间模式：custom/interval")
     time_config: Optional[Dict[str, Any]] = Field(None, description="时间详细配置")
-    frequency_display: Optional[str] = Field(None, description="周期显示文本")
     time_display_start: Optional[time] = Field(None, description="开始时间")
     time_display_end: Optional[time] = Field(None, description="结束时间")
 
@@ -79,11 +77,11 @@ class GimbalScheduleResponse(BaseResponse):
     start_date: str = Field(..., description="开始日期")
     end_date: str = Field(..., description="结束日期")
     enabled: bool = Field(..., description="启用状态")
-    cycle_type: str = Field(..., description="周期类型")
+    cycle_type: str = Field(..., description="周期类型：daily/monthly_days/weekly")
     cycle_config: Optional[Dict[str, Any]] = Field(None, description="周期配置")
-    time_mode: str = Field(..., description="时间模式")
+    time_mode: str = Field(..., description="时间模式：custom/interval")
     time_config: Dict[str, Any] = Field(..., description="时间配置")
-    frequency_display: Optional[str] = Field(None, description="周期显示文本")
+    cycle_display: str = Field(..., description="周期显示文本（动态计算，如：每天、每月1/5/10日、每周一/三/五）")
     time_display_start: Optional[str] = Field(None, description="开始时间")
     time_display_end: Optional[str] = Field(None, description="结束时间")
     created_at: str = Field(..., description="创建时间")
@@ -96,7 +94,7 @@ class GimbalScheduleQuery(BaseSchema):
     """云台日程查询模式"""
     page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
     size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
-    cycle_type: Optional[str] = Field(None, description="周期类型筛选：daily/monthly_days/weekly/interval")
+    cycle_type: Optional[str] = Field(None, description="周期类型筛选：daily/monthly_days/weekly")
     enabled: Optional[bool] = Field(None, description="启用状态筛选")
     gimbaltask_id: Optional[str] = Field(None, description="云台任务ID筛选")
 
@@ -116,10 +114,9 @@ class GimbalScheduleFrontendCreate(BaseSchema):
     enabled: bool = Field(True, description="启用状态")
     
     # 周期配置
-    cycle: str = Field(..., description="周期类型：每天/日/周/间隔")
+    cycle: str = Field(..., description="周期类型：每天/日/周")
     selectedDays: Optional[List[int]] = Field(None, description="选中的日期（日模式）")
     selectedWeeks: Optional[List[int]] = Field(None, description="选中的星期（周模式，1-7）")
-    intervalDays: Optional[int] = Field(None, ge=1, description="间隔天数（间隔模式）")
     
     # 时间配置
     timeMode: str = Field(..., description="时间模式：自定义/间隔")
@@ -130,7 +127,7 @@ class GimbalScheduleFrontendCreate(BaseSchema):
     def to_backend_format(self) -> Dict[str, Any]:
         """将前端格式转换为后端格式"""
         # 周期类型映射
-        cycle_mapping = {'每天': 'daily', '日': 'monthly_days', '周': 'weekly', '间隔': 'interval'}
+        cycle_mapping = {'每天': 'daily', '日': 'monthly_days', '周': 'weekly'}
         cycle_type = cycle_mapping[self.cycle]
         
         # 构建 cycle_config
@@ -139,8 +136,6 @@ class GimbalScheduleFrontendCreate(BaseSchema):
             cycle_config = {"selectedDays": self.selectedDays}
         elif cycle_type == 'weekly' and self.selectedWeeks:
             cycle_config = {"selectedWeeks": self.selectedWeeks}
-        elif cycle_type == 'interval' and self.intervalDays:
-            cycle_config = {"intervalDays": self.intervalDays}
         
         # 时间模式映射
         time_mode_mapping = {'自定义': 'custom', '间隔': 'interval'}
@@ -161,7 +156,6 @@ class GimbalScheduleFrontendCreate(BaseSchema):
         end_date = date.fromisoformat(self.dateRange[1]) if self.dateRange and len(self.dateRange) > 1 else None
         
         # 计算显示字段
-        frequency_display = self._calculate_frequency_display(cycle_type, cycle_config)
         time_display_start, time_display_end = self._calculate_time_display(time_config)
         
         return {
@@ -174,27 +168,10 @@ class GimbalScheduleFrontendCreate(BaseSchema):
             "cycle_config": cycle_config,
             "time_mode": time_mode,
             "time_config": time_config,
-            "frequency_display": frequency_display,
             "time_display_start": time_display_start,
             "time_display_end": time_display_end,
         }
     
-    @staticmethod
-    def _calculate_frequency_display(cycle_type: str, cycle_config: Optional[Dict[str, Any]]) -> str:
-        """计算频率显示文本"""
-        if cycle_type == 'daily':
-            return '每天'
-        elif cycle_type == 'monthly_days' and cycle_config and 'selectedDays' in cycle_config:
-            days = sorted(cycle_config['selectedDays'])
-            return f'每月{"/".join(map(str, days))}日'
-        elif cycle_type == 'weekly' and cycle_config and 'selectedWeeks' in cycle_config:
-            week_names = {1: '一', 2: '二', 3: '三', 4: '四', 5: '五', 6: '六', 7: '日'}
-            weeks = [week_names.get(w, str(w)) for w in sorted(cycle_config['selectedWeeks'])]
-            return f'每周{"/".join(weeks)}'
-        elif cycle_type == 'interval' and cycle_config and 'intervalDays' in cycle_config:
-            days = cycle_config['intervalDays']
-            return f'每{days}天'
-        return ''
     
     @staticmethod
     def _calculate_time_display(time_config: Dict[str, Any]) -> Tuple[Optional[time], Optional[time]]:
