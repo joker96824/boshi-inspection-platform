@@ -795,29 +795,7 @@ CREATE TABLE tb_taskschedule (
     INDEX idx_is_deleted (is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务巡检日程表';
 
--- 创建任务记录表
-CREATE TABLE tb_taskhistory (
-    id VARCHAR(36) PRIMARY KEY COMMENT '任务记录ID',
-    task_id VARCHAR(36) NOT NULL COMMENT '关联任务ID',
-    record_start_time DATETIME NOT NULL COMMENT '任务开始时间',
-    record_end_time DATETIME NULL COMMENT '任务结束时间',
-    record_status VARCHAR(20) NOT NULL COMMENT '任务状态',
-    record_batch INT NOT NULL COMMENT '任务批次号',
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    created_by VARCHAR(100) NULL COMMENT '创建人',
-    updated_by VARCHAR(100) NULL COMMENT '更新人',
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
-    FOREIGN KEY (task_id) REFERENCES tb_task(id) ON DELETE CASCADE,
-    INDEX idx_task_id (task_id),
-    INDEX idx_record_status (record_status),
-    INDEX idx_record_batch (record_batch),
-    INDEX idx_record_start_time (record_start_time),
-    INDEX idx_record_end_time (record_end_time),
-    INDEX idx_is_deleted (is_deleted)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务记录表';
-
--- 创建巡检项目表
+-- 创建巡检项目表（必须在tb_taskhistory之前创建，因为tb_taskhistory引用tb_item）
 CREATE TABLE tb_item (
     id VARCHAR(36) PRIMARY KEY COMMENT '巡检项目ID',
     item_name VARCHAR(100) NOT NULL COMMENT '巡检项目名称',
@@ -837,6 +815,34 @@ CREATE TABLE tb_item (
     UNIQUE KEY uk_item_name_active (item_name, is_deleted),
     FOREIGN KEY (device_id) REFERENCES tb_device(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='巡检项目表';
+
+-- 创建任务记录表（必须在tb_item之后创建，因为tb_taskhistory引用tb_item）
+CREATE TABLE tb_taskhistory (
+    id VARCHAR(36) PRIMARY KEY COMMENT '任务记录ID',
+    task_id VARCHAR(36) NOT NULL COMMENT '关联任务ID',
+    record_start_time DATETIME NOT NULL COMMENT '任务开始时间',
+    record_end_time DATETIME NULL COMMENT '任务结束时间',
+    record_status VARCHAR(20) NOT NULL COMMENT '任务状态：running-执行中, paused-已暂停, completed-已完成, failed-执行失败, cancelled-已取消',
+    record_batch INT NOT NULL COMMENT '任务批次号',
+    current_point_id VARCHAR(36) NULL COMMENT '当前执行的巡检点ID',
+    current_item_id VARCHAR(36) NULL COMMENT '当前执行的巡检项目ID',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(100) NULL COMMENT '创建人',
+    updated_by VARCHAR(100) NULL COMMENT '更新人',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
+    FOREIGN KEY (task_id) REFERENCES tb_task(id) ON DELETE CASCADE,
+    FOREIGN KEY (current_point_id) REFERENCES tb_point(id) ON DELETE SET NULL,
+    FOREIGN KEY (current_item_id) REFERENCES tb_item(id) ON DELETE SET NULL,
+    INDEX idx_task_id (task_id),
+    INDEX idx_record_status (record_status),
+    INDEX idx_record_batch (record_batch),
+    INDEX idx_record_start_time (record_start_time),
+    INDEX idx_record_end_time (record_end_time),
+    INDEX idx_current_point_id (current_point_id),
+    INDEX idx_current_item_id (current_item_id),
+    INDEX idx_is_deleted (is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务记录表';
 
 -- 创建巡检记录表
 CREATE TABLE tb_itemhistory (

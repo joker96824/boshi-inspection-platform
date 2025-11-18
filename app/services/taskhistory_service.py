@@ -12,6 +12,7 @@ from ..schemas.taskhistory import TaskHistoryCreate, TaskHistoryUpdate, TaskHist
 from ..core.exceptions import (
     ResourceNotFoundError, PermissionDeniedError, BusinessError
 )
+from ..core.task_status import TaskStatus
 from ..utils.response import ApiResponse
 from ..config.logging import get_logger, log_user_action
 
@@ -236,7 +237,10 @@ class TaskHistoryService:
             "record_start_time": taskhistory.record_start_time.strftime("%Y-%m-%dT%H:%M:%S") if taskhistory.record_start_time else None,
             "record_end_time": taskhistory.record_end_time.strftime("%Y-%m-%dT%H:%M:%S") if taskhistory.record_end_time else None,
             "record_status": taskhistory.record_status,
+            "record_status_display": TaskStatus.get_status_display(taskhistory.record_status),
             "record_batch": taskhistory.record_batch,
+            "current_point_id": taskhistory.current_point_id,
+            "current_item_id": taskhistory.current_item_id,
             "created_at": taskhistory.created_at.strftime("%Y-%m-%dT%H:%M:%S") if taskhistory.created_at else None,
             "updated_at": taskhistory.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if taskhistory.updated_at else None,
             "created_by": taskhistory.created_by,

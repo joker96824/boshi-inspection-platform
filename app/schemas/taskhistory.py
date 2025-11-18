@@ -6,6 +6,7 @@ from typing import Optional, List
 from pydantic import Field, validator
 from datetime import datetime
 from .base import BaseSchema, BaseResponse
+from ..core.task_status import TaskStatus
 
 
 class TaskHistoryBase(BaseSchema):
@@ -13,8 +14,10 @@ class TaskHistoryBase(BaseSchema):
     task_id: str = Field(..., description="关联任务ID")
     record_start_time: str = Field(..., min_length=1, max_length=50, description="任务开始时间（格式：YYYY-MM-DDTHH:MM:SS）")
     record_end_time: Optional[str] = Field(None, min_length=1, max_length=50, description="任务结束时间（格式：YYYY-MM-DDTHH:MM:SS）")
-    record_status: str = Field(..., min_length=1, max_length=20, description="任务状态")
+    record_status: str = Field(..., description="任务状态：running-执行中, paused-已暂停, completed-已完成, failed-执行失败, cancelled-已取消")
     record_batch: int = Field(..., ge=1, description="任务批次号")
+    current_point_id: Optional[str] = Field(None, description="当前执行的巡检点ID")
+    current_item_id: Optional[str] = Field(None, description="当前执行的巡检项目ID")
     
     @validator('record_start_time')
     def validate_start_time(cls, v):
@@ -32,6 +35,14 @@ class TaskHistoryBase(BaseSchema):
                 datetime.strptime(v, "%Y-%m-%dT%H:%M:%S")
             except ValueError:
                 raise ValueError('时间格式必须为 YYYY-MM-DDTHH:MM:SS')
+        return v
+    
+    @validator('record_status')
+    def validate_record_status(cls, v):
+        """验证任务状态值"""
+        if not TaskStatus.is_valid(v):
+            valid_statuses = ", ".join(TaskStatus.get_all_statuses())
+            raise ValueError(f"任务状态必须是以下值之一: {valid_statuses}")
         return v
 
 
@@ -44,8 +55,10 @@ class TaskHistoryUpdate(BaseSchema):
     """任务记录更新模式"""
     record_start_time: Optional[str] = Field(None, min_length=1, max_length=50, description="任务开始时间（格式：YYYY-MM-DDTHH:MM:SS）")
     record_end_time: Optional[str] = Field(None, min_length=1, max_length=50, description="任务结束时间（格式：YYYY-MM-DDTHH:MM:SS）")
-    record_status: Optional[str] = Field(None, min_length=1, max_length=20, description="任务状态")
+    record_status: Optional[str] = Field(None, description="任务状态：running-执行中, paused-已暂停, completed-已完成, failed-执行失败, cancelled-已取消")
     record_batch: Optional[int] = Field(None, ge=1, description="任务批次号")
+    current_point_id: Optional[str] = Field(None, description="当前执行的巡检点ID")
+    current_item_id: Optional[str] = Field(None, description="当前执行的巡检项目ID")
     
     @validator('record_start_time')
     def validate_start_time(cls, v):
@@ -64,6 +77,14 @@ class TaskHistoryUpdate(BaseSchema):
             except ValueError:
                 raise ValueError('时间格式必须为 YYYY-MM-DDTHH:MM:SS')
         return v
+    
+    @validator('record_status')
+    def validate_record_status(cls, v):
+        """验证任务状态值"""
+        if v is not None and not TaskStatus.is_valid(v):
+            valid_statuses = ", ".join(TaskStatus.get_all_statuses())
+            raise ValueError(f"任务状态必须是以下值之一: {valid_statuses}")
+        return v
 
 
 class TaskHistoryResponse(BaseResponse):
@@ -72,7 +93,10 @@ class TaskHistoryResponse(BaseResponse):
     record_start_time: str = Field(..., description="任务开始时间")
     record_end_time: Optional[str] = Field(None, description="任务结束时间")
     record_status: str = Field(..., description="任务状态")
+    record_status_display: str = Field(..., description="任务状态显示文本")
     record_batch: int = Field(..., description="任务批次号")
+    current_point_id: Optional[str] = Field(None, description="当前执行的巡检点ID")
+    current_item_id: Optional[str] = Field(None, description="当前执行的巡检项目ID")
 
 
 class TaskHistoryQuery(BaseSchema):
