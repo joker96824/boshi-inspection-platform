@@ -76,6 +76,7 @@ class MapResponse(MapBase, BaseResponse):
 class MapQuery(BaseSchema):
     """地图查询模式"""
     map_name: Optional[str] = Field(None, description="地图名称（模糊匹配）")
+    factory_id: Optional[str] = Field(None, description="厂区ID（精确匹配）")
     page: Optional[int] = Field(None, gt=0, description="页码（可选，大于0，必须与size同时提供）")
     size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
 

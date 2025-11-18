@@ -107,6 +107,7 @@ class MapService:
             if query.page is None or query.size is None:
                 maps, total = await self.map_repo.get_all(
                     map_name=query.map_name,
+                    factory_id=query.factory_id,
                     skip=None,
                     limit=None
                 )
@@ -122,6 +123,7 @@ class MapService:
             # 查询所有地图数据
             maps, total = await self.map_repo.get_all(
                 map_name=query.map_name,
+                factory_id=query.factory_id,
                 skip=skip,
                 limit=query.size
             )

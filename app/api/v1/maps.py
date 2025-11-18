@@ -46,6 +46,7 @@ async def create_map(
 @router.get("/", response_model=dict)
 async def get_user_maps(
     map_name: Optional[str] = Query(None, description="地图名称（模糊匹配）"),
+    factory_id: Optional[str] = Query(None, description="厂区ID（精确匹配）"),
     page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
     size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     db: AsyncSession = Depends(get_db),
@@ -55,6 +56,7 @@ async def get_user_maps(
     
     Args:
         map_name: 地图名称模糊匹配（可选）
+        factory_id: 厂区ID精确匹配（可选）
         page: 页码
         size: 每页数量
         db: 数据库会话
@@ -67,7 +69,7 @@ async def get_user_maps(
         401: 用户未认证
     """
     validate_pagination_params(page, size)
-    query = MapQuery(map_name=map_name, page=page, size=size)
+    query = MapQuery(map_name=map_name, factory_id=factory_id, page=page, size=size)
     map_service = MapService(db)
     return await map_service.get_user_maps(query, current_user)
 

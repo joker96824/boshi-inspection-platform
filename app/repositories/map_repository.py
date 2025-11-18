@@ -137,12 +137,14 @@ class MapRepository:
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
-    async def get_all(self, map_name: str = None, skip: Optional[int] = None, limit: Optional[int] = None) -> Tuple[List[Map], int]:
+    async def get_all(self, map_name: str = None, factory_id: str = None, skip: Optional[int] = None, limit: Optional[int] = None) -> Tuple[List[Map], int]:
         """获取所有地图列表"""
         # 构建查询条件
         conditions = [Map.is_deleted == False]
         if map_name:
             conditions.append(Map.map_name.like(f"%{map_name}%"))
+        if factory_id:
+            conditions.append(Map.factory_id == factory_id)
         
         # 查询总数
         count_query = select(func.count(Map.id)).where(and_(*conditions))
