@@ -12,6 +12,7 @@ class ItemBase(BaseSchema):
     item_name: str = Field(..., min_length=1, max_length=100, description="巡检项目名称")
     item_info: Dict[str, Any] = Field(..., description="巡检参数信息")
     device_id: str = Field(..., description="所属设备ID")
+    robot_id: Optional[str] = Field(None, description="关联机器人ID")
     enabled: bool = Field(True, description="启用状态：True-启用，False-禁用")
 
 
@@ -25,6 +26,7 @@ class ItemUpdate(BaseSchema):
     item_name: Optional[str] = Field(None, min_length=1, max_length=100, description="巡检项目名称")
     item_info: Optional[Dict[str, Any]] = Field(None, description="巡检参数信息")
     device_id: Optional[str] = Field(None, description="所属设备ID")
+    robot_id: Optional[str] = Field(None, description="关联机器人ID")
     enabled: Optional[bool] = Field(None, description="启用状态：True-启用，False-禁用")
 
 
@@ -34,6 +36,7 @@ class ItemResponse(BaseResponse):
     item_name: str = Field(..., description="巡检项目名称")
     item_info: Dict[str, Any] = Field(..., description="巡检参数信息")
     device_id: str = Field(..., description="所属设备ID")
+    robot_id: Optional[str] = Field(None, description="关联机器人ID")
     enabled: bool = Field(..., description="启用状态：True-启用，False-禁用")
     created_at: str = Field(..., description="创建时间")
     updated_at: str = Field(..., description="更新时间")
@@ -47,6 +50,7 @@ class ItemQuery(BaseSchema):
     size: Optional[int] = Field(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）")
     item_name: Optional[str] = Field(None, description="巡检项目名称（模糊查询）")
     device_id: Optional[str] = Field(None, description="设备ID（筛选）")
+    robot_id: Optional[str] = Field(None, description="机器人ID（筛选）")
 
 
 class ItemListResponse(BaseSchema):

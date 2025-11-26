@@ -29,6 +29,7 @@ from .api.v1 import (
     gimbalinspectionprojects,
     gimbalschedules,
     gimbalhistories,
+    gimbalpresetpoints,
     devices,
     sensors,
     sensorhistories,
@@ -96,6 +97,7 @@ def register_routes():
     )
     app.include_router(gimbalschedules.router, prefix="/api/v1/gimbalschedules", tags=["云台日程管理"])
     app.include_router(gimbalhistories.router, prefix="/api/v1/gimbalhistories", tags=["云台巡检记录管理"])
+    app.include_router(gimbalpresetpoints.router, prefix="/api/v1/gimbalpresetpoints", tags=["云台预设点管理"])
     
     # 设备相关模块（按添加顺序）
     app.include_router(devices.router, prefix="/api/v1/devices", tags=["设备管理"])

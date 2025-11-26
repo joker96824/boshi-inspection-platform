@@ -22,12 +22,15 @@ class GimbalInspectionProjectRepository:
 
     async def create(self, data: Dict[str, Any]) -> GimbalInspectionProject:
         """创建云台巡检项目"""
+        from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
+        
         project = GimbalInspectionProject(**data)
         self.db.add(project)
         await self.db.commit()
         await self.db.refresh(project)
-        await self.db.refresh(project, attribute_names=["gimbal_task"])
-        return project
+        
+        # 重新查询以预加载所有关系（避免懒加载导致的异步上下文问题）
+        return await self.get_by_id(project.id) or project
 
     async def get_by_id(self, project_id: str) -> Optional[GimbalInspectionProject]:
         """根据ID获取云台巡检项目（预加载预设点关联）"""
@@ -41,7 +44,6 @@ class GimbalInspectionProjectRepository:
                 ),
                 selectinload(GimbalInspectionProject.preset_points)
                 .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
-                selectinload(GimbalInspectionProject.histories),
             )
             .where(
                 GimbalInspectionProject.id == project_id,
@@ -157,8 +159,8 @@ class GimbalInspectionProjectRepository:
             setattr(project, key, value)
 
         await self.db.commit()
-        await self.db.refresh(project)
-        return project
+        # 重新查询以预加载所有关系（避免懒加载导致的异步上下文问题）
+        return await self.get_by_id(project_id)
 
     async def soft_delete(self, project_id: str, deleted_by: str) -> bool:
         """软删除云台巡检项目"""

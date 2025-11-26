@@ -13,6 +13,10 @@ from ..repositories.gimbalinspectionproject_repository import (
     GimbalInspectionProjectRepository,
 )
 from ..repositories.gimbaltask_repository import GimbalTaskRepository
+from ..repositories.gimbalinspectionprojectpresetpoint_repository import (
+    GimbalInspectionProjectPresetPointRepository,
+)
+from ..repositories.gimbalpresetpoint_repository import GimbalPresetPointRepository
 from ..schemas.gimbalinspectionproject import (
     GimbalInspectionProjectCreate,
     GimbalInspectionProjectQuery,
@@ -30,6 +34,8 @@ class GimbalInspectionProjectService:
         self.db = db
         self.project_repo = GimbalInspectionProjectRepository(db)
         self.gimbal_task_repo = GimbalTaskRepository(db)
+        self.link_repo = GimbalInspectionProjectPresetPointRepository(db)
+        self.preset_point_repo = GimbalPresetPointRepository(db)
 
     async def create_project(
         self, project_data: GimbalInspectionProjectCreate, user: dict
@@ -280,10 +286,9 @@ class GimbalInspectionProjectService:
         # 格式化预设点关联信息
         preset_points_info = []
         if hasattr(project, 'preset_points') and project.preset_points:
-            active_preset_points = [pp for pp in project.preset_points if not pp.is_deleted]
-            for pp_link in active_preset_points:
+            for pp_link in project.preset_points:
                 preset_point = pp_link.preset_point if hasattr(pp_link, 'preset_point') else None
-                if preset_point and not preset_point.is_deleted:
+                if preset_point:
                     preset_points_info.append({
                         "id": preset_point.id,
                         "preset_name": preset_point.preset_name,
@@ -320,4 +325,190 @@ class GimbalInspectionProjectService:
             "created_by": project.created_by,
             "updated_by": project.updated_by,
         }
+
+    async def set_project_preset_points(
+        self,
+        inspection_project_id: str,
+        preset_point_links: List[Dict[str, Any]],
+        user: dict,
+    ) -> Dict[str, Any]:
+        """设置巡检项目的预设点关联（删除原有关联，添加新关联）
+
+        Args:
+            inspection_project_id: 巡检项目ID
+            preset_point_links: 预设点关联列表，每个关联包含：
+                - preset_point_id: 预设点ID
+                - detection_type: 检测类型
+                - video_duration: 视频时长（可选，当detection_type为视频类型时使用）
+
+        Returns:
+            设置结果
+        """
+        try:
+            # 检查巡检项目是否存在
+            project = await self.project_repo.get_by_id(inspection_project_id)
+            if not project:
+                raise ResourceNotFoundError(
+                    f"云台巡检项目ID '{inspection_project_id}' 不存在"
+                )
+
+            # 验证预设点是否存在
+            preset_point_ids = [link["preset_point_id"] for link in preset_point_links]
+            if preset_point_ids:
+                preset_points = await self.preset_point_repo.get_by_ids(preset_point_ids)
+                found_ids = {pp.id for pp in preset_points}
+                missing_ids = set(preset_point_ids) - found_ids
+                if missing_ids:
+                    raise ResourceNotFoundError(
+                        f"预设点ID不存在: {', '.join(missing_ids)}"
+                    )
+
+            # 验证检测类型
+            valid_detection_types = [
+                "可见光图片",
+                "可见光视频",
+                "热成像图片",
+                "热成像视频",
+            ]
+            for link in preset_point_links:
+                if link.get("detection_type") not in valid_detection_types:
+                    raise ValidationError(
+                        f"检测类型 '{link.get('detection_type')}' 无效，必须是: {', '.join(valid_detection_types)}"
+                    )
+                # 如果是视频类型，必须提供video_duration
+                if link.get("detection_type") in ["可见光视频", "热成像视频"]:
+                    if not link.get("video_duration"):
+                        raise ValidationError(
+                            f"检测类型为 '{link.get('detection_type')}' 时，必须提供 video_duration"
+                        )
+
+            # 检查是否有重复的 (preset_point_id, detection_type) 组合
+            seen_combinations = set()
+            for link in preset_point_links:
+                combination = (link["preset_point_id"], link["detection_type"])
+                if combination in seen_combinations:
+                    raise ValidationError(
+                        f"预设点关联中存在重复的组合：预设点ID '{link['preset_point_id']}' 和检测类型 '{link['detection_type']}'"
+                    )
+                seen_combinations.add(combination)
+
+            # 获取所有旧关联
+            old_links = await self.link_repo.get_by_inspection_project_id(
+                inspection_project_id
+            )
+            old_links_map = {
+                (link.preset_point_id, link.detection_type): link
+                for link in old_links
+            }
+
+            # 处理新关联：更新已存在的或创建新的
+            links_to_create = []
+            links_to_update = []
+
+            for link in preset_point_links:
+                combination = (link["preset_point_id"], link["detection_type"])
+                if combination in old_links_map:
+                    # 如果已存在，更新它
+                    existing_link = old_links_map[combination]
+                    existing_link.video_duration = link.get("video_duration")
+                    existing_link.updated_by = user["username"]
+                    links_to_update.append(existing_link)
+                else:
+                    # 创建新关联
+                    link_data = {
+                        "inspection_project_id": inspection_project_id,
+                        "preset_point_id": link["preset_point_id"],
+                        "detection_type": link["detection_type"],
+                        "video_duration": link.get("video_duration"),
+                        "created_by": user["username"],
+                        "updated_by": user["username"],
+                    }
+                    links_to_create.append(link_data)
+
+            # 物理删除不再需要的旧关联
+            new_combinations = {
+                (link["preset_point_id"], link["detection_type"])
+                for link in preset_point_links
+            }
+            links_to_delete = [
+                old_link
+                for old_link in old_links
+                if (old_link.preset_point_id, old_link.detection_type)
+                not in new_combinations
+            ]
+
+            # 执行删除操作
+            if links_to_delete:
+                for link in links_to_delete:
+                    await self.link_repo.delete_by_id(link.id)
+
+            # 提交所有更改
+            if links_to_create:
+                await self.link_repo.create_batch(links_to_create)
+            if links_to_update:
+                await self.db.commit()
+
+            total_links = len(links_to_create) + len(links_to_update)
+            log_user_action(
+                user["username"],
+                "set_gimbal_inspection_project_preset_points",
+                "success",
+                f"设置云台巡检项目预设点关联成功，项目ID: {inspection_project_id}，关联数量: {total_links}",
+            )
+
+            # 重新获取项目信息（包含新关联）
+            updated_project = await self.project_repo.get_by_id(inspection_project_id)
+
+            total_links_count = len(links_to_create) + len(links_to_update)
+            return ApiResponse.success(
+                data=self._format_project_response(updated_project),
+                message=f"设置预设点关联成功，共关联 {total_links_count} 个预设点",
+            )
+
+        except (ResourceNotFoundError, ValidationError, BusinessError) as e:
+            logger.warning(f"设置云台巡检项目预设点关联失败: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"设置云台巡检项目预设点关联失败: {e}", exc_info=True)
+            raise BusinessError(f"设置预设点关联失败: {str(e)}")
+
+    async def delete_project_preset_point_link(
+        self, link_id: str, user: dict
+    ) -> Dict[str, Any]:
+        """删除巡检项目的预设点关联
+
+        Args:
+            link_id: 关联ID
+            user: 当前用户
+
+        Returns:
+            删除结果
+        """
+        try:
+            link = await self.link_repo.get_by_id(link_id)
+            if not link:
+                raise ResourceNotFoundError(f"关联ID '{link_id}' 不存在")
+
+            success = await self.link_repo.delete_by_id(link_id)
+
+            if not success:
+                raise BusinessError("删除预设点关联失败")
+
+            log_user_action(
+                user["username"],
+                "delete_gimbal_inspection_project_preset_point_link",
+                "success",
+                f"删除云台巡检项目预设点关联成功，关联ID: {link_id}",
+            )
+
+            return ApiResponse.success(
+                data={"link_id": link_id}, message="删除预设点关联成功"
+            )
+
+        except (ResourceNotFoundError, BusinessError) as e:
+            logger.warning(f"删除云台巡检项目预设点关联失败: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"删除云台巡检项目预设点关联失败: {e}", exc_info=True)
+            raise BusinessError(f"删除预设点关联失败: {str(e)}")
 

@@ -299,6 +299,31 @@ class MapService:
             "updated_by": robot.updated_by,
         }
 
+    def _format_gimbal_response(self, gimbal) -> Dict[str, Any]:
+        """格式化云台响应数据（简化版，仅包含基本信息）"""
+        return {
+            "id": gimbal.id,
+            "gimbal_name": gimbal.gimbal_name,
+            "map_id": gimbal.map_id,
+            "enabled": gimbal.enabled,
+            "ip_address": str(gimbal.ip_address) if gimbal.ip_address else None,
+            "port": gimbal.port,
+            "username": gimbal.username,
+            "rtsp_main_url": gimbal.rtsp_main_url,
+            "rtsp_sub_url": gimbal.rtsp_sub_url,
+            "channel": gimbal.channel,
+            "x_coordinate": gimbal.x_coordinate,
+            "y_coordinate": gimbal.y_coordinate,
+            "p_coordinate": gimbal.p_coordinate,
+            "t_coordinate": gimbal.t_coordinate,
+            "z_coordinate": gimbal.z_coordinate,
+            "f_coordinate": gimbal.f_coordinate,
+            "created_at": gimbal.created_at.strftime("%Y-%m-%dT%H:%M:%S") if gimbal.created_at else None,
+            "updated_at": gimbal.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if gimbal.updated_at else None,
+            "created_by": gimbal.created_by,
+            "updated_by": gimbal.updated_by,
+        }
+
     def _format_point_response(self, point) -> Dict[str, Any]:
         """格式化巡检点响应数据（包含设备和巡检项目）"""
         # 格式化设备数据
@@ -361,11 +386,22 @@ class MapService:
             "updated_by": point.updated_by,
         }
 
-    async def get_map_with_robots_points_items(self, map_id: str, user: Optional[dict] = None) -> Dict[str, Any]:
-        """获取地图及其关联的机器人、巡检点和巡检项目数据"""
+    async def get_map_with_robots_points_items(
+        self, 
+        map_id: str, 
+        user: Optional[dict] = None,
+        robot_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """获取地图及其关联的机器人、巡检点、巡检项目和云台数据
+        
+        Args:
+            map_id: 地图ID
+            user: 当前用户
+            robot_id: 机器人ID（可选，用于过滤巡检点-设备-巡检项目）
+        """
         try:
             # 获取地图及其关联数据
-            related_data = await self.map_repo.get_map_with_related_data(map_id)
+            related_data = await self.map_repo.get_map_with_related_data(map_id, robot_id)
             
             if not related_data:
                 raise ResourceNotFoundError(f"地图 '{map_id}' 不存在")
@@ -374,21 +410,22 @@ class MapService:
             result = {
                 "map": self._format_map_response(related_data["map"]),
                 "robots": [self._format_robot_response(robot) for robot in related_data["robots"]],
-                "points": [self._format_point_response(point) for point in related_data["points"]]
+                "points": [self._format_point_response(point) for point in related_data["points"]],
+                "gimbals": [self._format_gimbal_response(gimbal) for gimbal in related_data.get("gimbals", [])]
             }
             
             return ApiResponse.success(
                 data=result,
-                message="获取地图关联数据成功"
+                message="获取地图完整数据成功"
             )
             
         except ResourceNotFoundError:
             raise
         except Exception as e:
             logger.error(
-                "获取地图关联数据失败: %s",
+                "获取地图完整数据失败: %s",
                 str(e),
                 extra={"map_id": map_id},
                 exc_info=True
             )
-            raise BusinessError(f"获取地图关联数据失败: {str(e)}")
+            raise BusinessError(f"获取地图完整数据失败: {str(e)}")

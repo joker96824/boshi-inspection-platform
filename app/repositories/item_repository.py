@@ -53,7 +53,7 @@ class ItemRepository:
         return list(result.scalars().all())
     
     async def get_all(self, page: Optional[int] = None, size: Optional[int] = None, 
-                     item_name: str = None, device_id: str = None) -> Tuple[List[Item], int]:
+                     item_name: str = None, device_id: str = None, robot_id: str = None) -> Tuple[List[Item], int]:
         """获取巡检项目列表"""
         # 如果未提供分页参数，返回所有数据
         if page is None or size is None:
@@ -71,6 +71,9 @@ class ItemRepository:
         
         if device_id:
             conditions.append(Item.device_id == device_id)
+        
+        if robot_id:
+            conditions.append(Item.robot_id == robot_id)
         
         # 查询总数
         count_query = select(func.count(Item.id)).where(and_(*conditions))

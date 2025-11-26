@@ -325,8 +325,7 @@ class GimbalService:
                         # 格式化预设点关联信息
                         preset_points_info = []
                         if hasattr(project, 'preset_points') and project.preset_points:
-                            active_preset_points = [pp for pp in project.preset_points if not pp.is_deleted]
-                            for pp_link in active_preset_points:
+                            for pp_link in project.preset_points:
                                 preset_point = pp_link.preset_point if hasattr(pp_link, 'preset_point') else None
                                 if preset_point and not preset_point.is_deleted:
                                     preset_points_info.append({

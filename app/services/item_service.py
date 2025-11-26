@@ -8,6 +8,7 @@ from fastapi import HTTPException
 
 from ..repositories.item_repository import ItemRepository
 from ..repositories.device_repository import DeviceRepository
+from ..repositories.robot_repository import RobotRepository
 from ..schemas.item import ItemCreate, ItemUpdate, ItemQuery
 from ..core.exceptions import (
     ResourceNotFoundError, BusinessError
@@ -25,6 +26,7 @@ class ItemService:
         self.db = db
         self.item_repo = ItemRepository(db)
         self.device_repo = DeviceRepository(db)
+        self.robot_repo = RobotRepository(db)
     
     async def create_item(self, item_data: ItemCreate, user: dict) -> Dict[str, Any]:
         """创建巡检项目"""
@@ -33,6 +35,12 @@ class ItemService:
             device = await self.device_repo.get_by_id(item_data.device_id)
             if not device:
                 raise ResourceNotFoundError(f"设备 '{item_data.device_id}' 不存在")
+            
+            # 如果提供了robot_id，检查机器人是否存在
+            if item_data.robot_id:
+                robot = await self.robot_repo.get_by_id(item_data.robot_id)
+                if not robot:
+                    raise ResourceNotFoundError(f"机器人 '{item_data.robot_id}' 不存在")
             
             # 检查巡检项目名是否已存在
             if await self.item_repo.exists_by_name(item_data.item_name):
@@ -107,7 +115,8 @@ class ItemService:
                     page=None,
                     size=None,
                     item_name=query.item_name,
-                    device_id=query.device_id
+                    device_id=query.device_id,
+                    robot_id=query.robot_id
                 )
                 items_data = [self._format_item_response(item) for item in items]
                 return ApiResponse.success(
@@ -119,7 +128,8 @@ class ItemService:
                 page=query.page,
                 size=query.size,
                 item_name=query.item_name,
-                device_id=query.device_id
+                device_id=query.device_id,
+                robot_id=query.robot_id
             )
             
             # 格式化响应数据
@@ -150,6 +160,13 @@ class ItemService:
                 device = await self.device_repo.get_by_id(item_data.device_id)
                 if not device:
                     raise ResourceNotFoundError(f"设备 '{item_data.device_id}' 不存在")
+            
+            # 如果更新了robot_id，检查机器人是否存在
+            if item_data.robot_id is not None and item_data.robot_id != existing_item.robot_id:
+                if item_data.robot_id:  # 如果提供了非空值
+                    robot = await self.robot_repo.get_by_id(item_data.robot_id)
+                    if not robot:
+                        raise ResourceNotFoundError(f"机器人 '{item_data.robot_id}' 不存在")
             
             # 如果更新了名称，检查是否重复
             if (item_data.item_name and 
@@ -239,6 +256,7 @@ class ItemService:
             "item_name": item.item_name,
             "item_info": item.item_info,
             "device_id": item.device_id,
+            "robot_id": item.robot_id,
             "enabled": item.enabled,
             "created_at": item.created_at.strftime("%Y-%m-%dT%H:%M:%S") if item.created_at else None,
             "updated_at": item.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if item.updated_at else None,

@@ -41,6 +41,7 @@ async def get_items(
     size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     item_name: Optional[str] = Query(None, description="巡检项目名称（模糊查询）"),
     device_id: Optional[str] = Query(None, description="设备ID（筛选）"),
+    robot_id: Optional[str] = Query(None, description="机器人ID（筛选）"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[dict] = Depends(require_no_auth())
 ):
@@ -50,6 +51,8 @@ async def get_items(
         page: 页码
         size: 每页数量
         item_name: 巡检项目名称（模糊查询）
+        device_id: 设备ID（筛选）
+        robot_id: 机器人ID（筛选）
         db: 数据库会话
         current_user: 当前用户
     
@@ -60,7 +63,8 @@ async def get_items(
         page=page,
         size=size,
         item_name=item_name,
-        device_id=device_id
+        device_id=device_id,
+        robot_id=robot_id
     )
     service = ItemService(db)
     return await service.get_items(query, current_user)

@@ -103,6 +103,9 @@ class GimbalRepository:
         else:
             order_column = order_column.asc()
         
+        # 添加稳定的辅助排序（使用id确保排序一致性，避免分页时出现重复数据）
+        secondary_order = Gimbal.id.desc() if sort_order == "desc" else Gimbal.id.asc()
+        
         # 查询数据（预加载任务、日程和预设点）
         from ..models.gimbalinspectionproject import GimbalInspectionProject
         from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
@@ -117,7 +120,7 @@ class GimbalRepository:
                 selectinload(Gimbal.preset_points),
             )
             .where(and_(*conditions))
-            .order_by(order_column)
+            .order_by(order_column, secondary_order)
         )
         if skip is not None and limit is not None:
             query = query.offset(skip).limit(limit)

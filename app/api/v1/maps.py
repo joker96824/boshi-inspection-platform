@@ -74,33 +74,37 @@ async def get_user_maps(
     return await map_service.get_user_maps(query, current_user)
 
 
-@router.get("/{map_id}/robots-points-with-items", response_model=dict)
-async def get_map_with_robots_points_items(
+@router.get("/{map_id}/fullinfo", response_model=dict)
+async def get_map_fullinfo(
     map_id: str,
+    robot_id: Optional[str] = Query(None, description="机器人ID（可选，用于过滤巡检点-设备-巡检项目）"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[dict] = Depends(require_no_auth())
 ):
-    """获取地图及其关联的机器人、巡检点和巡检项目数据
+    """获取地图完整数据（包含所有关联信息）
     
-    一次请求获取所有数据，返回树形结构：
+    一次请求获取地图的所有关联数据，返回完整结构：
     - map: 地图信息
     - robots: 该地图下的所有机器人列表
-    - points: 该地图下的所有巡检点列表（每个巡检点包含其下的巡检项目）
+    - points: 该地图下的所有巡检点列表（每个巡检点包含其下的设备、巡检项目和智能传感器）
+      当提供 robot_id 时，只返回该机器人关联的巡检点-设备-巡检项目
+    - gimbals: 该地图下的所有云台列表
     
     Args:
         map_id: 地图ID
+        robot_id: 机器人ID（可选，用于过滤巡检点-设备-巡检项目）
         db: 数据库会话
         current_user: 当前用户
     
     Returns:
-        包含地图、机器人、巡检点和巡检项目的树形结构数据
+        包含地图、机器人、巡检点、设备和云台的完整树形结构数据
     
     Raises:
         404: 地图不存在
         401: 用户未认证
     """
     map_service = MapService(db)
-    return await map_service.get_map_with_robots_points_items(map_id, current_user)
+    return await map_service.get_map_with_robots_points_items(map_id, current_user, robot_id)
 
 
 @router.get("/{map_id}", response_model=dict)

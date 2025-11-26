@@ -15,6 +15,10 @@ from ..repositories.gimbalinspectionproject_repository import (
 )
 from ..repositories.gimbaltask_repository import GimbalTaskRepository
 from ..schemas.gimbaltask import GimbalTaskCreate, GimbalTaskQuery, GimbalTaskUpdate
+from ..schemas.gimbalinspectionproject import (
+    GimbalInspectionProjectCreate,
+    GimbalInspectionProjectUpdate,
+)
 from ..utils.response import ApiResponse
 
 logger = get_logger(__name__)
@@ -265,24 +269,151 @@ class GimbalTaskService:
             logger.error(f"获取云台任务统计失败: {e}", exc_info=True)
             raise BusinessError(f"获取云台任务统计失败: {str(e)}")
 
+    async def create_inspection_project_in_task(
+        self, task_id: str, project_data: GimbalInspectionProjectCreate, user: dict
+    ) -> Dict[str, Any]:
+        """在云台任务下创建巡检项目"""
+        try:
+            # 验证云台任务是否存在
+            task = await self.gimbal_task_repo.get_by_id(task_id)
+            if not task:
+                raise ResourceNotFoundError(f"云台任务ID '{task_id}' 不存在")
+
+            # 确保巡检项目绑定到指定的云台任务
+            project_data.gimbaltask_id = task_id
+
+            # 调用巡检项目服务创建（延迟导入避免循环导入）
+            from ..services.gimbalinspectionproject_service import (
+                GimbalInspectionProjectService,
+            )
+            project_service = GimbalInspectionProjectService(self.db)
+            return await project_service.create_project(project_data, user)
+
+        except (ResourceNotFoundError, BusinessError, ValidationError) as e:
+            logger.warning(f"在云台任务下创建巡检项目失败: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"在云台任务下创建巡检项目失败: {e}", exc_info=True)
+            raise BusinessError(f"在云台任务下创建巡检项目失败: {str(e)}")
+
+    async def update_inspection_project_in_task(
+        self,
+        task_id: str,
+        project_id: str,
+        project_data: GimbalInspectionProjectUpdate,
+        user: dict,
+    ) -> Dict[str, Any]:
+        """在云台任务下更新巡检项目"""
+        try:
+            # 验证云台任务是否存在
+            task = await self.gimbal_task_repo.get_by_id(task_id)
+            if not task:
+                raise ResourceNotFoundError(f"云台任务ID '{task_id}' 不存在")
+
+            # 验证巡检项目是否属于该云台任务
+            project = await self.inspection_project_repo.get_by_id(project_id)
+            if not project:
+                raise ResourceNotFoundError(f"巡检项目ID '{project_id}' 不存在")
+            if project.gimbaltask_id != task_id:
+                raise BusinessError(
+                    f"巡检项目 '{project_id}' 不属于云台任务 '{task_id}'"
+                )
+
+            # 确保巡检项目绑定到指定的云台任务
+            project_data.gimbaltask_id = task_id
+
+            # 调用巡检项目服务更新（延迟导入避免循环导入）
+            from ..services.gimbalinspectionproject_service import (
+                GimbalInspectionProjectService,
+            )
+            project_service = GimbalInspectionProjectService(self.db)
+            return await project_service.update_project(project_id, project_data, user)
+
+        except (ResourceNotFoundError, BusinessError, ValidationError) as e:
+            logger.warning(f"在云台任务下更新巡检项目失败: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"在云台任务下更新巡检项目失败: {e}", exc_info=True)
+            raise BusinessError(f"在云台任务下更新巡检项目失败: {str(e)}")
+
+    async def delete_inspection_project_in_task(
+        self, task_id: str, project_id: str, user: dict
+    ) -> Dict[str, Any]:
+        """在云台任务下删除巡检项目"""
+        try:
+            # 验证云台任务是否存在
+            task = await self.gimbal_task_repo.get_by_id(task_id)
+            if not task:
+                raise ResourceNotFoundError(f"云台任务ID '{task_id}' 不存在")
+
+            # 验证巡检项目是否属于该云台任务
+            project = await self.inspection_project_repo.get_by_id(project_id)
+            if not project:
+                raise ResourceNotFoundError(f"巡检项目ID '{project_id}' 不存在")
+            if project.gimbaltask_id != task_id:
+                raise BusinessError(
+                    f"巡检项目 '{project_id}' 不属于云台任务 '{task_id}'"
+                )
+
+            # 调用巡检项目服务删除（延迟导入避免循环导入）
+            from ..services.gimbalinspectionproject_service import (
+                GimbalInspectionProjectService,
+            )
+            project_service = GimbalInspectionProjectService(self.db)
+            return await project_service.delete_project(project_id, user)
+
+        except (ResourceNotFoundError, BusinessError) as e:
+            logger.warning(f"在云台任务下删除巡检项目失败: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"在云台任务下删除巡检项目失败: {e}", exc_info=True)
+            raise BusinessError(f"在云台任务下删除巡检项目失败: {str(e)}")
+
     def _format_gimbal_task_response(self, task) -> Dict[str, Any]:
         """格式化云台任务响应数据"""
-        inspection_projects = sorted(
-            [
-                {
-                    "id": project.id,
-                    "task_name": project.task_name,
-                    "detection_type": project.detection_type,
-                    "sort_order": project.sort_order,
-                    "x_coordinate": project.x_coordinate,
-                    "y_coordinate": project.y_coordinate,
-                    "fill_light": project.fill_light,
-                }
-                for project in getattr(task, "inspection_projects", []) or []
-                if not project.is_deleted
-            ],
-            key=lambda item: item["sort_order"],
-        )
+        inspection_projects = []
+        for project in getattr(task, "inspection_projects", []) or []:
+            if project.is_deleted:
+                continue
+            
+            # 格式化预设点关联信息
+            preset_points_info = []
+            if hasattr(project, 'preset_points') and project.preset_points:
+                for pp_link in project.preset_points:
+                    preset_point = pp_link.preset_point if hasattr(pp_link, 'preset_point') else None
+                    if preset_point:
+                        preset_points_info.append({
+                            "id": preset_point.id,
+                            "preset_name": preset_point.preset_name,
+                            "p_coordinate": preset_point.p_coordinate,
+                            "t_coordinate": preset_point.t_coordinate,
+                            "z_coordinate": preset_point.z_coordinate,
+                            "f_coordinate": preset_point.f_coordinate,
+                            "aperture": preset_point.aperture,
+                            "shutter": preset_point.shutter,
+                            "backlight_compensation": preset_point.backlight_compensation,
+                            "wide_dynamic": preset_point.wide_dynamic,
+                            "strong_light_suppression": preset_point.strong_light_suppression,
+                            "fill_light": preset_point.fill_light,
+                            "image_url": preset_point.image_url,
+                            "detection_type": pp_link.detection_type,
+                            "video_duration": pp_link.video_duration,
+                            "created_at": preset_point.created_at.strftime("%Y-%m-%dT%H:%M:%S") if preset_point.created_at else None,
+                            "updated_at": preset_point.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if preset_point.updated_at else None,
+                        })
+            
+            inspection_projects.append({
+                "id": project.id,
+                "task_name": project.task_name,
+                "sort_order": project.sort_order,
+                "preset_point_count": len(preset_points_info),
+                "preset_points": preset_points_info,
+            })
+        
+        inspection_projects = sorted(inspection_projects, key=lambda item: item["sort_order"])
+        
+        # 计算总预设点数
+        total_preset_points = sum(project.get("preset_point_count", 0) for project in inspection_projects)
 
         schedules = [
             {
@@ -318,11 +449,21 @@ class GimbalTaskService:
             if not schedule.is_deleted
         ]
 
+        # 格式化云台信息
+        gimbal_info = None
+        if hasattr(task, 'gimbal') and task.gimbal:
+            gimbal_info = {
+                "id": task.gimbal.id,
+                "gimbal_name": task.gimbal.gimbal_name,
+            }
+        
         return {
             "id": task.id,
             "task_name": task.task_name,
             "gimbal_id": task.gimbal_id,
+            "gimbal": gimbal_info,
             "inspection_project_count": len(inspection_projects),
+            "total_preset_point_count": total_preset_points,
             "inspection_projects": inspection_projects,
             "schedule_count": len(schedules),
             "schedules": schedules,

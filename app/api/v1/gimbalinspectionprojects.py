@@ -2,10 +2,11 @@
 云台巡检项目API路由
 """
 
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic import BaseModel, Field
 
 from ...core.deps import get_db, validate_pagination_params
 from ...core.permissions import require_no_auth, require_write_permission
@@ -128,4 +129,72 @@ async def get_gimbal_inspection_project_stats(
     """获取云台巡检项目统计信息"""
     service = GimbalInspectionProjectService(db)
     return await service.get_project_stats(current_user)
+
+
+class PresetPointLinkCreate(BaseModel):
+    """预设点关联创建模式"""
+    preset_point_id: str = Field(..., description="预设点ID")
+    detection_type: str = Field(
+        ...,
+        description="检测类型：可见光视频/可见光图片/热成像图片/热成像视频",
+    )
+    video_duration: Optional[int] = Field(
+        None, ge=1, description="拍摄时长（秒），当detection_type为可见光视频或热成像视频时必填"
+    )
+
+
+class SetPresetPointsRequest(BaseModel):
+    """设置预设点关联请求模式"""
+    preset_point_links: List[PresetPointLinkCreate] = Field(
+        ..., description="预设点关联列表"
+    )
+
+
+@router.post("/{project_id}/preset-points", response_model=dict)
+async def set_project_preset_points(
+    project_id: str,
+    request: SetPresetPointsRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_write_permission),
+):
+    """设置云台巡检项目的预设点关联
+
+    根据巡检项目ID删除原有关联，添加新的关联
+
+    Args:
+        project_id: 巡检项目ID
+        request: 预设点关联列表
+        db: 数据库会话
+        current_user: 当前用户
+
+    Returns:
+        设置结果（包含更新后的巡检项目信息）
+    """
+    service = GimbalInspectionProjectService(db)
+    preset_point_links = [
+        link.dict() for link in request.preset_point_links
+    ]
+    return await service.set_project_preset_points(
+        project_id, preset_point_links, current_user
+    )
+
+
+@router.delete("/preset-point-links/{link_id}", response_model=dict)
+async def delete_project_preset_point_link(
+    link_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_write_permission),
+):
+    """删除云台巡检项目的预设点关联
+
+    Args:
+        link_id: 关联ID
+        db: 数据库会话
+        current_user: 当前用户
+
+    Returns:
+        删除结果
+    """
+    service = GimbalInspectionProjectService(db)
+    return await service.delete_project_preset_point_link(link_id, current_user)
 

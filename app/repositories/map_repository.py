@@ -12,6 +12,7 @@ from ..models.robotmap import RobotMap
 from ..models.point import Point
 from ..models.device import Device
 from ..models.item import Item
+from ..models.gimbal import Gimbal
 from ..models.user import User
 
 
@@ -169,8 +170,13 @@ class MapRepository:
         result = await self.db.execute(query)
         return result.scalar()
 
-    async def get_map_with_related_data(self, map_id: str) -> Optional[Dict[str, Any]]:
-        """获取地图及其关联的机器人、巡检点和巡检项目数据"""
+    async def get_map_with_related_data(self, map_id: str, robot_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """获取地图及其关联的机器人、巡检点、巡检项目和云台数据
+        
+        Args:
+            map_id: 地图ID
+            robot_id: 机器人ID（可选，用于过滤巡检点-设备-巡检项目）
+        """
         # 获取地图
         map_obj = await self.get_by_id(map_id)
         if not map_obj:
@@ -191,23 +197,95 @@ class MapRepository:
         robots = list(robots_result.scalars().all())
 
         # 获取该地图下的所有巡检点（包含设备和巡检项目）
-        points_query = (
-            select(Point)
-            .options(
-                selectinload(Point.devices).selectinload(Device.items),
-                selectinload(Point.devices).selectinload(Device.sensors)
+        if robot_id:
+            # 验证机器人是否关联到该地图
+            robot_map_query = (
+                select(RobotMap)
+                .where(
+                    RobotMap.robot_id == robot_id,
+                    RobotMap.map_id == map_id,
+                    RobotMap.is_deleted == False
+                )
             )
+            robot_map_result = await self.db.execute(robot_map_query)
+            robot_map = robot_map_result.scalar_one_or_none()
+            
+            if not robot_map:
+                # 机器人未关联到该地图，返回空列表
+                points = []
+            else:
+                # 查询该机器人关联的所有巡检项目，然后找到对应的巡检点
+                # 使用 JOIN 查询：Item -> Device -> Point
+                points_query = (
+                    select(Point)
+                    .distinct()
+                    .join(Device, Point.id == Device.point_id)
+                    .join(Item, Device.id == Item.device_id)
+                    .where(
+                        Point.map_id == map_id,
+                        Point.is_deleted == False,
+                        Device.is_deleted == False,
+                        Item.robot_id == robot_id,
+                        Item.is_deleted == False
+                    )
+                    .options(
+                        selectinload(Point.devices).selectinload(Device.items),
+                        selectinload(Point.devices).selectinload(Device.sensors)
+                    )
+                    .order_by(Point.created_at.desc())
+                )
+                points_result = await self.db.execute(points_query)
+                points = list(points_result.scalars().all())
+                
+                # 过滤设备和巡检项目，只保留该机器人关联的
+                for point in points:
+                    if hasattr(point, 'devices') and point.devices:
+                        filtered_devices = []
+                        for device in point.devices:
+                            if hasattr(device, 'items') and device.items:
+                                # 只保留该机器人关联的巡检项目
+                                filtered_items = [
+                                    item for item in device.items 
+                                    if item.robot_id == robot_id and not item.is_deleted
+                                ]
+                                if filtered_items:
+                                    device.items = filtered_items
+                                    filtered_devices.append(device)
+                            else:
+                                filtered_devices.append(device)
+                        point.devices = filtered_devices
+        else:
+            # 原有逻辑：返回所有巡检点
+            points_query = (
+                select(Point)
+                .options(
+                    selectinload(Point.devices).selectinload(Device.items),
+                    selectinload(Point.devices).selectinload(Device.sensors)
+                )
+                .where(
+                    Point.map_id == map_id,
+                    Point.is_deleted == False
+                )
+                .order_by(Point.created_at.desc())
+            )
+            points_result = await self.db.execute(points_query)
+            points = list(points_result.scalars().all())
+
+        # 获取该地图下的所有云台
+        gimbals_query = (
+            select(Gimbal)
             .where(
-                Point.map_id == map_id,
-                Point.is_deleted == False
+                Gimbal.map_id == map_id,
+                Gimbal.is_deleted == False
             )
-            .order_by(Point.created_at.desc())
+            .order_by(Gimbal.created_at.desc())
         )
-        points_result = await self.db.execute(points_query)
-        points = list(points_result.scalars().all())
+        gimbals_result = await self.db.execute(gimbals_query)
+        gimbals = list(gimbals_result.scalars().all())
 
         return {
             "map": map_obj,
             "robots": robots,
-            "points": points
+            "points": points,
+            "gimbals": gimbals
         }

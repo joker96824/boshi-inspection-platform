@@ -11,6 +11,8 @@ from sqlalchemy.orm import selectinload
 from ..core.exceptions import ResourceNotFoundError
 from ..models.gimbal import Gimbal
 from ..models.gimbaltask import GimbalTask
+from ..models.gimbalinspectionproject import GimbalInspectionProject
+from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
 
 
 class GimbalTaskRepository:
@@ -25,10 +27,9 @@ class GimbalTaskRepository:
         self.db.add(gimbal_task)
         await self.db.commit()
         await self.db.refresh(gimbal_task)
-        await self.db.refresh(
-            gimbal_task, attribute_names=["gimbal", "inspection_projects", "schedules"]
-        )
-        return gimbal_task
+        
+        # 重新查询以预加载所有关系（避免懒加载导致的异步上下文问题）
+        return await self.get_by_id(gimbal_task.id) or gimbal_task
 
     async def get_by_id(self, task_id: str) -> Optional[GimbalTask]:
         """根据ID获取云台任务"""
@@ -36,7 +37,9 @@ class GimbalTaskRepository:
             select(GimbalTask)
             .options(
                 selectinload(GimbalTask.gimbal),
-                selectinload(GimbalTask.inspection_projects),
+                selectinload(GimbalTask.inspection_projects)
+                .selectinload(GimbalInspectionProject.preset_points)
+                .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
                 selectinload(GimbalTask.schedules),
             )
             .where(GimbalTask.id == task_id, GimbalTask.is_deleted == False)
@@ -53,7 +56,9 @@ class GimbalTaskRepository:
             select(GimbalTask)
             .options(
                 selectinload(GimbalTask.gimbal),
-                selectinload(GimbalTask.inspection_projects),
+                selectinload(GimbalTask.inspection_projects)
+                .selectinload(GimbalInspectionProject.preset_points)
+                .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
                 selectinload(GimbalTask.schedules),
             )
             .where(GimbalTask.id.in_(task_ids), GimbalTask.is_deleted == False)
@@ -90,7 +95,9 @@ class GimbalTaskRepository:
             select(GimbalTask)
             .options(
                 selectinload(GimbalTask.gimbal),
-                selectinload(GimbalTask.inspection_projects),
+                selectinload(GimbalTask.inspection_projects)
+                .selectinload(GimbalInspectionProject.preset_points)
+                .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
                 selectinload(GimbalTask.schedules),
             )
             .where(and_(*conditions))
@@ -114,8 +121,8 @@ class GimbalTaskRepository:
             setattr(task, key, value)
 
         await self.db.commit()
-        await self.db.refresh(task)
-        return task
+        # 重新查询以预加载所有关系（避免懒加载导致的异步上下文问题）
+        return await self.get_by_id(task_id)
 
     async def soft_delete(self, task_id: str, deleted_by: str) -> bool:
         """软删除云台任务"""
@@ -146,7 +153,9 @@ class GimbalTaskRepository:
         query = (
             select(GimbalTask)
             .options(
-                selectinload(GimbalTask.inspection_projects),
+                selectinload(GimbalTask.inspection_projects)
+                .selectinload(GimbalInspectionProject.preset_points)
+                .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
                 selectinload(GimbalTask.schedules),
             )
             .where(GimbalTask.gimbal_id == gimbal_id, GimbalTask.is_deleted == False)

@@ -10,6 +10,10 @@ from ...core.deps import get_db, validate_pagination_params
 from ...core.permissions import require_write_permission, require_no_auth
 from ...services.gimbaltask_service import GimbalTaskService
 from ...schemas.gimbaltask import GimbalTaskCreate, GimbalTaskUpdate, GimbalTaskResponse, GimbalTaskQuery, GimbalTaskListResponse
+from ...schemas.gimbalinspectionproject import (
+    GimbalInspectionProjectCreate,
+    GimbalInspectionProjectUpdate,
+)
 from ...utils.response import ApiResponse
 
 router = APIRouter()
@@ -169,3 +173,73 @@ async def get_gimbal_task_stats(
     """
     service = GimbalTaskService(db)
     return await service.get_gimbal_task_stats(current_user)
+
+
+@router.post("/{task_id}/inspection-projects", response_model=dict)
+async def create_inspection_project_in_task(
+    task_id: str,
+    project_data: GimbalInspectionProjectCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_write_permission)
+):
+    """在云台任务下创建巡检项目
+    
+    Args:
+        task_id: 云台任务ID
+        project_data: 巡检项目创建数据
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        创建的巡检项目信息
+    """
+    service = GimbalTaskService(db)
+    return await service.create_inspection_project_in_task(task_id, project_data, current_user)
+
+
+@router.put("/{task_id}/inspection-projects/{project_id}", response_model=dict)
+async def update_inspection_project_in_task(
+    task_id: str,
+    project_id: str,
+    project_data: GimbalInspectionProjectUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_write_permission)
+):
+    """在云台任务下更新巡检项目
+    
+    Args:
+        task_id: 云台任务ID
+        project_id: 巡检项目ID
+        project_data: 巡检项目更新数据
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        更新后的巡检项目信息
+    """
+    service = GimbalTaskService(db)
+    return await service.update_inspection_project_in_task(
+        task_id, project_id, project_data, current_user
+    )
+
+
+@router.delete("/{task_id}/inspection-projects/{project_id}", response_model=dict)
+async def delete_inspection_project_in_task(
+    task_id: str,
+    project_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_write_permission)
+):
+    """在云台任务下删除巡检项目
+    
+    Args:
+        task_id: 云台任务ID
+        project_id: 巡检项目ID
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        删除结果
+    """
+    service = GimbalTaskService(db)
+    return await service.delete_inspection_project_in_task(task_id, project_id, current_user)
