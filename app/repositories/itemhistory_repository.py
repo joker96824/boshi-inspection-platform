@@ -34,11 +34,20 @@ class ItemHistoryRepository:
         return result.scalar_one_or_none()
     
     async def get_by_taskhistory_ids(self, taskhistory_ids: List[str]) -> List[ItemHistory]:
-        """根据任务记录ID列表获取记录"""
+        """根据任务记录ID列表获取记录（预加载 item、device、point、detection_type 关系）"""
         if not taskhistory_ids:
             return []
         
+        from ..models.item import Item
+        from ..models.device import Device
+        from ..models.point import Point
+        from ..models.detectiontype import DetectionType
+        
         query = (select(ItemHistory)
+                .options(
+                    selectinload(ItemHistory.item).selectinload(Item.device).selectinload(Device.point),
+                    selectinload(ItemHistory.item).selectinload(Item.detection_type)
+                )
                 .where(ItemHistory.taskhistory_id.in_(taskhistory_ids), ItemHistory.is_deleted == False)
                 .order_by(ItemHistory.taskhistory_id, ItemHistory.created_at))
         result = await self.db.execute(query)

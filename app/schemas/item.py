@@ -13,6 +13,7 @@ class ItemBase(BaseSchema):
     item_info: Dict[str, Any] = Field(..., description="巡检参数信息")
     device_id: str = Field(..., description="所属设备ID")
     robot_id: Optional[str] = Field(None, description="关联机器人ID")
+    detection_type_id: Optional[str] = Field(None, description="检测类型ID")
     enabled: bool = Field(True, description="启用状态：True-启用，False-禁用")
 
 
@@ -27,6 +28,7 @@ class ItemUpdate(BaseSchema):
     item_info: Optional[Dict[str, Any]] = Field(None, description="巡检参数信息")
     device_id: Optional[str] = Field(None, description="所属设备ID")
     robot_id: Optional[str] = Field(None, description="关联机器人ID")
+    detection_type_id: Optional[str] = Field(None, description="检测类型ID")
     enabled: Optional[bool] = Field(None, description="启用状态：True-启用，False-禁用")
 
 
@@ -37,6 +39,7 @@ class ItemResponse(BaseResponse):
     item_info: Dict[str, Any] = Field(..., description="巡检参数信息")
     device_id: str = Field(..., description="所属设备ID")
     robot_id: Optional[str] = Field(None, description="关联机器人ID")
+    detection_type_id: Optional[str] = Field(None, description="检测类型ID")
     enabled: bool = Field(..., description="启用状态：True-启用，False-禁用")
     created_at: str = Field(..., description="创建时间")
     updated_at: str = Field(..., description="更新时间")

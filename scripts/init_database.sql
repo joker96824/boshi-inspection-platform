@@ -12,6 +12,7 @@ DROP TABLE IF EXISTS tb_taskresult;
 DROP TABLE IF EXISTS tb_itemhistory;
 DROP TABLE IF EXISTS tb_point_item;  -- 旧的中间表，需要先删除
 DROP TABLE IF EXISTS tb_item;
+DROP TABLE IF EXISTS tb_detection_type;
 DROP TABLE IF EXISTS tb_taskhistory;
 DROP TABLE IF EXISTS tb_taskschedule;
 DROP TABLE IF EXISTS tb_task;
@@ -146,6 +147,8 @@ CREATE TABLE tb_robot (
     robot_name VARCHAR(100) NOT NULL COMMENT '机器人名称',
     robot_info JSON NULL COMMENT '机器人信息',
     factory_id VARCHAR(36) NULL COMMENT '厂区ID',
+    preview_url VARCHAR(500) NULL COMMENT '预览地址',
+    control_url VARCHAR(500) NULL COMMENT '控制地址',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     created_by VARCHAR(100) NULL COMMENT '创建人',
@@ -172,8 +175,7 @@ CREATE TABLE tb_robot_map (
     INDEX idx_robot_id (robot_id),
     INDEX idx_map_id (map_id),
     INDEX idx_created_at (created_at),
-    INDEX idx_is_deleted (is_deleted),
-    UNIQUE KEY uk_robot_map_active (robot_id, map_id, is_deleted),
+    UNIQUE KEY uk_robot_map (robot_id, map_id),
     FOREIGN KEY (robot_id) REFERENCES tb_robot(id) ON DELETE CASCADE,
     FOREIGN KEY (map_id) REFERENCES tb_map(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='机器人-地图关联表';
@@ -197,6 +199,8 @@ CREATE TABLE tb_gimbal (
     t_coordinate DECIMAL(10,4) NULL COMMENT 'T坐标',
     z_coordinate DECIMAL(10,4) NULL COMMENT 'Z坐标',
     f_coordinate DECIMAL(10,4) NULL COMMENT 'F坐标',
+    preview_url VARCHAR(500) NULL COMMENT '预览地址',
+    control_url VARCHAR(500) NULL COMMENT '控制地址',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     created_by VARCHAR(100) NULL COMMENT '创建人',
@@ -796,11 +800,34 @@ CREATE TABLE tb_taskschedule (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务巡检日程表';
 
 -- 创建巡检项目表（必须在tb_taskhistory之前创建，因为tb_taskhistory引用tb_item）
+-- 创建检测类型表
+CREATE TABLE tb_detection_type (
+    id VARCHAR(36) PRIMARY KEY COMMENT '检测类型ID',
+    type_name VARCHAR(50) NOT NULL UNIQUE COMMENT '检测类型名称',
+    type_code VARCHAR(20) NOT NULL UNIQUE COMMENT '检测类型代码',
+    description VARCHAR(200) NULL COMMENT '检测类型描述',
+    sort_order INT NOT NULL DEFAULT 0 COMMENT '排序顺序',
+    enabled BOOLEAN NOT NULL DEFAULT TRUE COMMENT '启用状态：0-禁用，1-启用',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(100) NULL COMMENT '创建人',
+    updated_by VARCHAR(100) NULL COMMENT '更新人',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
+    INDEX idx_type_name (type_name),
+    INDEX idx_type_code (type_code),
+    INDEX idx_sort_order (sort_order),
+    INDEX idx_enabled (enabled),
+    INDEX idx_created_at (created_at),
+    INDEX idx_is_deleted (is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='检测类型表';
+
+-- 创建巡检项目表
 CREATE TABLE tb_item (
     id VARCHAR(36) PRIMARY KEY COMMENT '巡检项目ID',
     item_name VARCHAR(100) NOT NULL COMMENT '巡检项目名称',
     item_info JSON NOT NULL COMMENT '巡检参数信息',
     device_id VARCHAR(36) NOT NULL COMMENT '所属设备ID',
+    detection_type_id VARCHAR(36) NULL COMMENT '检测类型ID',
     enabled BOOLEAN NOT NULL DEFAULT TRUE COMMENT '启用状态：0-禁用，1-启用',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -809,11 +836,13 @@ CREATE TABLE tb_item (
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     INDEX idx_item_name (item_name),
     INDEX idx_device_id (device_id),
+    INDEX idx_detection_type_id (detection_type_id),
     INDEX idx_enabled (enabled),
     INDEX idx_created_at (created_at),
     INDEX idx_is_deleted (is_deleted),
     UNIQUE KEY uk_item_name_active (item_name, is_deleted),
-    FOREIGN KEY (device_id) REFERENCES tb_device(id) ON DELETE CASCADE
+    FOREIGN KEY (device_id) REFERENCES tb_device(id) ON DELETE CASCADE,
+    FOREIGN KEY (detection_type_id) REFERENCES tb_detection_type(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='巡检项目表';
 
 -- 创建任务记录表（必须在tb_item之后创建，因为tb_taskhistory引用tb_item）
@@ -850,6 +879,7 @@ CREATE TABLE tb_itemhistory (
     taskhistory_id VARCHAR(36) NOT NULL COMMENT '任务记录ID',
     item_id VARCHAR(36) NOT NULL COMMENT '巡检项目ID',
     item_result JSON NULL COMMENT '巡检结果',
+    process_status VARCHAR(20) NULL COMMENT '处理状态：pending-待处理, processing-处理中, processed-已处理, failed-处理失败',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     created_by VARCHAR(100) NULL COMMENT '创建人',
@@ -857,6 +887,7 @@ CREATE TABLE tb_itemhistory (
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     INDEX idx_taskhistory_id (taskhistory_id),
     INDEX idx_item_id (item_id),
+    INDEX idx_process_status (process_status),
     INDEX idx_created_at (created_at),
     INDEX idx_is_deleted (is_deleted),
     UNIQUE KEY uk_taskhistory_item_active (taskhistory_id, item_id, is_deleted),
@@ -869,6 +900,8 @@ CREATE TABLE tb_taskresult (
     id VARCHAR(36) PRIMARY KEY COMMENT '任务结果ID',
     taskhistory_id VARCHAR(36) NOT NULL UNIQUE COMMENT '任务记录ID',
     record_batch INT NOT NULL COMMENT '任务批次',
+    result_status VARCHAR(20) NULL COMMENT '结果状态：success-成功, failed-失败, partial-部分成功, warning-警告',
+    process_status VARCHAR(20) NULL COMMENT '处理状态：pending-待处理, processing-处理中, processed-已处理, failed-处理失败',
     result_point_id VARCHAR(36) NULL COMMENT '任务结束点ID',
     result_item_id VARCHAR(36) NULL COMMENT '任务结束巡检项目ID',
     result_file_url VARCHAR(500) NULL COMMENT '任务结果文件地址',
@@ -879,6 +912,8 @@ CREATE TABLE tb_taskresult (
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     INDEX idx_record_batch (record_batch),
+    INDEX idx_result_status (result_status),
+    INDEX idx_process_status (process_status),
     INDEX idx_created_at (created_at),
     INDEX idx_is_deleted (is_deleted),
     FOREIGN KEY (taskhistory_id) REFERENCES tb_taskhistory(id) ON DELETE CASCADE

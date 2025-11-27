@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from ..repositories.item_repository import ItemRepository
 from ..repositories.device_repository import DeviceRepository
 from ..repositories.robot_repository import RobotRepository
+from ..repositories.detectiontype_repository import DetectionTypeRepository
 from ..schemas.item import ItemCreate, ItemUpdate, ItemQuery
 from ..core.exceptions import (
     ResourceNotFoundError, BusinessError
@@ -27,6 +28,7 @@ class ItemService:
         self.item_repo = ItemRepository(db)
         self.device_repo = DeviceRepository(db)
         self.robot_repo = RobotRepository(db)
+        self.detection_type_repo = DetectionTypeRepository(db)
     
     async def create_item(self, item_data: ItemCreate, user: dict) -> Dict[str, Any]:
         """创建巡检项目"""
@@ -41,6 +43,12 @@ class ItemService:
                 robot = await self.robot_repo.get_by_id(item_data.robot_id)
                 if not robot:
                     raise ResourceNotFoundError(f"机器人 '{item_data.robot_id}' 不存在")
+            
+            # 如果提供了detection_type_id，检查检测类型是否存在
+            if item_data.detection_type_id:
+                detection_type = await self.detection_type_repo.get_by_id(item_data.detection_type_id)
+                if not detection_type:
+                    raise ResourceNotFoundError(f"检测类型 '{item_data.detection_type_id}' 不存在")
             
             # 检查巡检项目名是否已存在
             if await self.item_repo.exists_by_name(item_data.item_name):
@@ -168,6 +176,13 @@ class ItemService:
                     if not robot:
                         raise ResourceNotFoundError(f"机器人 '{item_data.robot_id}' 不存在")
             
+            # 如果更新了detection_type_id，检查检测类型是否存在
+            if item_data.detection_type_id is not None and item_data.detection_type_id != existing_item.detection_type_id:
+                if item_data.detection_type_id:  # 如果提供了非空值
+                    detection_type = await self.detection_type_repo.get_by_id(item_data.detection_type_id)
+                    if not detection_type:
+                        raise ResourceNotFoundError(f"检测类型 '{item_data.detection_type_id}' 不存在")
+            
             # 如果更新了名称，检查是否重复
             if (item_data.item_name and 
                 item_data.item_name != existing_item.item_name and
@@ -257,6 +272,7 @@ class ItemService:
             "item_info": item.item_info,
             "device_id": item.device_id,
             "robot_id": item.robot_id,
+            "detection_type_id": item.detection_type_id,
             "enabled": item.enabled,
             "created_at": item.created_at.strftime("%Y-%m-%dT%H:%M:%S") if item.created_at else None,
             "updated_at": item.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if item.updated_at else None,

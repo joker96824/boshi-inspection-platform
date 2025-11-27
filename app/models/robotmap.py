@@ -25,9 +25,8 @@ class RobotMap(BaseModel):
         Index('idx_robot_id', 'robot_id'),
         Index('idx_map_id', 'map_id'),
         Index('idx_created_at', 'created_at'),
-        Index('idx_is_deleted', 'is_deleted'),
-        # 确保未删除的 robot_id + map_id 组合是唯一的
-        UniqueConstraint('robot_id', 'map_id', 'is_deleted', name='uk_robot_map_active')
+        # 确保 robot_id + map_id 组合是唯一的（物理删除，不需要 is_deleted）
+        UniqueConstraint('robot_id', 'map_id', name='uk_robot_map')
     )
     
     def __repr__(self):

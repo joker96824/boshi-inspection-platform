@@ -12,10 +12,30 @@ class TaskResultBase(BaseSchema):
     """任务结果基础模式"""
     taskhistory_id: str = Field(..., description="任务记录ID")
     record_batch: int = Field(..., description="任务批次")
+    result_status: Optional[str] = Field(None, description="结果状态：success-成功, failed-失败, partial-部分成功, warning-警告")
+    process_status: Optional[str] = Field(None, description="处理状态：pending-待处理, processing-处理中, processed-已处理, failed-处理失败")
     result_point_id: Optional[str] = Field(None, description="任务结束点ID")
     result_item_id: Optional[str] = Field(None, description="任务结束巡检项目ID")
     result_file_url: Optional[str] = Field(None, description="任务结果文件地址")
     result_collect_time: Optional[str] = Field(None, description="结果采集时间(格式: YYYY-MM-DDTHH:MM:SS)")
+
+    @validator('result_status')
+    def validate_result_status(cls, v):
+        """验证结果状态"""
+        if v is not None and v.strip():
+            valid_statuses = ['success', 'failed', 'partial', 'warning']
+            if v not in valid_statuses:
+                raise ValueError(f'结果状态必须是以下值之一: {", ".join(valid_statuses)}')
+        return v
+
+    @validator('process_status')
+    def validate_process_status(cls, v):
+        """验证处理状态"""
+        if v is not None and v.strip():
+            valid_statuses = ['pending', 'processing', 'processed', 'failed']
+            if v not in valid_statuses:
+                raise ValueError(f'处理状态必须是以下值之一: {", ".join(valid_statuses)}')
+        return v
 
     @validator('result_file_url')
     def validate_url(cls, v):
@@ -46,10 +66,30 @@ class TaskResultUpdate(BaseSchema):
     """任务结果更新模式"""
     taskhistory_id: Optional[str] = Field(None, description="任务记录ID")
     record_batch: Optional[int] = Field(None, description="任务批次")
+    result_status: Optional[str] = Field(None, description="结果状态：success-成功, failed-失败, partial-部分成功, warning-警告")
+    process_status: Optional[str] = Field(None, description="处理状态：pending-待处理, processing-处理中, processed-已处理, failed-处理失败")
     result_point_id: Optional[str] = Field(None, description="任务结束点ID")
     result_item_id: Optional[str] = Field(None, description="任务结束巡检项目ID")
     result_file_url: Optional[str] = Field(None, description="任务结果文件地址")
     result_collect_time: Optional[str] = Field(None, description="结果采集时间(格式: YYYY-MM-DDTHH:MM:SS)")
+
+    @validator('result_status')
+    def validate_result_status(cls, v):
+        """验证结果状态"""
+        if v is not None and v.strip():
+            valid_statuses = ['success', 'failed', 'partial', 'warning']
+            if v not in valid_statuses:
+                raise ValueError(f'结果状态必须是以下值之一: {", ".join(valid_statuses)}')
+        return v
+
+    @validator('process_status')
+    def validate_process_status(cls, v):
+        """验证处理状态"""
+        if v is not None and v.strip():
+            valid_statuses = ['pending', 'processing', 'processed', 'failed']
+            if v not in valid_statuses:
+                raise ValueError(f'处理状态必须是以下值之一: {", ".join(valid_statuses)}')
+        return v
 
     @validator('result_file_url')
     def validate_url(cls, v):
@@ -76,6 +116,8 @@ class TaskResultResponse(BaseResponse):
     id: str = Field(..., description="任务结果ID")
     taskhistory_id: str = Field(..., description="任务记录ID")
     record_batch: int = Field(..., description="任务批次")
+    result_status: Optional[str] = Field(None, description="结果状态：success-成功, failed-失败, partial-部分成功, warning-警告")
+    process_status: Optional[str] = Field(None, description="处理状态：pending-待处理, processing-处理中, processed-已处理, failed-处理失败")
     result_point_id: Optional[str] = Field(None, description="任务结束点ID")
     result_item_id: Optional[str] = Field(None, description="任务结束巡检项目ID")
     result_file_url: Optional[str] = Field(None, description="任务结果文件地址")

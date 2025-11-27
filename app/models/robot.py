@@ -16,6 +16,8 @@ class Robot(BaseModel):
     robot_name = Column(String(100), nullable=False, comment="机器人名称")
     robot_info = Column(JSON, nullable=True, comment="机器人信息")
     factory_id = Column(String(36), ForeignKey("tb_factory.id", ondelete="SET NULL"), nullable=True, index=True, comment="厂区ID")
+    preview_url = Column(String(500), nullable=True, comment="预览地址")
+    control_url = Column(String(500), nullable=True, comment="控制地址")
     
     # 关系
     factory = relationship("Factory", foreign_keys=[factory_id], back_populates="robots")

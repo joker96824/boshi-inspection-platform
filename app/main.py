@@ -44,6 +44,7 @@ from .api.v1 import (
     navigationcontrollers,
     manualoperations,
     operationrecords,
+    detectiontypes,
 )
 from .config.settings import settings
 from .utils.response import ApiResponse
@@ -82,6 +83,7 @@ def register_routes():
     app.include_router(points.router, prefix="/api/v1/points", tags=["巡检点管理"])
     app.include_router(items.router, prefix="/api/v1/items", tags=["巡检项目管理"])
     app.include_router(itemhistories.router, prefix="/api/v1/itemhistories", tags=["巡检记录管理"])
+    app.include_router(detectiontypes.router, prefix="/api/v1/detectiontypes", tags=["检测类型管理"])
     app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["任务管理"])
     app.include_router(taskschedules.router, prefix="/api/v1/taskschedules", tags=["任务日程管理"])
     app.include_router(taskhistories.router, prefix="/api/v1/taskhistories", tags=["任务记录管理"])

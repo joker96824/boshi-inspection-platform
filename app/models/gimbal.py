@@ -29,6 +29,8 @@ class Gimbal(BaseModel):
     t_coordinate = Column(Float, nullable=True, comment="T坐标")
     z_coordinate = Column(Float, nullable=True, comment="Z坐标")
     f_coordinate = Column(Float, nullable=True, comment="F坐标")
+    preview_url = Column(String(500), nullable=True, comment="预览地址")
+    control_url = Column(String(500), nullable=True, comment="控制地址")
     
     # 关系
     map = relationship("Map", foreign_keys=[map_id])

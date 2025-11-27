@@ -5,10 +5,15 @@
 from typing import List, Optional, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, or_
+from sqlalchemy.orm import selectinload
 
 from ..models.taskhistory import TaskHistory
 from ..models.task import Task
 from ..models.map import Map
+from ..models.itemhistory import ItemHistory
+from ..models.item import Item
+from ..models.device import Device
+from ..models.point import Point
 from ..core.exceptions import ResourceNotFoundError
 
 
@@ -28,19 +33,36 @@ class TaskHistoryRepository:
     
     async def get_by_id(self, taskhistory_id: str) -> Optional[TaskHistory]:
         """根据ID获取任务记录"""
-        stmt = select(TaskHistory).where(
-            TaskHistory.id == taskhistory_id,
-            TaskHistory.is_deleted == False
+        stmt = (
+            select(TaskHistory)
+            .options(
+                selectinload(TaskHistory.task).selectinload(Task.robot),
+                selectinload(TaskHistory.current_point),
+                selectinload(TaskHistory.current_item).selectinload(Item.device).selectinload(Device.point),
+            )
+            .where(
+                TaskHistory.id == taskhistory_id,
+                TaskHistory.is_deleted == False
+            )
         )
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
     
     async def get_by_ids(self, taskhistory_ids: List[str]) -> List[TaskHistory]:
         """根据ID列表获取任务记录"""
-        query = select(TaskHistory).where(
-            TaskHistory.id.in_(taskhistory_ids),
-            TaskHistory.is_deleted == False
-        ).order_by(TaskHistory.created_at.desc())
+        query = (
+            select(TaskHistory)
+            .options(
+                selectinload(TaskHistory.task).selectinload(Task.robot),
+                selectinload(TaskHistory.current_point),
+                selectinload(TaskHistory.current_item).selectinload(Item.device).selectinload(Device.point),
+            )
+            .where(
+                TaskHistory.id.in_(taskhistory_ids),
+                TaskHistory.is_deleted == False
+            )
+            .order_by(TaskHistory.created_at.desc())
+        )
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
@@ -90,9 +112,16 @@ class TaskHistoryRepository:
         total = count_result.scalar()
         
         # 查询数据，按创建时间降序
-        stmt = (select(TaskHistory)
-                .where(*conditions)
-                .order_by(TaskHistory.created_at.desc()))
+        stmt = (
+            select(TaskHistory)
+            .options(
+                selectinload(TaskHistory.task).selectinload(Task.robot),
+                selectinload(TaskHistory.current_point),
+                selectinload(TaskHistory.current_item).selectinload(Item.device).selectinload(Device.point),
+            )
+            .where(*conditions)
+            .order_by(TaskHistory.created_at.desc())
+        )
         if skip is not None and limit is not None:
             stmt = stmt.offset(skip).limit(limit)
         

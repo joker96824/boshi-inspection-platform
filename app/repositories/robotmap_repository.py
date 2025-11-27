@@ -32,8 +32,7 @@ class RobotMapRepository:
     async def get_by_id(self, robot_map_id: str) -> Optional[RobotMap]:
         """根据ID获取关联"""
         stmt = select(RobotMap).where(
-            RobotMap.id == robot_map_id,
-            RobotMap.is_deleted == False
+            RobotMap.id == robot_map_id
         )
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
@@ -42,11 +41,11 @@ class RobotMapRepository:
         """根据机器人和地图ID获取关联"""
         stmt = select(RobotMap).where(
             RobotMap.robot_id == robot_id,
-            RobotMap.map_id == map_id,
-            RobotMap.is_deleted == False
+            RobotMap.map_id == map_id
         )
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none()
+    
     
     async def get_maps_by_robot_id(self, robot_id: str) -> List[RobotMap]:
         """根据机器人ID获取所有关联的地图"""
@@ -54,8 +53,7 @@ class RobotMapRepository:
             select(RobotMap)
             .options(selectinload(RobotMap.map))
             .where(
-                RobotMap.robot_id == robot_id,
-                RobotMap.is_deleted == False
+                RobotMap.robot_id == robot_id
             )
             .order_by(RobotMap.created_at.desc())
         )
@@ -68,8 +66,7 @@ class RobotMapRepository:
             select(RobotMap)
             .options(selectinload(RobotMap.robot))
             .where(
-                RobotMap.map_id == map_id,
-                RobotMap.is_deleted == False
+                RobotMap.map_id == map_id
             )
             .order_by(RobotMap.created_at.desc())
         )
@@ -77,44 +74,35 @@ class RobotMapRepository:
         return list(result.scalars().all())
     
     async def delete_by_robot_and_map(self, robot_id: str, map_id: str) -> bool:
-        """删除机器人-地图关联（软删除）"""
-        robot_map = await self.get_by_robot_and_map(robot_id, map_id)
-        if not robot_map:
-            return False
-        
-        robot_map.is_deleted = True
+        """删除机器人-地图关联（物理删除）"""
+        from sqlalchemy import delete
+        stmt = delete(RobotMap).where(
+            RobotMap.robot_id == robot_id,
+            RobotMap.map_id == map_id
+        )
+        result = await self.db.execute(stmt)
         await self.db.commit()
-        return True
+        return result.rowcount > 0
     
     async def delete_by_robot_id(self, robot_id: str) -> bool:
-        """删除机器人的所有地图关联（软删除）"""
-        stmt = select(RobotMap).where(
-            RobotMap.robot_id == robot_id,
-            RobotMap.is_deleted == False
+        """删除机器人的所有地图关联（物理删除）"""
+        from sqlalchemy import delete
+        stmt = delete(RobotMap).where(
+            RobotMap.robot_id == robot_id
         )
         result = await self.db.execute(stmt)
-        robot_maps = result.scalars().all()
-        
-        for robot_map in robot_maps:
-            robot_map.is_deleted = True
-        
         await self.db.commit()
-        return True
+        return result.rowcount > 0
     
     async def delete_by_map_id(self, map_id: str) -> bool:
-        """删除地图的所有机器人关联（软删除）"""
-        stmt = select(RobotMap).where(
-            RobotMap.map_id == map_id,
-            RobotMap.is_deleted == False
+        """删除地图的所有机器人关联（物理删除）"""
+        from sqlalchemy import delete
+        stmt = delete(RobotMap).where(
+            RobotMap.map_id == map_id
         )
         result = await self.db.execute(stmt)
-        robot_maps = result.scalars().all()
-        
-        for robot_map in robot_maps:
-            robot_map.is_deleted = True
-        
         await self.db.commit()
-        return True
+        return result.rowcount > 0
     
     async def exists(self, robot_id: str, map_id: str) -> bool:
         """检查关联是否存在"""

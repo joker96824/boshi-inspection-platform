@@ -228,6 +228,8 @@ class TaskResultService:
             "id": taskresult.id,
             "taskhistory_id": taskresult.taskhistory_id,
             "record_batch": taskresult.record_batch,
+            "result_status": taskresult.result_status,
+            "process_status": taskresult.process_status,
             "result_point_id": taskresult.result_point_id,
             "result_item_id": taskresult.result_item_id,
             "result_file_url": taskresult.result_file_url,

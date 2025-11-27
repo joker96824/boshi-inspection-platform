@@ -25,6 +25,8 @@ class GimbalBase(BaseSchema):
     t_coordinate: Optional[float] = Field(None, description="T坐标")
     z_coordinate: Optional[float] = Field(None, description="Z坐标")
     f_coordinate: Optional[float] = Field(None, description="F坐标")
+    preview_url: Optional[str] = Field(None, max_length=500, description="预览地址")
+    control_url: Optional[str] = Field(None, max_length=500, description="控制地址")
 
 
 class GimbalCreate(GimbalBase):
@@ -50,6 +52,8 @@ class GimbalUpdate(BaseSchema):
     t_coordinate: Optional[float] = Field(None, description="T坐标")
     z_coordinate: Optional[float] = Field(None, description="Z坐标")
     f_coordinate: Optional[float] = Field(None, description="F坐标")
+    preview_url: Optional[str] = Field(None, max_length=500, description="预览地址")
+    control_url: Optional[str] = Field(None, max_length=500, description="控制地址")
 
 
 class GimbalResponse(BaseResponse):
@@ -71,6 +75,8 @@ class GimbalResponse(BaseResponse):
     t_coordinate: Optional[float] = Field(None, description="T坐标")
     z_coordinate: Optional[float] = Field(None, description="Z坐标")
     f_coordinate: Optional[float] = Field(None, description="F坐标")
+    preview_url: Optional[str] = Field(None, description="预览地址")
+    control_url: Optional[str] = Field(None, description="控制地址")
     created_at: str = Field(..., description="创建时间")
     updated_at: str = Field(..., description="更新时间")
     created_by: Optional[str] = Field(None, description="创建者")

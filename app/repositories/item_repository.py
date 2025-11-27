@@ -28,7 +28,10 @@ class ItemRepository:
     async def get_by_id(self, item_id: str) -> Optional[Item]:
         """根据ID获取巡检项目"""
         query = (select(Item)
-                .options(selectinload(Item.device))
+                .options(
+                    selectinload(Item.device),
+                    selectinload(Item.detection_type)
+                )
                 .where(Item.id == item_id, Item.is_deleted == False))
         result = await self.db.execute(query)
         return result.scalar_one_or_none()

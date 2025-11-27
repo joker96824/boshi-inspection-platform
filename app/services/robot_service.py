@@ -43,6 +43,8 @@ class RobotService:
             "robot_name": robot.robot_name,
             "robot_info": robot.robot_info,
             "factory_id": robot.factory_id,
+            "preview_url": robot.preview_url,
+            "control_url": robot.control_url,
             "maps": maps,
             "created_at": robot.created_at.strftime("%Y-%m-%dT%H:%M:%S") if robot.created_at else None,
             "updated_at": robot.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if robot.updated_at else None,
@@ -57,6 +59,8 @@ class RobotService:
                 "robot_name": robot_data.robot_name,
                 "robot_info": robot_data.robot_info,
                 "factory_id": robot_data.factory_id,
+                "preview_url": robot_data.preview_url,
+                "control_url": robot_data.control_url,
                 "created_by": user["username"],
                 "updated_by": user["username"]
             }
@@ -172,6 +176,10 @@ class RobotService:
                 update_data["robot_info"] = robot_data.robot_info
             if robot_data.factory_id is not None:
                 update_data["factory_id"] = robot_data.factory_id
+            if robot_data.preview_url is not None:
+                update_data["preview_url"] = robot_data.preview_url
+            if robot_data.control_url is not None:
+                update_data["control_url"] = robot_data.control_url
             update_data["updated_by"] = user["username"]
             
             # 更新机器人
@@ -179,10 +187,19 @@ class RobotService:
             
             # 更新机器人-地图关联
             if robot_data.map_ids is not None:
-                # 删除现有关联
-                await self.robotmap_repo.delete_by_robot_id(robot_id)
-                # 创建新关联
-                for map_id in robot_data.map_ids:
+                # 获取现有的关联
+                existing_maps = await self.robotmap_repo.get_maps_by_robot_id(robot_id)
+                existing_map_ids = {rm.map_id for rm in existing_maps}
+                new_map_ids = set(robot_data.map_ids)
+                
+                # 需要删除的关联（在现有中但不在新列表中）
+                to_delete = existing_map_ids - new_map_ids
+                for map_id in to_delete:
+                    await self.robotmap_repo.delete_by_robot_and_map(robot_id, map_id)
+                
+                # 需要创建的关联（在新列表中但不在现有中）
+                to_create = new_map_ids - existing_map_ids
+                for map_id in to_create:
                     await self.robotmap_repo.create({
                         "robot_id": robot_id,
                         "map_id": map_id,

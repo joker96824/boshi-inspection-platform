@@ -13,6 +13,8 @@ class RobotBase(BaseSchema):
     robot_info: Optional[Dict[str, Any]] = Field(None, description="机器人信息")
     factory_id: Optional[str] = Field(None, description="厂区ID")
     map_ids: Optional[List[str]] = Field(None, description="关联地图ID列表")
+    preview_url: Optional[str] = Field(None, max_length=500, description="预览地址")
+    control_url: Optional[str] = Field(None, max_length=500, description="控制地址")
 
 
 class RobotCreate(RobotBase):
@@ -26,6 +28,8 @@ class RobotUpdate(BaseSchema):
     robot_info: Optional[Dict[str, Any]] = Field(None, description="机器人信息")
     factory_id: Optional[str] = Field(None, description="厂区ID")
     map_ids: Optional[List[str]] = Field(None, description="关联地图ID列表")
+    preview_url: Optional[str] = Field(None, max_length=500, description="预览地址")
+    control_url: Optional[str] = Field(None, max_length=500, description="控制地址")
 
 
 class RobotResponse(BaseResponse):

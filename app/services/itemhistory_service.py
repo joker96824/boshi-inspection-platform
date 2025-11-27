@@ -318,6 +318,7 @@ class ItemHistoryService:
             "taskhistory_id": itemhistory.taskhistory_id,
             "item_id": itemhistory.item_id,
             "item_result": itemhistory.item_result,
+            "process_status": itemhistory.process_status,
             "created_at": itemhistory.created_at.strftime("%Y-%m-%dT%H:%M:%S") if itemhistory.created_at else None,
             "updated_at": itemhistory.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if itemhistory.updated_at else None,
             "created_by": itemhistory.created_by,

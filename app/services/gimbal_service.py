@@ -403,6 +403,8 @@ class GimbalService:
             "t_coordinate": gimbal.t_coordinate,
             "z_coordinate": gimbal.z_coordinate,
             "f_coordinate": gimbal.f_coordinate,
+            "preview_url": gimbal.preview_url,
+            "control_url": gimbal.control_url,
             "gimbal_tasks": gimbal_tasks_info,  # 添加任务列表（包含日程）
             "preset_points": self._format_preset_points_response(gimbal.preset_points) if hasattr(gimbal, 'preset_points') and gimbal.preset_points else [],  # 添加全部预设点列表
             "created_at": gimbal.created_at.strftime("%Y-%m-%dT%H:%M:%S") if gimbal.created_at else None,
