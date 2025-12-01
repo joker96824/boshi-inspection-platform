@@ -6,6 +6,9 @@ USE boshirobot;
 -- 删除所有现有表（如果存在）- 按外键依赖顺序删除
 -- 注意：使用 SET FOREIGN_KEY_CHECKS = 0 来禁用外键检查，以便可以按任意顺序删除表
 SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS tb_alarm_info;
+DROP TABLE IF EXISTS tb_alarm_rule_relation;
+DROP TABLE IF EXISTS tb_alarm_rule;
 DROP TABLE IF EXISTS tb_alarminfo;
 DROP TABLE IF EXISTS tb_alarmrule;
 DROP TABLE IF EXISTS tb_taskresult;
@@ -920,46 +923,84 @@ CREATE TABLE tb_taskresult (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='任务结果表';
 
 -- 创建报警规则表
-CREATE TABLE tb_alarmrule (
+CREATE TABLE tb_alarm_rule (
     id VARCHAR(36) PRIMARY KEY COMMENT '报警规则ID',
     rule_name VARCHAR(100) NOT NULL COMMENT '规则名称',
-    business_type ENUM('inspection_item', 'gimbal_task', 'sensor') NOT NULL DEFAULT 'inspection_item' COMMENT '业务类型',
-    business_id VARCHAR(36) NOT NULL COMMENT '业务对象ID',
-    alarm_param JSON NULL COMMENT '报警参数',
+    alarm_category ENUM('robot', 'inspection', 'gimbal', 'sensor', 'other') NOT NULL COMMENT '报警分类',
+    alarm_level INT NOT NULL COMMENT '报警等级 1-10',
+    rule_type ENUM('value_range', 'bool_value', 'sum_value', 'diff_value', 'avg_range', 'complex') NOT NULL COMMENT '规则类型',
+    rule_config JSON NULL COMMENT '规则配置（JSON格式）',
+    enabled BOOLEAN NOT NULL DEFAULT TRUE COMMENT '是否启用',
+    description TEXT NULL COMMENT '规则描述',
+    is_global BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否全局规则（true表示不关联具体对象）',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     created_by VARCHAR(100) NULL COMMENT '创建人',
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     INDEX idx_rule_name (rule_name),
-    INDEX idx_business_type (business_type),
-    INDEX idx_business_id (business_id),
-    INDEX idx_business_type_id (business_type, business_id),
+    INDEX idx_alarm_category (alarm_category),
+    INDEX idx_alarm_level (alarm_level),
+    INDEX idx_rule_type (rule_type),
+    INDEX idx_enabled (enabled),
+    INDEX idx_is_global (is_global),
     INDEX idx_created_at (created_at),
     INDEX idx_is_deleted (is_deleted),
     UNIQUE KEY uk_rule_name_active (rule_name, is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='报警规则表';
 
+-- 创建报警规则关联表
+CREATE TABLE tb_alarm_rule_relation (
+    id VARCHAR(36) PRIMARY KEY COMMENT '关联ID',
+    alarm_rule_id VARCHAR(36) NOT NULL COMMENT '报警规则ID',
+    relation_type ENUM('item', 'gimbal', 'sensor') NOT NULL COMMENT '关联类型',
+    relation_id VARCHAR(36) NOT NULL COMMENT '关联对象ID',
+    sort_order INT NOT NULL DEFAULT 0 COMMENT '顺序，用于多数据源规则',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(100) NULL COMMENT '创建人',
+    updated_by VARCHAR(100) NULL COMMENT '更新人',
+    INDEX idx_alarm_rule_id (alarm_rule_id),
+    INDEX idx_relation_type_id (relation_type, relation_id),
+    INDEX idx_sort_order (alarm_rule_id, sort_order),
+    UNIQUE KEY uk_rule_relation (alarm_rule_id, relation_type, relation_id),
+    FOREIGN KEY (alarm_rule_id) REFERENCES tb_alarm_rule(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='报警规则关联表';
+
 -- 创建报警信息表
-CREATE TABLE tb_alarminfo (
+CREATE TABLE tb_alarm_info (
     id VARCHAR(36) PRIMARY KEY COMMENT '报警信息ID',
-    alarmrule_id VARCHAR(36) NOT NULL COMMENT '报警规则ID',
-    record_type ENUM('itemhistory', 'gimbalhistory', 'sensorhistory') NOT NULL DEFAULT 'itemhistory' COMMENT '记录类型',
-    record_id VARCHAR(36) NOT NULL COMMENT '记录ID',
-    alarm_data JSON NULL COMMENT '触发数据',
-    alarm_info TEXT NULL COMMENT '报警信息',
+    alarm_rule_id VARCHAR(36) NOT NULL COMMENT '报警规则ID',
+    alarm_category ENUM('robot', 'inspection', 'gimbal', 'sensor', 'other') NOT NULL COMMENT '报警分类',
+    alarm_level INT NOT NULL COMMENT '报警等级 1-10',
+    alarm_status ENUM('unviewed', 'unprocessed', 'processed') NOT NULL DEFAULT 'unviewed' COMMENT '报警状态',
+    source_type ENUM('itemhistory', 'gimbalhistory', 'sensorhistory', 'taskhistory', 'robot_status') NOT NULL COMMENT '数据源类型',
+    source_ids JSON NOT NULL COMMENT '数据源ID列表，按关联表顺序排列，格式：["id1", "id2", "id3"]',
+    relation_type ENUM('item', 'gimbal', 'sensor', 'none') NULL COMMENT '关联对象类型',
+    relation_ids JSON NULL COMMENT '关联对象ID列表，格式：["id1", "id2"]',
+    trigger_item_ids JSON NULL COMMENT '触发源对应的巡检项目ID列表（当source_type=itemhistory时）',
+    trigger_project_ids JSON NULL COMMENT '触发源对应的云台巡检项目ID列表（当source_type=gimbalhistory时）',
+    trigger_data JSON NULL COMMENT '触发时的完整数据快照',
+    calculated_value JSON NULL COMMENT '计算后的值（如平均值、和值等）',
+    alarm_message TEXT NULL COMMENT '报警信息',
+    processed_by VARCHAR(100) NULL COMMENT '处理人',
+    processed_at DATETIME NULL COMMENT '处理时间',
+    process_remark TEXT NULL COMMENT '处理备注',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     created_by VARCHAR(100) NULL COMMENT '创建人',
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
-    INDEX idx_alarmrule_id (alarmrule_id),
-    INDEX idx_record_type (record_type),
-    INDEX idx_record_id (record_id),
-    INDEX idx_record_type_id (record_type, record_id),
+    INDEX idx_alarm_rule_id (alarm_rule_id),
+    INDEX idx_alarm_category (alarm_category),
+    INDEX idx_alarm_level (alarm_level),
+    INDEX idx_alarm_status (alarm_status),
+    INDEX idx_source_type (source_type),
+    INDEX idx_relation_type (relation_type),
     INDEX idx_created_at (created_at),
     INDEX idx_is_deleted (is_deleted),
-    FOREIGN KEY (alarmrule_id) REFERENCES tb_alarmrule(id) ON DELETE CASCADE
+    -- 注意：去重逻辑在应用层处理，因为JSON字段不能直接用于唯一索引
+    FOREIGN KEY (alarm_rule_id) REFERENCES tb_alarm_rule(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='报警信息表';
 
 -- 创建手动操作记录表

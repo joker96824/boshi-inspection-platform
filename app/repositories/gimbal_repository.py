@@ -24,7 +24,8 @@ class GimbalRepository:
         self.db.add(gimbal)
         await self.db.commit()
         await self.db.refresh(gimbal)
-        return gimbal
+        # 重新查询并预加载关系，避免懒加载问题
+        return await self.get_by_id(gimbal.id)
     
     async def get_by_id(self, gimbal_id: str) -> Optional[Gimbal]:
         """根据ID获取云台（预加载任务、日程和预设点）"""
@@ -140,8 +141,8 @@ class GimbalRepository:
             setattr(gimbal, key, value)
         
         await self.db.commit()
-        await self.db.refresh(gimbal)
-        return gimbal
+        # 重新查询并预加载关系，避免懒加载问题
+        return await self.get_by_id(gimbal_id)
     
     async def soft_delete(self, gimbal_id: str, deleted_by: str) -> bool:
         """软删除云台"""

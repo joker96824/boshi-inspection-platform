@@ -79,8 +79,9 @@ DEALLOCATE PREPARE alterIfNotExists;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- 按外键依赖顺序删除数据（从子表到父表）
-DELETE FROM tb_alarminfo;
-DELETE FROM tb_alarmrule;
+DELETE FROM tb_alarm_info;
+DELETE FROM tb_alarm_rule_relation;
+DELETE FROM tb_alarm_rule;
 DELETE FROM tb_taskresult;
 DELETE FROM tb_itemhistory;
 DELETE FROM tb_item;
@@ -731,20 +732,13 @@ INSERT INTO tb_itemhistory (id, taskhistory_id, item_id, item_result, process_st
 ('550e8400-e29b-41d4-a716-446655441004', '550e8400-e29b-41d4-a716-446655440802', '70000000-0000-0000-0000-000000000013', '{"status": "success", "cleanliness": "良好"}', 'processed', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
 ('550e8400-e29b-41d4-a716-446655441005', '550e8400-e29b-41d4-a716-446655440802', '70000000-0000-0000-0000-000000000014', '{"status": "success", "lighting": "正常"}', 'pending', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
 
--- 插入示例报警规则数据
-INSERT INTO tb_alarmrule (id, rule_name, business_type, business_id, alarm_param, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655441101', '温度异常报警', 'inspection_item', '550e8400-e29b-41d4-a716-446655440012', '{"threshold": 40, "operator": "gt", "level": "warning"}', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655441102', '设备故障报警', 'inspection_item', '70000000-0000-0000-0000-000000000010', '{"check_field": "equipment_status", "expected": "正常", "level": "critical"}', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655441201', '云台角度异常报警', 'gimbal_task', '550e8400-e29b-41d4-a716-446655440010', '{"angle_threshold": 180, "operator": "gt", "level": "warning"}', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655441202', '云台任务超时报警', 'gimbal_task', '550e8400-e29b-41d4-a716-446655440010', '{"timeout_threshold": 300, "unit": "seconds", "level": "critical"}', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655441301', '传感器数据异常报警', 'sensor', '550e8400-e29b-41d4-a716-446655440010', '{"data_range": {"min": 0, "max": 100}, "level": "warning"}', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655441302', '传感器离线报警', 'sensor', '550e8400-e29b-41d4-a716-446655440010', '{"offline_threshold": 60, "unit": "seconds", "level": "critical"}', NOW(), NOW(), 'admin', 'admin', FALSE);
+-- 插入示例报警规则数据（新表结构，暂时为空，等报警功能完全实现后再添加示例数据）
+-- INSERT INTO tb_alarm_rule (id, rule_name, alarm_category, alarm_level, rule_type, rule_config, enabled, description, is_global, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
+-- ('550e8400-e29b-41d4-a716-446655441101', '温度异常报警', 'inspection', 5, 'value_range', '{"data_source": "itemhistory.item_result.temperature", "ranges": [{"min": 0, "max": 20, "alarm": true}]}', TRUE, '温度超出正常范围', FALSE, NOW(), NOW(), 'admin', 'admin', FALSE);
 
--- 插入示例报警信息数据
-INSERT INTO tb_alarminfo (id, alarmrule_id, record_type, record_id, alarm_data, alarm_info, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655441201', '550e8400-e29b-41d4-a716-446655441102', 'itemhistory', '550e8400-e29b-41d4-a716-446655441003', '{"actual_value": "正常", "expected_value": "正常", "match": true}', '设备状态正常，符合预期', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655441401', '550e8400-e29b-41d4-a716-446655441201', 'gimbalhistory', '550e8400-e29b-41d4-a716-446655440010', '{"actual_angle": 185, "threshold": 180, "exceeded": true}', '云台角度超出正常范围，当前角度185度', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655441501', '550e8400-e29b-41d4-a716-446655441301', 'sensorhistory', '550e8400-e29b-41d4-a716-446655440010', '{"actual_value": 105, "range": {"min": 0, "max": 100}, "exceeded": true}', '传感器数据超出正常范围，当前值105', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
+-- 插入示例报警信息数据（新表结构，暂时为空，等报警功能完全实现后再添加示例数据）
+-- INSERT INTO tb_alarm_info (id, alarm_rule_id, alarm_category, alarm_level, alarm_status, source_type, source_ids, relation_type, relation_ids, trigger_item_ids, trigger_data, alarm_message, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
+-- ('550e8400-e29b-41d4-a716-446655441201', '550e8400-e29b-41d4-a716-446655441101', 'inspection', 5, 'unviewed', 'itemhistory', '["itemhistory-001"]', 'item', '["item-001"]', '["item-001"]', '{"temperature": 15}', '温度异常', NOW(), NOW(), 'admin', 'admin', FALSE);
 
 -- 插入手动操作记录测试数据
 INSERT INTO tb_manual_operation (id, user_id, username, operation_time, operation_content, created_at, updated_at, created_by, updated_by, is_deleted) VALUES

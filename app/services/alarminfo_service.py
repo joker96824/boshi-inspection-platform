@@ -8,7 +8,6 @@ from fastapi import HTTPException
 
 from ..repositories.alarminfo_repository import AlarmInfoRepository
 from ..repositories.alarmrule_repository import AlarmRuleRepository
-from ..repositories.itemhistory_repository import ItemHistoryRepository
 from ..schemas.alarminfo import AlarmInfoCreate, AlarmInfoUpdate, AlarmInfoQuery
 from ..core.exceptions import (
     ResourceNotFoundError, BusinessError
@@ -26,45 +25,6 @@ class AlarmInfoService:
         self.db = db
         self.alarminfo_repo = AlarmInfoRepository(db)
         self.alarmrule_repo = AlarmRuleRepository(db)
-        self.itemhistory_repo = ItemHistoryRepository(db)
-
-    async def create_alarminfo(self, alarminfo_data: AlarmInfoCreate, user: dict) -> Dict[str, Any]:
-        """创建报警信息"""
-        try:
-            # 验证报警规则是否存在
-            alarmrule = await self.alarmrule_repo.get_by_id(alarminfo_data.alarmrule_id)
-            if not alarmrule:
-                raise ResourceNotFoundError(f"报警规则ID '{alarminfo_data.alarmrule_id}' 不存在")
-
-            # 验证巡检记录是否存在
-            itemhistory = await self.itemhistory_repo.get_by_id(alarminfo_data.itemhistory_id)
-            if not itemhistory:
-                raise ResourceNotFoundError(f"巡检记录ID '{alarminfo_data.itemhistory_id}' 不存在")
-
-            create_data = alarminfo_data.dict()
-            create_data["created_by"] = user["username"]
-            create_data["updated_by"] = user["username"]
-
-            alarminfo = await self.alarminfo_repo.create(create_data)
-
-            log_user_action(
-                user["username"],
-                "create_alarminfo",
-                "success",
-                f"创建报警信息成功，ID: {alarminfo.id}"
-            )
-
-            return ApiResponse.success(
-                data=self._format_alarminfo_response(alarminfo),
-                message="创建报警信息成功"
-            )
-
-        except (ResourceNotFoundError, BusinessError) as e:
-            logger.warning(f"创建报警信息失败: {e}")
-            raise
-        except Exception as e:
-            logger.error(f"创建报警信息失败: {e}")
-            raise HTTPException(status_code=500, detail="创建报警信息失败")
 
     async def get_alarminfo_by_id(self, alarminfo_id: str, user: dict) -> Dict[str, Any]:
         """根据ID获取报警信息"""
@@ -82,24 +42,8 @@ class AlarmInfoService:
             logger.warning(f"获取报警信息失败: {e}")
             raise
         except Exception as e:
-            logger.error(f"获取报警信息失败: {e}")
-            raise HTTPException(status_code=500, detail="获取报警信息失败")
-
-    async def get_alarminfos_by_ids(self, alarminfo_ids: List[str], user: dict) -> Dict[str, Any]:
-        """根据ID列表获取报警信息"""
-        try:
-            alarminfos = await self.alarminfo_repo.get_by_ids(alarminfo_ids)
-
-            items_data = [self._format_alarminfo_response(alarminfo) for alarminfo in alarminfos]
-
-            return ApiResponse.success(
-                data={"items": items_data, "total": len(items_data)},
-                message="获取报警信息列表成功"
-            )
-
-        except Exception as e:
-            logger.error(f"获取报警信息列表失败: {e}")
-            raise HTTPException(status_code=500, detail="获取报警信息列表失败")
+            logger.error(f"获取报警信息失败: {e}", exc_info=True)
+            raise BusinessError(f"获取报警信息失败: {str(e)}")
 
     async def get_alarminfos(self, query: AlarmInfoQuery, user: dict) -> Dict[str, Any]:
         """获取报警信息列表（分页）"""
@@ -107,8 +51,15 @@ class AlarmInfoService:
             alarminfos, total = await self.alarminfo_repo.get_all(
                 page=query.page,
                 size=query.size,
-                alarmrule_id=query.alarmrule_id,
-                itemhistory_id=query.itemhistory_id
+                alarm_rule_id=query.alarm_rule_id,
+                alarm_category=query.alarm_category,
+                alarm_level=query.alarm_level,
+                alarm_status=query.alarm_status,
+                source_type=query.source_type,
+                relation_type=query.relation_type,
+                relation_id=query.relation_id,
+                trigger_item_id=query.trigger_item_id,
+                trigger_project_id=query.trigger_project_id
             )
 
             items_data = [self._format_alarminfo_response(alarminfo) for alarminfo in alarminfos]
@@ -122,57 +73,76 @@ class AlarmInfoService:
             )
 
         except Exception as e:
-            logger.error(f"获取报警信息列表失败: {e}")
-            raise HTTPException(status_code=500, detail="获取报警信息列表失败")
+            logger.error(f"获取报警信息列表失败: {e}", exc_info=True)
+            raise BusinessError(f"获取报警信息列表失败: {str(e)}")
 
-    async def update_alarminfo(self, alarminfo_id: str, alarminfo_data: AlarmInfoUpdate, user: dict) -> Dict[str, Any]:
-        """更新报警信息"""
+    async def update_alarm_status(self, alarminfo_id: str, alarm_status: str, user: dict) -> Dict[str, Any]:
+        """更新报警状态"""
         try:
-            existing_alarminfo = await self.alarminfo_repo.get_by_id(alarminfo_id)
-            if not existing_alarminfo:
+            alarminfo = await self.alarminfo_repo.get_by_id(alarminfo_id)
+            if not alarminfo:
                 raise ResourceNotFoundError(f"报警信息ID '{alarminfo_id}' 不存在")
 
-            # 如果更新报警规则ID，验证新规则是否存在
-            if alarminfo_data.alarmrule_id:
-                alarmrule = await self.alarmrule_repo.get_by_id(alarminfo_data.alarmrule_id)
-                if not alarmrule:
-                    raise ResourceNotFoundError(f"报警规则ID '{alarminfo_data.alarmrule_id}' 不存在")
+            update_data = {
+                "alarm_status": alarm_status,
+                "updated_by": user["username"]
+            }
+            updated_alarminfo = await self.alarminfo_repo.update(alarminfo_id, update_data)
 
-            # 如果更新巡检记录ID，验证新记录是否存在
-            if alarminfo_data.itemhistory_id:
-                itemhistory = await self.itemhistory_repo.get_by_id(alarminfo_data.itemhistory_id)
-                if not itemhistory:
-                    raise ResourceNotFoundError(f"巡检记录ID '{alarminfo_data.itemhistory_id}' 不存在")
+            return ApiResponse.success(
+                data=self._format_alarminfo_response(updated_alarminfo),
+                message="更新报警状态成功"
+            )
 
-            update_data = alarminfo_data.dict(exclude_unset=True)
-            update_data["updated_by"] = user["username"]
+        except ResourceNotFoundError as e:
+            logger.warning(f"更新报警状态失败: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"更新报警状态失败: {e}", exc_info=True)
+            raise BusinessError(f"更新报警状态失败: {str(e)}")
 
+    async def process_alarm(self, alarminfo_id: str, process_remark: str, user: dict) -> Dict[str, Any]:
+        """处理报警"""
+        try:
+            from datetime import datetime
+
+            alarminfo = await self.alarminfo_repo.get_by_id(alarminfo_id)
+            if not alarminfo:
+                raise ResourceNotFoundError(f"报警信息ID '{alarminfo_id}' 不存在")
+
+            update_data = {
+                "alarm_status": "processed",
+                "processed_by": user["username"],
+                "processed_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+                "process_remark": process_remark,
+                "updated_by": user["username"]
+            }
             updated_alarminfo = await self.alarminfo_repo.update(alarminfo_id, update_data)
 
             log_user_action(
                 user["username"],
-                "update_alarminfo",
+                "process_alarm",
                 "success",
-                f"更新报警信息成功，ID: {alarminfo_id}"
+                f"处理报警成功，ID: {alarminfo_id}"
             )
 
             return ApiResponse.success(
                 data=self._format_alarminfo_response(updated_alarminfo),
-                message="更新报警信息成功"
+                message="处理报警成功"
             )
 
-        except (ResourceNotFoundError, BusinessError) as e:
-            logger.warning(f"更新报警信息失败: {e}")
+        except ResourceNotFoundError as e:
+            logger.warning(f"处理报警失败: {e}")
             raise
         except Exception as e:
-            logger.error(f"更新报警信息失败: {e}")
-            raise HTTPException(status_code=500, detail="更新报警信息失败")
+            logger.error(f"处理报警失败: {e}", exc_info=True)
+            raise BusinessError(f"处理报警失败: {str(e)}")
 
     async def delete_alarminfo(self, alarminfo_id: str, user: dict) -> Dict[str, Any]:
         """删除报警信息（软删除）"""
         try:
-            existing_alarminfo = await self.alarminfo_repo.get_by_id(alarminfo_id)
-            if not existing_alarminfo:
+            alarminfo = await self.alarminfo_repo.get_by_id(alarminfo_id)
+            if not alarminfo:
                 raise ResourceNotFoundError(f"报警信息ID '{alarminfo_id}' 不存在")
 
             success = await self.alarminfo_repo.delete(alarminfo_id)
@@ -190,44 +160,92 @@ class AlarmInfoService:
                     message="删除报警信息成功"
                 )
             else:
-                raise HTTPException(status_code=500, detail="删除报警信息失败")
+                raise BusinessError("删除报警信息失败")
 
         except ResourceNotFoundError as e:
             logger.warning(f"删除报警信息失败: {e}")
             raise
         except Exception as e:
-            logger.error(f"删除报警信息失败: {e}")
-            raise HTTPException(status_code=500, detail="删除报警信息失败")
+            logger.error(f"删除报警信息失败: {e}", exc_info=True)
+            raise BusinessError(f"删除报警信息失败: {str(e)}")
 
-    async def get_alarminfo_stats(self, user: dict) -> Dict[str, Any]:
-        """获取报警信息统计信息"""
+    async def get_alarm_stats(self, user: dict) -> Dict[str, Any]:
+        """获取报警统计信息"""
         try:
             total_count = await self.alarminfo_repo.count_all()
 
+            # 按分类统计
+            inspection_list, _ = await self.alarminfo_repo.get_all(
+                page=None, size=None, alarm_category='inspection'
+            )
+            gimbal_list, _ = await self.alarminfo_repo.get_all(
+                page=None, size=None, alarm_category='gimbal'
+            )
+            sensor_list, _ = await self.alarminfo_repo.get_all(
+                page=None, size=None, alarm_category='sensor'
+            )
+            robot_list, _ = await self.alarminfo_repo.get_all(
+                page=None, size=None, alarm_category='robot'
+            )
+
+            # 按状态统计
+            unviewed_list, _ = await self.alarminfo_repo.get_all(
+                page=None, size=None, alarm_status='unviewed'
+            )
+            unprocessed_list, _ = await self.alarminfo_repo.get_all(
+                page=None, size=None, alarm_status='unprocessed'
+            )
+            processed_list, _ = await self.alarminfo_repo.get_all(
+                page=None, size=None, alarm_status='processed'
+            )
+
             stats = {
-                "total_alarminfos": total_count
+                "total": total_count,
+                "by_category": {
+                    "inspection": len(inspection_list),
+                    "gimbal": len(gimbal_list),
+                    "sensor": len(sensor_list),
+                    "robot": len(robot_list),
+                    "other": total_count - len(inspection_list) - len(gimbal_list) - len(sensor_list) - len(robot_list)
+                },
+                "by_status": {
+                    "unviewed": len(unviewed_list),
+                    "unprocessed": len(unprocessed_list),
+                    "processed": len(processed_list)
+                }
             }
 
             return ApiResponse.success(
                 data=stats,
-                message="获取报警信息统计成功"
+                message="获取报警统计成功"
             )
 
         except Exception as e:
-            logger.error(f"获取报警信息统计失败: {e}")
-            raise HTTPException(status_code=500, detail="获取报警信息统计失败")
+            logger.error(f"获取报警统计失败: {e}", exc_info=True)
+            raise BusinessError(f"获取报警统计失败: {str(e)}")
 
     def _format_alarminfo_response(self, alarminfo) -> Dict[str, Any]:
         """格式化报警信息响应数据"""
         return {
             "id": alarminfo.id,
-            "alarmrule_id": alarminfo.alarmrule_id,
-            "itemhistory_id": alarminfo.itemhistory_id,
-            "alarm_data": alarminfo.alarm_data,
-            "alarm_info": alarminfo.alarm_info,
+            "alarm_rule_id": alarminfo.alarm_rule_id,
+            "alarm_category": alarminfo.alarm_category,
+            "alarm_level": alarminfo.alarm_level,
+            "alarm_status": alarminfo.alarm_status,
+            "source_type": alarminfo.source_type,
+            "source_ids": alarminfo.source_ids if isinstance(alarminfo.source_ids, list) else [],
+            "relation_type": alarminfo.relation_type,
+            "relation_ids": alarminfo.relation_ids if isinstance(alarminfo.relation_ids, list) else [],
+            "trigger_item_ids": alarminfo.trigger_item_ids if isinstance(alarminfo.trigger_item_ids, list) else [],
+            "trigger_project_ids": alarminfo.trigger_project_ids if isinstance(alarminfo.trigger_project_ids, list) else [],
+            "trigger_data": alarminfo.trigger_data,
+            "calculated_value": alarminfo.calculated_value,
+            "alarm_message": alarminfo.alarm_message,
+            "processed_by": alarminfo.processed_by,
+            "processed_at": alarminfo.processed_at,
+            "process_remark": alarminfo.process_remark,
             "created_at": alarminfo.created_at.strftime("%Y-%m-%dT%H:%M:%S") if alarminfo.created_at else None,
             "updated_at": alarminfo.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if alarminfo.updated_at else None,
             "created_by": alarminfo.created_by,
             "updated_by": alarminfo.updated_by,
         }
-

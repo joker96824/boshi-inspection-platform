@@ -2,17 +2,14 @@
 报警规则API路由
 """
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
-from ...core.deps import get_db, validate_pagination_params
-from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
+from ...core.deps import get_db
+from ...core.permissions import require_write_permission, require_no_auth
 from ...services.alarmrule_service import AlarmRuleService
-from ...schemas.alarmrule import (
-    AlarmRuleCreate, AlarmRuleUpdate, AlarmRuleQuery,
-    AlarmRuleResponse, AlarmRuleListResponse
-)
+from ...schemas.alarmrule import AlarmRuleCreate, AlarmRuleUpdate, AlarmRuleQuery
 
 router = APIRouter()
 
@@ -37,34 +34,16 @@ async def create_alarmrule(
     return await service.create_alarmrule(alarmrule_data, current_user)
 
 
-@router.get("/by-ids", response_model=dict)
-async def get_alarmrules_by_ids(
-    alarmrule_ids: List[str] = Query(..., description="报警规则ID列表（支持单个或多个ID查询）"),
-    db: AsyncSession = Depends(get_db),
-    current_user: Optional[dict] = Depends(require_no_auth())
-):
-    """根据ID列表查询报警规则
-    
-    支持单个或多个ID查询
-    
-    Args:
-        alarmrule_ids: 报警规则ID列表
-        db: 数据库会话
-        current_user: 当前用户
-    
-    Returns:
-        报警规则列表
-    """
-    service = AlarmRuleService(db)
-    return await service.get_alarmrules_by_ids(alarmrule_ids, current_user)
-
-
 @router.get("/", response_model=dict)
 async def get_alarmrules(
     page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
     size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
     rule_name: Optional[str] = Query(None, description="规则名称（模糊匹配）"),
-    item_id: Optional[str] = Query(None, description="巡检项目ID"),
+    alarm_category: Optional[str] = Query(None, description="报警分类"),
+    alarm_level: Optional[int] = Query(None, description="报警等级"),
+    rule_type: Optional[str] = Query(None, description="规则类型"),
+    enabled: Optional[bool] = Query(None, description="是否启用"),
+    is_global: Optional[bool] = Query(None, description="是否全局规则"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[dict] = Depends(require_no_auth())
 ):
@@ -74,14 +53,27 @@ async def get_alarmrules(
         page: 页码
         size: 每页数量
         rule_name: 规则名称（模糊匹配）
-        item_id: 巡检项目ID
+        alarm_category: 报警分类
+        alarm_level: 报警等级
+        rule_type: 规则类型
+        enabled: 是否启用
+        is_global: 是否全局规则
         db: 数据库会话
         current_user: 当前用户
     
     Returns:
         分页的报警规则列表
     """
-    query = AlarmRuleQuery(page=page, size=size, rule_name=rule_name, item_id=item_id)
+    query = AlarmRuleQuery(
+        page=page,
+        size=size,
+        rule_name=rule_name,
+        alarm_category=alarm_category,
+        alarm_level=alarm_level,
+        rule_type=rule_type,
+        enabled=enabled,
+        is_global=is_global
+    )
     service = AlarmRuleService(db)
     return await service.get_alarmrules(query, current_user)
 
@@ -148,20 +140,87 @@ async def delete_alarmrule(
     return await service.delete_alarmrule(alarmrule_id, current_user)
 
 
-@router.get("/stats/summary", response_model=dict)
-async def get_alarmrule_stats(
+@router.put("/{alarmrule_id}/enable", response_model=dict)
+async def enable_alarmrule(
+    alarmrule_id: str,
+    enabled: bool = Body(..., description="是否启用"),
     db: AsyncSession = Depends(get_db),
-    current_user: Optional[dict] = Depends(require_no_auth())
+    current_user: dict = Depends(require_write_permission)
 ):
-    """获取报警规则统计信息
+    """启用/禁用报警规则
     
     Args:
+        alarmrule_id: 报警规则ID
+        enabled: 是否启用
         db: 数据库会话
         current_user: 当前用户
     
     Returns:
-        统计信息
+        更新后的报警规则对象
     """
     service = AlarmRuleService(db)
-    return await service.get_alarmrule_stats(current_user)
+    return await service.enable_alarmrule(alarmrule_id, enabled, current_user)
 
+
+@router.get("/{alarmrule_id}/relations", response_model=dict)
+async def get_alarmrule_relations(
+    alarmrule_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[dict] = Depends(require_no_auth())
+):
+    """获取报警规则的关联对象列表
+    
+    Args:
+        alarmrule_id: 报警规则ID
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        关联对象列表
+    """
+    service = AlarmRuleService(db)
+    return await service.get_relations(alarmrule_id, current_user)
+
+
+@router.post("/{alarmrule_id}/relations", response_model=dict)
+async def add_alarmrule_relations(
+    alarmrule_id: str,
+    relations: List[Dict[str, Any]] = Body(..., description="关联对象列表"),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_write_permission)
+):
+    """为报警规则添加关联对象
+    
+    Args:
+        alarmrule_id: 报警规则ID
+        relations: 关联对象列表，格式：[{"type": "item", "id": "xxx", "sort_order": 1}]
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        更新后的报警规则对象
+    """
+    service = AlarmRuleService(db)
+    return await service.add_relations(alarmrule_id, relations, current_user)
+
+
+@router.delete("/{alarmrule_id}/relations", response_model=dict)
+async def remove_alarmrule_relations(
+    alarmrule_id: str,
+    relations: List[Dict[str, Any]] = Body(..., description="关联对象列表"),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_write_permission)
+):
+    """删除报警规则的关联对象
+    
+    Args:
+        alarmrule_id: 报警规则ID
+        relations: 关联对象列表，格式：[{"type": "item", "id": "xxx"}]
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        更新后的报警规则对象
+    """
+    service = AlarmRuleService(db)
+    return await service.remove_relations(alarmrule_id, relations, current_user)

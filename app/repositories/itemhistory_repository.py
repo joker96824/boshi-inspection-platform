@@ -152,6 +152,11 @@ class ItemHistoryRepository:
     async def get_with_item_details(self, page: int = 1, size: int = 20, 
                                    item_ids: List[str] = None) -> Tuple[List[Dict[str, Any]], int]:
         """通过巡检项目查询，返回带任务记录详情的记录列表"""
+        from ..models.device import Device
+        from ..models.point import Point
+        from ..models.task import Task
+        from ..models.robot import Robot
+        
         skip = (page - 1) * size
         
         # 构建查询条件
@@ -165,10 +170,14 @@ class ItemHistoryRepository:
         count_result = await self.db.execute(count_query)
         total = count_result.scalar() or 0
         
-        # 查询数据（带任务记录详情）
-        query = (select(ItemHistory, TaskHistory, Item)
+        # 查询数据（带任务记录详情和相关关联数据）
+        query = (select(ItemHistory, TaskHistory, Item, Device, Point, Task, Robot)
                 .join(TaskHistory, ItemHistory.taskhistory_id == TaskHistory.id)
                 .join(Item, ItemHistory.item_id == Item.id)
+                .join(Device, Item.device_id == Device.id)
+                .join(Point, Device.point_id == Point.id)
+                .join(Task, TaskHistory.task_id == Task.id)
+                .join(Robot, Task.robot_id == Robot.id)
                 .where(and_(*conditions))
                 .order_by(ItemHistory.item_id, ItemHistory.created_at)
                 .offset(skip)
@@ -179,13 +188,18 @@ class ItemHistoryRepository:
         
         # 格式化结果
         itemhistories_with_details = []
-        for itemhistory, taskhistory, item in rows:
+        for itemhistory, taskhistory, item, device, point, task, robot in rows:
             itemhistories_with_details.append({
                 "id": itemhistory.id,
                 "taskhistory_id": itemhistory.taskhistory_id,
                 "item_id": itemhistory.item_id,
                 "item_result": itemhistory.item_result,
-                "task_name": taskhistory.task_id,  # 这里可能需要根据实际需求调整
+                "process_status": itemhistory.process_status,  # 处理状态
+                "point_name": point.point_name if point else None,  # 巡检点名称
+                "robot_name": robot.robot_name if robot else None,  # 机器人名称
+                "record_start_time": taskhistory.record_start_time.strftime("%Y-%m-%dT%H:%M:%S") if taskhistory.record_start_time else None,  # 开始时间
+                "record_end_time": taskhistory.record_end_time.strftime("%Y-%m-%dT%H:%M:%S") if taskhistory.record_end_time else None,  # 结束时间
+                "task_name": task.task_name if task else None,  # 任务名称
                 "item_name": item.item_name,
                 "item_info": item.item_info,
                 "created_at": itemhistory.created_at,

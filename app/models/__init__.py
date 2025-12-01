@@ -16,6 +16,7 @@ from .item import Item
 from .itemhistory import ItemHistory
 from .taskresult import TaskResult
 from .alarmrule import AlarmRule
+from .alarmrulerelation import AlarmRuleRelation
 from .alarminfo import AlarmInfo
 from .gimbal import Gimbal
 from .gimbaltask import GimbalTask
@@ -57,6 +58,7 @@ __all__ = [
     "ItemHistory",
     "TaskResult",
     "AlarmRule",
+    "AlarmRuleRelation",
     "AlarmInfo",
     "Gimbal",
     "GimbalTask",
