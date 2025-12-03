@@ -185,6 +185,7 @@ class MapRepository:
         # 通过中间表获取该地图下的所有机器人
         robots_query = (
             select(Robot)
+            .options(selectinload(Robot.group))
             .join(RobotMap, Robot.id == RobotMap.robot_id)
             .where(
                 RobotMap.map_id == map_id,
@@ -274,6 +275,7 @@ class MapRepository:
         # 获取该地图下的所有云台
         gimbals_query = (
             select(Gimbal)
+            .options(selectinload(Gimbal.group))
             .where(
                 Gimbal.map_id == map_id,
                 Gimbal.is_deleted == False

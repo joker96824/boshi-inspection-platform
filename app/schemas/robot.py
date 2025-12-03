@@ -15,6 +15,7 @@ class RobotBase(BaseSchema):
     map_ids: Optional[List[str]] = Field(None, description="关联地图ID列表")
     preview_url: Optional[str] = Field(None, max_length=500, description="预览地址")
     control_url: Optional[str] = Field(None, max_length=500, description="控制地址")
+    group_id: Optional[str] = Field(None, description="关联分组ID")
 
 
 class RobotCreate(RobotBase):
@@ -30,6 +31,7 @@ class RobotUpdate(BaseSchema):
     map_ids: Optional[List[str]] = Field(None, description="关联地图ID列表")
     preview_url: Optional[str] = Field(None, max_length=500, description="预览地址")
     control_url: Optional[str] = Field(None, max_length=500, description="控制地址")
+    group_id: Optional[str] = Field(None, description="关联分组ID")
 
 
 class RobotResponse(BaseResponse):
@@ -37,6 +39,8 @@ class RobotResponse(BaseResponse):
     user_id: str = Field(..., description="所属用户ID")
     robot_name: str = Field(..., description="机器人名称")
     robot_info: Optional[Dict[str, Any]] = Field(None, description="机器人信息")
+    group_id: Optional[str] = Field(None, description="关联分组ID")
+    group: Optional[Dict[str, Any]] = Field(None, description="分组信息（包含id、group_name、group_description）")
 
 
 class RobotQuery(BaseSchema):
@@ -55,3 +59,9 @@ class RobotListResponse(BaseSchema):
     page: int = Field(..., description="当前页码")
     size: int = Field(..., description="每页数量")
     pages: int = Field(..., description="总页数")
+
+
+class RobotBatchUpdateGroup(BaseSchema):
+    """机器人批量更新分组模式"""
+    robot_ids: List[str] = Field(..., min_items=1, description="机器人ID列表")
+    group_id: Optional[str] = Field(None, description="分组ID（为null表示移除分组）")

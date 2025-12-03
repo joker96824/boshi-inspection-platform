@@ -192,6 +192,7 @@ class EnvironmentSensorService:
         """格式化环境传感器响应数据"""
         return {
             "id": sensor.id,
+            "robot_id": sensor.robot_id,
             "station_number": sensor.station_number,
             "baud_rate": sensor.baud_rate,
             "created_at": sensor.created_at.strftime("%Y-%m-%dT%H:%M:%S") if sensor.created_at else None,

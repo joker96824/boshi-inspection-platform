@@ -40,6 +40,7 @@ class GimbalRepository:
                 .selectinload(GimbalInspectionProject.preset_points)
                 .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
                 selectinload(Gimbal.preset_points),
+                selectinload(Gimbal.group),
             )
             .where(Gimbal.id == gimbal_id, Gimbal.is_deleted == False)
         )
@@ -62,6 +63,7 @@ class GimbalRepository:
                 .selectinload(GimbalInspectionProject.preset_points)
                 .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
                 selectinload(Gimbal.preset_points),
+                selectinload(Gimbal.group),
             )
             .where(
                 Gimbal.id.in_(gimbal_ids),
@@ -119,6 +121,7 @@ class GimbalRepository:
                 .selectinload(GimbalInspectionProject.preset_points)
                 .selectinload(GimbalInspectionProjectPresetPoint.preset_point),
                 selectinload(Gimbal.preset_points),
+                selectinload(Gimbal.group),
             )
             .where(and_(*conditions))
             .order_by(order_column, secondary_order)
@@ -173,4 +176,23 @@ class GimbalRepository:
         stmt = select(func.count(Gimbal.id)).where(Gimbal.is_deleted == False)
         result = await self.db.execute(stmt)
         return result.scalar() or 0
+    
+    async def batch_update_group(self, gimbal_ids: List[str], group_id: Optional[str], updated_by: str) -> int:
+        """批量更新云台分组"""
+        from sqlalchemy import update
+        
+        stmt = (
+            update(Gimbal)
+            .where(
+                Gimbal.id.in_(gimbal_ids),
+                Gimbal.is_deleted == False
+            )
+            .values(
+                group_id=group_id,
+                updated_by=updated_by
+            )
+        )
+        result = await self.db.execute(stmt)
+        await self.db.commit()
+        return result.rowcount
 

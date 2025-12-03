@@ -385,10 +385,21 @@ class GimbalService:
                     }
                 )
 
+        # 格式化分组信息
+        group_info = None
+        if gimbal.group and not gimbal.group.is_deleted:
+            group_info = {
+                "id": gimbal.group.id,
+                "group_name": gimbal.group.group_name,
+                "group_description": gimbal.group.group_description,
+            }
+        
         return {
             "id": gimbal.id,
             "gimbal_name": gimbal.gimbal_name,
             "map_id": gimbal.map_id,
+            "group_id": gimbal.group_id,
+            "group": group_info,
             "enabled": gimbal.enabled,
             "ip_address": str(gimbal.ip_address) if gimbal.ip_address else None,
             "port": gimbal.port,
@@ -433,4 +444,46 @@ class GimbalService:
                 return f'每{weeks_str}'
         
         return ''
+    
+    async def batch_update_group(self, gimbal_ids: List[str], group_id: Optional[str], user: dict) -> Dict[str, Any]:
+        """批量更新云台分组"""
+        from ..repositories.group_repository import GroupRepository
+        
+        try:
+            # 如果提供了group_id，验证分组是否存在
+            if group_id is not None:
+                group_repo = GroupRepository(self.db)
+                group = await group_repo.get_by_id(group_id)
+                if not group:
+                    raise ResourceNotFoundError(f"分组 '{group_id}' 不存在")
+            
+            # 批量更新
+            updated_count = await self.gimbal_repo.batch_update_group(
+                gimbal_ids=gimbal_ids,
+                group_id=group_id,
+                updated_by=user["username"]
+            )
+            
+            # 记录操作日志
+            log_user_action(
+                user["username"],
+                "batch_update_gimbal_group",
+                "success",
+                f"批量更新云台分组成功，更新数量: {updated_count}"
+            )
+            
+            return ApiResponse.success(
+                data={"updated_count": updated_count},
+                message=f"批量更新云台分组成功，共更新 {updated_count} 个云台"
+            )
+            
+        except Exception as e:
+            logger.error(f"批量更新云台分组失败: {e}", exc_info=True)
+            log_user_action(
+                user["username"],
+                "batch_update_gimbal_group",
+                "failed",
+                f"批量更新云台分组失败: {str(e)}"
+            )
+            raise BusinessError(f"批量更新云台分组失败: {str(e)}")
 

@@ -12,7 +12,7 @@ from ...core.permissions import require_write_permission, require_no_auth
 from ...services.ultrasonic_service import UltrasonicService
 from ...schemas.ultrasonic import (
     UltrasonicCreate, UltrasonicUpdate, UltrasonicResponse, 
-    UltrasonicQuery, UltrasonicListResponse
+    UltrasonicQuery, UltrasonicListResponse, UltrasonicBatchUpdate
 )
 from ...utils.response import ApiResponse
 
@@ -77,6 +77,17 @@ async def create_ultrasonic(
     return await service.create_ultrasonic(data, current_user)
 
 
+@router.put("/batch-update-by-robot", response_model=dict)
+async def batch_update_ultrasonics_by_robot(
+    data: UltrasonicBatchUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_write_permission)
+):
+    """批量更新机器人的超声波状态配置（真删除旧数据后重新添加）"""
+    service = UltrasonicService(db)
+    return await service.batch_update_ultrasonics_by_robot(data.robot_id, data.configs, current_user)
+
+
 @router.put("/{ultrasonic_id}", response_model=dict)
 async def update_ultrasonic(
     ultrasonic_id: str,
@@ -84,7 +95,7 @@ async def update_ultrasonic(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_write_permission)
 ):
-    """更新超声波状态配置"""
+    """更新超声波状态配置（单个，兼容旧接口）"""
     service = UltrasonicService(db)
     return await service.update_ultrasonic(ultrasonic_id, data, current_user)
 

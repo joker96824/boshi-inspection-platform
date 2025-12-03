@@ -32,7 +32,10 @@ class RobotRepository:
         """根据ID获取机器人"""
         stmt = (
             select(Robot)
-            .options(selectinload(Robot.maps).selectinload(RobotMap.map))
+            .options(
+                selectinload(Robot.maps).selectinload(RobotMap.map),
+                selectinload(Robot.group)
+            )
             .where(
             Robot.id == robot_id,
             Robot.is_deleted == False
@@ -43,10 +46,15 @@ class RobotRepository:
     
     async def get_by_ids(self, robot_ids: List[str]) -> List[Robot]:
         """根据ID列表获取机器人"""
-        query = select(Robot).where(
-            Robot.id.in_(robot_ids),
-            Robot.is_deleted == False
-        ).order_by(Robot.created_at.desc())
+        query = (
+            select(Robot)
+            .options(selectinload(Robot.group))
+            .where(
+                Robot.id.in_(robot_ids),
+                Robot.is_deleted == False
+            )
+            .order_by(Robot.created_at.desc())
+        )
         result = await self.db.execute(query)
         return list(result.scalars().all())
     
@@ -77,7 +85,10 @@ class RobotRepository:
             # 通过中间表筛选
             stmt = (
                 select(Robot)
-                .options(selectinload(Robot.maps).selectinload(RobotMap.map))
+                .options(
+                    selectinload(Robot.maps).selectinload(RobotMap.map),
+                    selectinload(Robot.group)
+                )
                 .join(RobotMap, Robot.id == RobotMap.robot_id)
                 .where(
                     RobotMap.map_id == map_id,
@@ -98,7 +109,10 @@ class RobotRepository:
         else:
             stmt = (
                 select(Robot)
-                .options(selectinload(Robot.maps).selectinload(RobotMap.map))
+                .options(
+                    selectinload(Robot.maps).selectinload(RobotMap.map),
+                    selectinload(Robot.group)
+                )
                 .where(*conditions)
             )
             count_stmt = select(func.count(Robot.id)).where(*conditions)
@@ -138,7 +152,14 @@ class RobotRepository:
         total = count_result.scalar()
         
         # 查询数据
-        stmt = select(Robot).where(*conditions).order_by(Robot.created_at.desc()).offset(skip).limit(size)
+        stmt = (
+            select(Robot)
+            .options(selectinload(Robot.group))
+            .where(*conditions)
+            .order_by(Robot.created_at.desc())
+            .offset(skip)
+            .limit(size)
+        )
         
         result = await self.db.execute(stmt)
         robots = result.scalars().all()
@@ -193,3 +214,22 @@ class RobotRepository:
         )
         result = await self.db.execute(stmt)
         return result.scalar_one_or_none() is not None
+    
+    async def batch_update_group(self, robot_ids: List[str], group_id: Optional[str], updated_by: str) -> int:
+        """批量更新机器人分组"""
+        from sqlalchemy import update
+        
+        stmt = (
+            update(Robot)
+            .where(
+                Robot.id.in_(robot_ids),
+                Robot.is_deleted == False
+            )
+            .values(
+                group_id=group_id,
+                updated_by=updated_by
+            )
+        )
+        result = await self.db.execute(stmt)
+        await self.db.commit()
+        return result.rowcount

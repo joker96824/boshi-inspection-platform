@@ -9,7 +9,7 @@ from typing import List, Optional
 from ...core.deps import get_db, validate_pagination_params
 from ...core.auth import get_current_user
 from ...core.permissions import require_write_permission, require_read_permission, require_no_auth
-from ...schemas.robot import RobotCreate, RobotUpdate, RobotQuery
+from ...schemas.robot import RobotCreate, RobotUpdate, RobotQuery, RobotBatchUpdateGroup
 from ...services.robot_service import RobotService
 from ...utils.response import ApiResponse
 
@@ -107,6 +107,27 @@ async def get_robot_by_id(
     return await robot_service.get_robot_by_id(robot_id, current_user)
 
 
+@router.get("/{robot_id}/configs", response_model=dict)
+async def get_robot_configs(
+    robot_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional[dict] = Depends(require_no_auth())
+):
+    """根据机器人ID获取所有配置模块数据
+    
+    Args:
+        robot_id: 机器人ID
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        所有配置模块数据（包括：车体控制器、导航控制器、环境传感器、双光云台、电机状态、激光雷达、机械臂、超声波、深度相机）
+    
+    """
+    robot_service = RobotService(db)
+    return await robot_service.get_robot_configs(robot_id, current_user)
+
+
 @router.put("/{robot_id}", response_model=dict)
 async def update_robot(
     robot_id: str,
@@ -165,3 +186,27 @@ async def get_robot_stats(
     """
     robot_service = RobotService(db)
     return await robot_service.get_robot_stats(current_user)
+
+
+@router.put("/batch-update-group", response_model=dict)
+async def batch_update_robot_group(
+    batch_data: RobotBatchUpdateGroup,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_write_permission)
+):
+    """批量更新机器人分组
+    
+    Args:
+        batch_data: 批量更新数据（包含机器人ID列表和分组ID）
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        批量更新结果
+    """
+    robot_service = RobotService(db)
+    return await robot_service.batch_update_group(
+        robot_ids=batch_data.robot_ids,
+        group_id=batch_data.group_id,
+        user=current_user
+    )

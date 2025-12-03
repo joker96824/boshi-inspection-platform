@@ -26,7 +26,12 @@ class SensorRepository:
     
     async def get_by_id(self, sensor_id: str) -> Optional[Sensor]:
         """根据ID获取智能传感器"""
-        query = select(Sensor).where(Sensor.id == sensor_id, Sensor.is_deleted == False)
+        from sqlalchemy.orm import selectinload
+        query = (
+            select(Sensor)
+            .options(selectinload(Sensor.group))
+            .where(Sensor.id == sensor_id, Sensor.is_deleted == False)
+        )
         result = await self.db.execute(query)
         return result.scalar_one_or_none()
     
@@ -35,9 +40,14 @@ class SensorRepository:
         if not sensor_ids:
             return []
         
-        query = select(Sensor).where(
-            Sensor.id.in_(sensor_ids),
-            Sensor.is_deleted == False
+        from sqlalchemy.orm import selectinload
+        query = (
+            select(Sensor)
+            .options(selectinload(Sensor.group))
+            .where(
+                Sensor.id.in_(sensor_ids),
+                Sensor.is_deleted == False
+            )
         )
         result = await self.db.execute(query)
         return list(result.scalars().all())
@@ -62,11 +72,15 @@ class SensorRepository:
         total = count_result.scalar() or 0
         
         # 查询数据
-        query = (select(Sensor)
-                .where(and_(*conditions))
-                .order_by(Sensor.created_at.desc())
-                .offset(skip)
-                .limit(size))
+        from sqlalchemy.orm import selectinload
+        query = (
+            select(Sensor)
+            .options(selectinload(Sensor.group))
+            .where(and_(*conditions))
+            .order_by(Sensor.created_at.desc())
+            .offset(skip)
+            .limit(size)
+        )
         
         result = await self.db.execute(query)
         sensors = list(result.scalars().all())
@@ -111,4 +125,23 @@ class SensorRepository:
         stmt = select(func.count(Sensor.id)).where(Sensor.is_deleted == False)
         result = await self.db.execute(stmt)
         return result.scalar() or 0
+    
+    async def batch_update_group(self, sensor_ids: List[str], group_id: Optional[str], updated_by: str) -> int:
+        """批量更新传感器分组"""
+        from sqlalchemy import update
+        
+        stmt = (
+            update(Sensor)
+            .where(
+                Sensor.id.in_(sensor_ids),
+                Sensor.is_deleted == False
+            )
+            .values(
+                group_id=group_id,
+                updated_by=updated_by
+            )
+        )
+        result = await self.db.execute(stmt)
+        await self.db.commit()
+        return result.rowcount
 

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
 from ..repositories.dualptz_repository import DualPTZRepository
-from ..schemas.dualptz import DualPTZCreate, DualPTZUpdate, DualPTZQuery
+from ..schemas.dualptz import DualPTZCreate, DualPTZUpdate, DualPTZQuery, DualPTZBatchUpdate
 from ..core.exceptions import (
     ResourceNotFoundError, BusinessError
 )
@@ -112,7 +112,7 @@ class DualPTZService:
             raise BusinessError(f"获取双光云台配置列表失败: {str(e)}")
 
     async def update_ptz_config(self, ptz_id: str, data: DualPTZUpdate, user: dict) -> Dict[str, Any]:
-        """更新双光云台配置"""
+        """更新双光云台配置（单个，兼容旧接口）"""
         try:
             # 检查双光云台配置是否存在
             existing_config = await self.repo.get_by_id(ptz_id)
@@ -143,6 +143,50 @@ class DualPTZService:
         except Exception as e:
             logger.error(f"更新双光云台配置失败: {e}", exc_info=True)
             raise BusinessError(f"更新双光云台配置失败: {str(e)}")
+    
+    async def batch_update_ptz_configs_by_robot(self, robot_id: str, configs: List[DualPTZCreate], user: dict) -> Dict[str, Any]:
+        """批量更新机器人的双光云台配置（真删除旧数据后重新添加）"""
+        try:
+            from ..repositories.robot_repository import RobotRepository
+            # 检查机器人是否存在
+            robot_repo = RobotRepository(self.db)
+            robot = await robot_repo.get_by_id(robot_id)
+            if not robot:
+                raise ResourceNotFoundError(f"机器人ID '{robot_id}' 不存在")
+            
+            # 真删除该机器人的所有旧配置
+            deleted_count = await self.repo.hard_delete_by_robot_id(robot_id)
+            logger.info(f"删除机器人 {robot_id} 的 {deleted_count} 个旧双光云台配置")
+            
+            # 创建新配置
+            created_configs = []
+            for config_data in configs:
+                create_data = {
+                    **config_data.dict(),
+                    "robot_id": robot_id,
+                    "created_by": user["username"],
+                    "updated_by": user["username"]
+                }
+                ptz_config = await self.repo.create(create_data)
+                created_configs.append(ptz_config)
+            
+            # 记录操作日志
+            log_user_action(
+                logger, user["username"], "batch_update_dual_ptz_configs",
+                f"批量更新机器人 {robot_id} 的双光云台配置: 删除{deleted_count}个，新增{len(created_configs)}个",
+                extra={"robot_id": robot_id, "deleted_count": deleted_count, "created_count": len(created_configs)}
+            )
+
+            return ApiResponse.success(
+                data=[self._format_ptz_response(config) for config in created_configs],
+                message=f"批量更新双光云台配置成功，删除{deleted_count}个，新增{len(created_configs)}个"
+            )
+
+        except ResourceNotFoundError:
+            raise
+        except Exception as e:
+            logger.error(f"批量更新双光云台配置失败: {e}", exc_info=True)
+            raise BusinessError(f"批量更新双光云台配置失败: {str(e)}")
 
     async def delete_ptz_config(self, ptz_id: str, user: dict) -> Dict[str, Any]:
         """删除双光云台配置"""
@@ -192,6 +236,7 @@ class DualPTZService:
         """格式化双光云台配置响应数据"""
         return {
             "id": ptz_config.id,
+            "robot_id": ptz_config.robot_id,
             "ptz_ip": ptz_config.ptz_ip,
             "subnet_mask": ptz_config.subnet_mask,
             "gateway": ptz_config.gateway,

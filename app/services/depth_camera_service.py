@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
 from ..repositories.depthcamera_repository import DepthCameraRepository
-from ..schemas.depthcamera import DepthCameraCreate, DepthCameraUpdate, DepthCameraQuery
+from ..schemas.depthcamera import DepthCameraCreate, DepthCameraUpdate, DepthCameraQuery, DepthCameraBatchUpdate
 from ..core.exceptions import (
     ResourceNotFoundError, BusinessError
 )
@@ -40,8 +40,8 @@ class DepthCameraService:
             # 记录操作日志
             log_user_action(
                 logger, user["username"], "create_depth_camera",
-                f"创建深度相机配置: 类型{depth_camera.camera_type}",
-                extra={"camera_id": depth_camera.id, "camera_type": depth_camera.camera_type}
+                f"创建深度相机配置: 串口ID{depth_camera.serial_port_id}",
+                extra={"camera_id": depth_camera.id, "serial_port_id": depth_camera.serial_port_id}
             )
 
             return ApiResponse.success(
@@ -95,10 +95,8 @@ class DepthCameraService:
             depth_cameras, total = await self.repo.get_all(
                 page=query.page,
                 size=query.size,
-                camera_type=query.camera_type,
-                protocol=query.protocol,
-                frame_rate=query.frame_rate,
-                camera_ip=query.camera_ip
+                serial_port_id=query.serial_port_id,
+                camera_mode=query.camera_mode
             )
 
             return ApiResponse.paginated(
@@ -114,7 +112,7 @@ class DepthCameraService:
             raise BusinessError(f"获取深度相机配置列表失败: {str(e)}")
 
     async def update_depth_camera(self, camera_id: str, data: DepthCameraUpdate, user: dict) -> Dict[str, Any]:
-        """更新深度相机配置"""
+        """更新深度相机配置（单个，兼容旧接口）"""
         try:
             # 检查深度相机配置是否存在
             existing_camera = await self.repo.get_by_id(camera_id)
@@ -131,8 +129,8 @@ class DepthCameraService:
             # 记录操作日志
             log_user_action(
                 logger, user["username"], "update_depth_camera",
-                f"更新深度相机配置: 类型{depth_camera.camera_type}",
-                extra={"camera_id": depth_camera.id, "camera_type": depth_camera.camera_type}
+                f"更新深度相机配置: 串口ID{depth_camera.serial_port_id}",
+                extra={"camera_id": depth_camera.id, "serial_port_id": depth_camera.serial_port_id}
             )
 
             return ApiResponse.success(
@@ -145,6 +143,50 @@ class DepthCameraService:
         except Exception as e:
             logger.error(f"更新深度相机配置失败: {e}", exc_info=True)
             raise BusinessError(f"更新深度相机配置失败: {str(e)}")
+    
+    async def batch_update_depth_cameras_by_robot(self, robot_id: str, configs: List[DepthCameraCreate], user: dict) -> Dict[str, Any]:
+        """批量更新机器人的深度相机配置（真删除旧数据后重新添加）"""
+        try:
+            from ..repositories.robot_repository import RobotRepository
+            # 检查机器人是否存在
+            robot_repo = RobotRepository(self.db)
+            robot = await robot_repo.get_by_id(robot_id)
+            if not robot:
+                raise ResourceNotFoundError(f"机器人ID '{robot_id}' 不存在")
+            
+            # 真删除该机器人的所有旧配置
+            deleted_count = await self.repo.hard_delete_by_robot_id(robot_id)
+            logger.info(f"删除机器人 {robot_id} 的 {deleted_count} 个旧深度相机配置")
+            
+            # 创建新配置
+            created_configs = []
+            for config_data in configs:
+                create_data = {
+                    **config_data.dict(),
+                    "robot_id": robot_id,
+                    "created_by": user["username"],
+                    "updated_by": user["username"]
+                }
+                depth_camera = await self.repo.create(create_data)
+                created_configs.append(depth_camera)
+            
+            # 记录操作日志
+            log_user_action(
+                logger, user["username"], "batch_update_depth_cameras",
+                f"批量更新机器人 {robot_id} 的深度相机配置: 删除{deleted_count}个，新增{len(created_configs)}个",
+                extra={"robot_id": robot_id, "deleted_count": deleted_count, "created_count": len(created_configs)}
+            )
+
+            return ApiResponse.success(
+                data=[self._format_camera_response(config) for config in created_configs],
+                message=f"批量更新深度相机配置成功，删除{deleted_count}个，新增{len(created_configs)}个"
+            )
+
+        except ResourceNotFoundError:
+            raise
+        except Exception as e:
+            logger.error(f"批量更新深度相机配置失败: {e}", exc_info=True)
+            raise BusinessError(f"批量更新深度相机配置失败: {str(e)}")
 
     async def delete_depth_camera(self, camera_id: str, user: dict) -> Dict[str, Any]:
         """删除深度相机配置"""
@@ -162,8 +204,8 @@ class DepthCameraService:
             # 记录操作日志
             log_user_action(
                 logger, user["username"], "delete_depth_camera",
-                f"删除深度相机配置: 类型{existing_camera.camera_type}",
-                extra={"camera_id": camera_id, "camera_type": existing_camera.camera_type}
+                f"删除深度相机配置: 串口ID{existing_camera.serial_port_id}",
+                extra={"camera_id": camera_id, "serial_port_id": existing_camera.serial_port_id}
             )
 
             return ApiResponse.success(
@@ -194,19 +236,11 @@ class DepthCameraService:
         """格式化深度相机配置响应数据"""
         return {
             "id": depth_camera.id,
-            "camera_type": depth_camera.camera_type,
-            "resolution_width": depth_camera.resolution_width,
-            "resolution_height": depth_camera.resolution_height,
-            "frame_rate": depth_camera.frame_rate,
-            "depth_range_min": float(depth_camera.depth_range_min) if depth_camera.depth_range_min else 0.0,
-            "depth_range_max": float(depth_camera.depth_range_max) if depth_camera.depth_range_max else 0.0,
-            "depth_accuracy": float(depth_camera.depth_accuracy) if depth_camera.depth_accuracy else 0.0,
-            "camera_ip": depth_camera.camera_ip,
-            "camera_port": depth_camera.camera_port,
-            "protocol": depth_camera.protocol,
-            "exposure_time": depth_camera.exposure_time,
-            "gain": float(depth_camera.gain) if depth_camera.gain else None,
-            "white_balance": depth_camera.white_balance,
+            "robot_id": depth_camera.robot_id,
+            "serial_port_id": depth_camera.serial_port_id,
+            "camera_mode": depth_camera.camera_mode,
+            "image_flip": depth_camera.image_flip,
+            "image_alignment": depth_camera.image_alignment,
             "created_at": depth_camera.created_at.strftime("%Y-%m-%dT%H:%M:%S") if depth_camera.created_at else None,
             "updated_at": depth_camera.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if depth_camera.updated_at else None,
             "created_by": depth_camera.created_by,

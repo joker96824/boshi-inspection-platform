@@ -16,11 +16,13 @@ class Robot(BaseModel):
     robot_name = Column(String(100), nullable=False, comment="机器人名称")
     robot_info = Column(JSON, nullable=True, comment="机器人信息")
     factory_id = Column(String(36), ForeignKey("tb_factory.id", ondelete="SET NULL"), nullable=True, index=True, comment="厂区ID")
+    group_id = Column(String(36), ForeignKey("tb_group.id", ondelete="SET NULL"), nullable=True, index=True, comment="分组ID")
     preview_url = Column(String(500), nullable=True, comment="预览地址")
     control_url = Column(String(500), nullable=True, comment="控制地址")
     
     # 关系
     factory = relationship("Factory", foreign_keys=[factory_id], back_populates="robots")
+    group = relationship("Group", foreign_keys=[group_id])
     maps = relationship("RobotMap", back_populates="robot", cascade="all, delete-orphan")
     tasks = relationship("Task", back_populates="robot")
     
@@ -28,6 +30,7 @@ class Robot(BaseModel):
     __table_args__ = (
         Index('idx_robot_name', 'robot_name'),
         Index('idx_factory_id', 'factory_id'),
+        Index('idx_group_id', 'group_id'),
         Index('idx_created_at', 'created_at'),
         Index('idx_is_deleted', 'is_deleted'),
     )

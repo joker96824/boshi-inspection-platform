@@ -2,7 +2,8 @@
 激光雷达配置数据模型
 """
 
-from sqlalchemy import Column, String, Integer, DECIMAL, Index
+from sqlalchemy import Column, String, Integer, DECIMAL, Index, ForeignKey
+from sqlalchemy.orm import relationship
 from .base import BaseModel
 
 
@@ -10,6 +11,9 @@ class Lidar(BaseModel):
     """激光雷达配置模型"""
     
     __tablename__ = "cfg_lidar"
+    
+    # 关联机器人
+    robot_id = Column(String(36), ForeignKey("tb_robot.id", ondelete="CASCADE"), nullable=False, index=True, comment="关联机器人ID")
     
     # 网络配置
     lidar_ip = Column(String(15), nullable=False, comment="激光雷达IP地址")
@@ -27,8 +31,12 @@ class Lidar(BaseModel):
     scan_distance_min = Column(DECIMAL(8, 2), nullable=False, default=0.00, comment="扫描距离最小值(米)")
     scan_distance_max = Column(DECIMAL(8, 2), nullable=False, default=100.00, comment="扫描距离最大值(米)")
     
+    # 关系
+    robot = relationship("Robot", foreign_keys=[robot_id])
+    
     # 创建索引
     __table_args__ = (
+        Index('idx_robot_id', 'robot_id'),
         Index('idx_lidar_ip', 'lidar_ip'),
         Index('idx_lidar_port', 'lidar_port'),
         Index('idx_scan_frequency', 'scan_frequency_rpm'),
@@ -37,4 +45,4 @@ class Lidar(BaseModel):
     )
     
     def __repr__(self):
-        return f"<Lidar(id='{self.id}', lidar_ip='{self.lidar_ip}', port={self.lidar_port})>"
+        return f"<Lidar(id='{self.id}', lidar_ip='{self.lidar_ip}', port={self.lidar_port}, robot_id='{self.robot_id}')>"

@@ -15,6 +15,7 @@ class Gimbal(BaseModel):
     # 基础字段
     gimbal_name = Column(String(100), nullable=False, comment="云台名称")
     map_id = Column(String(36), ForeignKey("tb_map.id", ondelete="SET NULL"), nullable=True, index=True, comment="地图ID")
+    group_id = Column(String(36), ForeignKey("tb_group.id", ondelete="SET NULL"), nullable=True, index=True, comment="分组ID")
     enabled = Column(Boolean, nullable=False, default=True, comment="启用状态：0-禁用，1-启用")
     ip_address = Column(String(45), nullable=False, comment="云台IP地址")
     port = Column(Integer, nullable=False, comment="云台端口")
@@ -34,6 +35,7 @@ class Gimbal(BaseModel):
     
     # 关系
     map = relationship("Map", foreign_keys=[map_id])
+    group = relationship("Group", foreign_keys=[group_id])
     gimbal_tasks = relationship("GimbalTask", back_populates="gimbal", cascade="all, delete-orphan")
     preset_points = relationship("GimbalPresetPoint", back_populates="gimbal", cascade="all, delete-orphan")
     
@@ -41,6 +43,7 @@ class Gimbal(BaseModel):
     __table_args__ = (
         Index('idx_gimbal_name', 'gimbal_name'),
         Index('idx_map_id', 'map_id'),
+        Index('idx_group_id', 'group_id'),
         Index('idx_enabled', 'enabled'),
         Index('idx_created_at', 'created_at'),
         Index('idx_is_deleted', 'is_deleted'),

@@ -164,3 +164,9 @@ class MotorStatusListResponse(BaseSchema):
     """电机状态配置列表响应模式"""
     items: List[MotorStatusResponse] = Field(..., description="电机状态配置列表")
     total: int = Field(..., description="总数")
+
+
+class MotorStatusBatchUpdate(BaseSchema):
+    """电机状态配置批量更新模式（按机器人）"""
+    robot_id: str = Field(..., description="机器人ID")
+    configs: List[MotorStatusCreate] = Field(..., description="电机状态配置列表")

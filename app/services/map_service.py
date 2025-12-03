@@ -288,11 +288,22 @@ class MapService:
 
     def _format_robot_response(self, robot) -> Dict[str, Any]:
         """格式化机器人响应数据"""
+        # 格式化分组信息
+        group_info = None
+        if robot.group and not robot.group.is_deleted:
+            group_info = {
+                "id": robot.group.id,
+                "group_name": robot.group.group_name,
+                "group_description": robot.group.group_description,
+            }
+        
         return {
             "id": robot.id,
             "robot_name": robot.robot_name,
             "robot_info": robot.robot_info,
             "factory_id": robot.factory_id,
+            "group_id": robot.group_id,
+            "group": group_info,
             "preview_url": robot.preview_url,
             "control_url": robot.control_url,
             "created_at": robot.created_at.strftime("%Y-%m-%dT%H:%M:%S") if robot.created_at else None,
@@ -303,10 +314,21 @@ class MapService:
 
     def _format_gimbal_response(self, gimbal) -> Dict[str, Any]:
         """格式化云台响应数据（简化版，仅包含基本信息）"""
+        # 格式化分组信息
+        group_info = None
+        if gimbal.group and not gimbal.group.is_deleted:
+            group_info = {
+                "id": gimbal.group.id,
+                "group_name": gimbal.group.group_name,
+                "group_description": gimbal.group.group_description,
+            }
+        
         return {
             "id": gimbal.id,
             "gimbal_name": gimbal.gimbal_name,
             "map_id": gimbal.map_id,
+            "group_id": gimbal.group_id,
+            "group": group_info,
             "enabled": gimbal.enabled,
             "preview_url": gimbal.preview_url,
             "control_url": gimbal.control_url,
@@ -322,8 +344,6 @@ class MapService:
             "t_coordinate": gimbal.t_coordinate,
             "z_coordinate": gimbal.z_coordinate,
             "f_coordinate": gimbal.f_coordinate,
-            "preview_url": gimbal.preview_url,
-            "control_url": gimbal.control_url,
             "created_at": gimbal.created_at.strftime("%Y-%m-%dT%H:%M:%S") if gimbal.created_at else None,
             "updated_at": gimbal.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if gimbal.updated_at else None,
             "created_by": gimbal.created_by,

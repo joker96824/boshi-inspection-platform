@@ -11,7 +11,7 @@ from ...core.permissions import require_write_permission, require_no_auth
 from ...services.dual_ptz_service import DualPTZService
 from ...schemas.dualptz import (
     DualPTZCreate, DualPTZUpdate, DualPTZResponse, 
-    DualPTZQuery, DualPTZListResponse
+    DualPTZQuery, DualPTZListResponse, DualPTZBatchUpdate
 )
 from ...utils.response import ApiResponse
 
@@ -72,6 +72,17 @@ async def create_dual_ptz_config(
     return await service.create_ptz_config(data, current_user)
 
 
+@router.put("/batch-update-by-robot", response_model=dict)
+async def batch_update_dual_ptz_configs_by_robot(
+    data: DualPTZBatchUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_write_permission)
+):
+    """批量更新机器人的双光云台配置（真删除旧数据后重新添加）"""
+    service = DualPTZService(db)
+    return await service.batch_update_ptz_configs_by_robot(data.robot_id, data.configs, current_user)
+
+
 @router.put("/{ptz_id}", response_model=dict)
 async def update_dual_ptz_config(
     ptz_id: str,
@@ -79,7 +90,7 @@ async def update_dual_ptz_config(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_write_permission)
 ):
-    """更新双光云台配置"""
+    """更新双光云台配置（单个，兼容旧接口）"""
     service = DualPTZService(db)
     return await service.update_ptz_config(ptz_id, data, current_user)
 

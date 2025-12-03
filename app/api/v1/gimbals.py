@@ -9,7 +9,7 @@ from typing import List, Optional
 from ...core.deps import get_db, validate_pagination_params
 from ...core.permissions import require_write_permission, require_no_auth
 from ...services.gimbal_service import GimbalService
-from ...schemas.gimbal import GimbalCreate, GimbalUpdate, GimbalResponse, GimbalQuery, GimbalListResponse
+from ...schemas.gimbal import GimbalCreate, GimbalUpdate, GimbalResponse, GimbalQuery, GimbalListResponse, GimbalBatchUpdateGroup
 from ...utils.response import ApiResponse
 
 router = APIRouter()
@@ -174,4 +174,28 @@ async def get_gimbal_stats(
     """
     service = GimbalService(db)
     return await service.get_gimbal_stats(current_user)
+
+
+@router.put("/batch-update-group", response_model=dict)
+async def batch_update_gimbal_group(
+    batch_data: GimbalBatchUpdateGroup,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_write_permission)
+):
+    """批量更新云台分组
+    
+    Args:
+        batch_data: 批量更新数据（包含云台ID列表和分组ID）
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        批量更新结果
+    """
+    service = GimbalService(db)
+    return await service.batch_update_group(
+        gimbal_ids=batch_data.gimbal_ids,
+        group_id=batch_data.group_id,
+        user=current_user
+    )
 

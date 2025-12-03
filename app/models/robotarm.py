@@ -2,7 +2,8 @@
 机械臂状态配置数据模型
 """
 
-from sqlalchemy import Column, String, Integer, DECIMAL, JSON, Enum, Index
+from sqlalchemy import Column, String, Integer, DECIMAL, JSON, Enum, Index, ForeignKey
+from sqlalchemy.orm import relationship
 from .base import BaseModel
 
 
@@ -10,6 +11,9 @@ class RobotArm(BaseModel):
     """机械臂状态配置模型"""
     
     __tablename__ = "cfg_robot_arm"
+    
+    # 关联机器人
+    robot_id = Column(String(36), ForeignKey("tb_robot.id", ondelete="CASCADE"), nullable=False, index=True, comment="关联机器人ID")
     
     # 网络配置
     robot_arm_ip = Column(String(15), nullable=False, comment="机械臂IP地址")
@@ -26,8 +30,12 @@ class RobotArm(BaseModel):
     tool_io = Column(Integer, nullable=False, default=0, comment="机械臂工具IO(0-255)")
     collision_detection_level = Column(Enum('低', '中', '高', name='collision_level'), nullable=False, default='中', comment="机械臂碰撞检测级别")
     
+    # 关系
+    robot = relationship("Robot", foreign_keys=[robot_id])
+    
     # 创建索引
     __table_args__ = (
+        Index('idx_robot_id', 'robot_id'),
         Index('idx_robot_arm_ip', 'robot_arm_ip'),
         Index('idx_robot_arm_port', 'robot_arm_port'),
         Index('idx_operating_speed', 'operating_speed'),
@@ -37,5 +45,5 @@ class RobotArm(BaseModel):
     )
     
     def __repr__(self):
-        return f"<RobotArm(id='{self.id}', robot_arm_ip='{self.robot_arm_ip}', port={self.robot_arm_port})>"
+        return f"<RobotArm(id='{self.id}', robot_arm_ip='{self.robot_arm_ip}', port={self.robot_arm_port}, robot_id='{self.robot_id}')>"
 

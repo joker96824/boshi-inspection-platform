@@ -73,6 +73,15 @@ class RobotArmRepository:
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+    
+    async def get_by_robot_id(self, robot_id: str) -> Optional[RobotArm]:
+        """根据机器人ID获取机械臂状态配置"""
+        stmt = select(RobotArm).where(
+            RobotArm.robot_id == robot_id,
+            RobotArm.is_deleted == False
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
 
     async def update(self, arm_id: str, data: Dict[str, Any]) -> Optional[RobotArm]:
         """更新机械臂状态配置"""

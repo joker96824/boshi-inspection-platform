@@ -41,6 +41,8 @@ from .factory import Factory
 from .manualoperation import ManualOperation
 from .operationrecord import OperationRecord
 from .robotmap import RobotMap
+from .group import Group
+from .detectiontype import DetectionType
 
 __all__ = [
     "BaseModel",
@@ -82,4 +84,6 @@ __all__ = [
     "Factory",
     "ManualOperation",
     "OperationRecord",
+    "Group",
+    "DetectionType",
 ]

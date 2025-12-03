@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
 from ..repositories.ultrasonic_repository import UltrasonicRepository
-from ..schemas.ultrasonic import UltrasonicCreate, UltrasonicUpdate, UltrasonicQuery
+from ..schemas.ultrasonic import UltrasonicCreate, UltrasonicUpdate, UltrasonicQuery, UltrasonicBatchUpdate
 from ..core.exceptions import (
     ResourceNotFoundError, BusinessError
 )
@@ -114,7 +114,7 @@ class UltrasonicService:
             raise BusinessError(f"获取超声波状态配置列表失败: {str(e)}")
 
     async def update_ultrasonic(self, ultrasonic_id: str, data: UltrasonicUpdate, user: dict) -> Dict[str, Any]:
-        """更新超声波状态配置"""
+        """更新超声波状态配置（单个，兼容旧接口）"""
         try:
             # 检查超声波状态配置是否存在
             existing_ultrasonic = await self.repo.get_by_id(ultrasonic_id)
@@ -145,6 +145,50 @@ class UltrasonicService:
         except Exception as e:
             logger.error(f"更新超声波状态配置失败: {e}", exc_info=True)
             raise BusinessError(f"更新超声波状态配置失败: {str(e)}")
+    
+    async def batch_update_ultrasonics_by_robot(self, robot_id: str, configs: List[UltrasonicCreate], user: dict) -> Dict[str, Any]:
+        """批量更新机器人的超声波状态配置（真删除旧数据后重新添加）"""
+        try:
+            from ..repositories.robot_repository import RobotRepository
+            # 检查机器人是否存在
+            robot_repo = RobotRepository(self.db)
+            robot = await robot_repo.get_by_id(robot_id)
+            if not robot:
+                raise ResourceNotFoundError(f"机器人ID '{robot_id}' 不存在")
+            
+            # 真删除该机器人的所有旧配置
+            deleted_count = await self.repo.hard_delete_by_robot_id(robot_id)
+            logger.info(f"删除机器人 {robot_id} 的 {deleted_count} 个旧超声波状态配置")
+            
+            # 创建新配置
+            created_configs = []
+            for config_data in configs:
+                create_data = {
+                    **config_data.dict(),
+                    "robot_id": robot_id,
+                    "created_by": user["username"],
+                    "updated_by": user["username"]
+                }
+                ultrasonic = await self.repo.create(create_data)
+                created_configs.append(ultrasonic)
+            
+            # 记录操作日志
+            log_user_action(
+                logger, user["username"], "batch_update_ultrasonics",
+                f"批量更新机器人 {robot_id} 的超声波状态配置: 删除{deleted_count}个，新增{len(created_configs)}个",
+                extra={"robot_id": robot_id, "deleted_count": deleted_count, "created_count": len(created_configs)}
+            )
+
+            return ApiResponse.success(
+                data=[self._format_ultrasonic_response(config) for config in created_configs],
+                message=f"批量更新超声波状态配置成功，删除{deleted_count}个，新增{len(created_configs)}个"
+            )
+
+        except ResourceNotFoundError:
+            raise
+        except Exception as e:
+            logger.error(f"批量更新超声波状态配置失败: {e}", exc_info=True)
+            raise BusinessError(f"批量更新超声波状态配置失败: {str(e)}")
 
     async def delete_ultrasonic(self, ultrasonic_id: str, user: dict) -> Dict[str, Any]:
         """删除超声波状态配置"""
@@ -194,6 +238,7 @@ class UltrasonicService:
         """格式化超声波状态配置响应数据"""
         return {
             "id": ultrasonic.id,
+            "robot_id": ultrasonic.robot_id,
             "ultrasonic_id": ultrasonic.ultrasonic_id,
             "obstacle_avoidance_distance": float(ultrasonic.obstacle_avoidance_distance) if ultrasonic.obstacle_avoidance_distance else 0.0,
             "deceleration_distance": float(ultrasonic.deceleration_distance) if ultrasonic.deceleration_distance else 0.0,

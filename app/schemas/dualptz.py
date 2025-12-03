@@ -120,6 +120,7 @@ class DualPTZUpdate(BaseSchema):
 class DualPTZResponse(BaseResponse):
     """双光云台配置响应模式"""
     id: str = Field(..., description="双光云台配置ID")
+    robot_id: str = Field(..., description="关联机器人ID")
     ptz_ip: str = Field(..., description="云台IP地址")
     subnet_mask: str = Field(..., description="子网掩码")
     gateway: str = Field(..., description="网关地址")
@@ -147,3 +148,8 @@ class DualPTZListResponse(BaseSchema):
     items: List[DualPTZResponse] = Field(..., description="双光云台配置列表")
     total: int = Field(..., description="总数")
 
+
+class DualPTZBatchUpdate(BaseSchema):
+    """双光云台配置批量更新模式（按机器人）"""
+    robot_id: str = Field(..., description="机器人ID")
+    configs: List[DualPTZCreate] = Field(..., description="双光云台配置列表")

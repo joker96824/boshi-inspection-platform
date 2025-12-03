@@ -68,6 +68,15 @@ class EnvironmentSensorRepository:
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+    
+    async def get_by_robot_id(self, robot_id: str) -> Optional[EnvironmentSensor]:
+        """根据机器人ID获取环境传感器"""
+        stmt = select(EnvironmentSensor).where(
+            EnvironmentSensor.robot_id == robot_id,
+            EnvironmentSensor.is_deleted == False
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
 
     async def update(self, sensor_id: str, data: Dict[str, Any]) -> Optional[EnvironmentSensor]:
         """更新环境传感器"""

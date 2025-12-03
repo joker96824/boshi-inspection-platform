@@ -71,6 +71,15 @@ class LidarRepository:
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+    
+    async def get_by_robot_id(self, robot_id: str) -> Optional[Lidar]:
+        """根据机器人ID获取激光雷达配置"""
+        stmt = select(Lidar).where(
+            Lidar.robot_id == robot_id,
+            Lidar.is_deleted == False
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
 
     async def update(self, lidar_id: str, data: Dict[str, Any]) -> Optional[Lidar]:
         """更新激光雷达配置"""

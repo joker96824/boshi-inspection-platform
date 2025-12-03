@@ -66,6 +66,28 @@ class VehicleControllerRepository:
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+    
+    async def get_by_robot_id(self, robot_id: str) -> Optional[VehicleController]:
+        """根据机器人ID获取车体控制器"""
+        stmt = select(VehicleController).where(
+            VehicleController.robot_id == robot_id,
+            VehicleController.is_deleted == False
+        )
+        result = await self.db.execute(stmt)
+        controller = result.scalar_one_or_none()
+        # 调试日志
+        if controller is None:
+            # 检查是否有数据但被软删除了
+            check_stmt = select(VehicleController).where(
+                VehicleController.robot_id == robot_id
+            )
+            check_result = await self.db.execute(check_stmt)
+            all_controllers = check_result.scalars().all()
+            if all_controllers:
+                from ...config.logging import get_logger
+                logger = get_logger(__name__)
+                logger.warning(f"找到机器人 {robot_id} 的车体控制器，但 is_deleted={[c.is_deleted for c in all_controllers]}")
+        return controller
 
     async def update(self, controller_id: str, data: Dict[str, Any]) -> Optional[VehicleController]:
         """更新车体控制器"""

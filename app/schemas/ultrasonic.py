@@ -53,6 +53,7 @@ class UltrasonicUpdate(BaseSchema):
 class UltrasonicResponse(BaseResponse):
     """超声波状态配置响应模式"""
     id: str = Field(..., description="超声波状态配置ID")
+    robot_id: str = Field(..., description="关联机器人ID")
     ultrasonic_id: int = Field(..., description="超声波ID(0-255)")
     obstacle_avoidance_distance: Decimal = Field(..., description="超声波避障距离(mm)")
     deceleration_distance: Decimal = Field(..., description="超声波减速距离(mm)")
@@ -77,3 +78,9 @@ class UltrasonicListResponse(BaseSchema):
     """超声波状态配置列表响应模式"""
     items: List[UltrasonicResponse] = Field(..., description="超声波状态配置列表")
     total: int = Field(..., description="总数")
+
+
+class UltrasonicBatchUpdate(BaseSchema):
+    """超声波状态配置批量更新模式（按机器人）"""
+    robot_id: str = Field(..., description="机器人ID")
+    configs: List[UltrasonicCreate] = Field(..., description="超声波状态配置列表")

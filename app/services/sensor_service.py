@@ -222,15 +222,68 @@ class SensorService:
     
     def _format_sensor_response(self, sensor) -> Dict[str, Any]:
         """格式化智能传感器响应数据"""
+        # 格式化分组信息
+        group_info = None
+        if sensor.group and not sensor.group.is_deleted:
+            group_info = {
+                "id": sensor.group.id,
+                "group_name": sensor.group.group_name,
+                "group_description": sensor.group.group_description,
+            }
+        
         return {
             "id": sensor.id,
             "device_id": sensor.device_id,
             "sensor_name": sensor.sensor_name,
             "sensor_params": sensor.sensor_params,
+            "group_id": sensor.group_id,
+            "group": group_info,
             "enabled": sensor.enabled,
             "created_at": sensor.created_at.strftime("%Y-%m-%dT%H:%M:%S") if sensor.created_at else None,
             "updated_at": sensor.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if sensor.updated_at else None,
             "created_by": sensor.created_by,
             "updated_by": sensor.updated_by,
         }
+    
+    async def batch_update_group(self, sensor_ids: List[str], group_id: Optional[str], user: dict) -> Dict[str, Any]:
+        """批量更新传感器分组"""
+        from ..repositories.group_repository import GroupRepository
+        
+        try:
+            # 如果提供了group_id，验证分组是否存在
+            if group_id is not None:
+                group_repo = GroupRepository(self.db)
+                group = await group_repo.get_by_id(group_id)
+                if not group:
+                    raise ResourceNotFoundError(f"分组 '{group_id}' 不存在")
+            
+            # 批量更新
+            updated_count = await self.sensor_repo.batch_update_group(
+                sensor_ids=sensor_ids,
+                group_id=group_id,
+                updated_by=user["username"]
+            )
+            
+            # 记录操作日志
+            log_user_action(
+                user["username"],
+                "batch_update_sensor_group",
+                "success",
+                f"批量更新传感器分组成功，更新数量: {updated_count}"
+            )
+            
+            return ApiResponse.success(
+                data={"updated_count": updated_count},
+                message=f"批量更新传感器分组成功，共更新 {updated_count} 个传感器"
+            )
+            
+        except Exception as e:
+            logger.error(f"批量更新传感器分组失败: {e}", exc_info=True)
+            log_user_action(
+                user["username"],
+                "batch_update_sensor_group",
+                "failed",
+                f"批量更新传感器分组失败: {str(e)}"
+            )
+            raise BusinessError(f"批量更新传感器分组失败: {str(e)}")
 

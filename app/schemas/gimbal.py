@@ -11,6 +11,7 @@ class GimbalBase(BaseSchema):
     """云台基础模式"""
     gimbal_name: str = Field(..., min_length=1, max_length=100, description="云台名称")
     map_id: Optional[str] = Field(None, description="地图ID")
+    group_id: Optional[str] = Field(None, description="关联分组ID")
     enabled: bool = Field(True, description="启用状态：True-启用，False-禁用")
     ip_address: IPvAnyAddress = Field(..., description="云台IP地址")
     port: int = Field(..., ge=1, le=65535, description="云台端口")
@@ -38,6 +39,7 @@ class GimbalUpdate(BaseSchema):
     """云台更新模式"""
     gimbal_name: Optional[str] = Field(None, min_length=1, max_length=100, description="云台名称")
     map_id: Optional[str] = Field(None, description="地图ID")
+    group_id: Optional[str] = Field(None, description="关联分组ID")
     enabled: Optional[bool] = Field(None, description="启用状态：True-启用，False-禁用")
     ip_address: Optional[IPvAnyAddress] = Field(None, description="云台IP地址")
     port: Optional[int] = Field(None, ge=1, le=65535, description="云台端口")
@@ -61,6 +63,8 @@ class GimbalResponse(BaseResponse):
     id: str = Field(..., description="云台ID")
     gimbal_name: str = Field(..., description="云台名称")
     map_id: Optional[str] = Field(None, description="地图ID")
+    group_id: Optional[str] = Field(None, description="关联分组ID")
+    group: Optional[Dict[str, Any]] = Field(None, description="分组信息（包含id、group_name、group_description）")
     enabled: bool = Field(..., description="启用状态：True-启用，False-禁用")
     ip_address: str = Field(..., description="云台IP地址")
     port: int = Field(..., description="云台端口")
@@ -97,4 +101,10 @@ class GimbalListResponse(BaseSchema):
     """云台列表响应模式"""
     items: List[GimbalResponse] = Field(..., description="云台列表")
     pagination: Dict[str, Any] = Field(..., description="分页信息")
+
+
+class GimbalBatchUpdateGroup(BaseSchema):
+    """云台批量更新分组模式"""
+    gimbal_ids: List[str] = Field(..., min_items=1, description="云台ID列表")
+    group_id: Optional[str] = Field(None, description="分组ID（为null表示移除分组）")
 

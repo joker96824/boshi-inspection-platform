@@ -82,6 +82,15 @@ class NavigationControllerRepository:
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+    
+    async def get_by_robot_id(self, robot_id: str) -> Optional[NavigationController]:
+        """根据机器人ID获取导航控制器配置"""
+        stmt = select(NavigationController).where(
+            NavigationController.robot_id == robot_id,
+            NavigationController.is_deleted == False
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
 
     async def update(self, controller_id: str, data: Dict[str, Any]) -> Optional[NavigationController]:
         """更新导航控制器配置"""

@@ -153,15 +153,17 @@ def get_business_logger() -> logging.Logger:
     return logging.getLogger("app.business")
 
 
-def log_user_action(user: str, action: str, result: str, details: str = "", ip: str = ""):
+def log_user_action(logger, user: str, action: str, result: str, details: str = "", ip: str = "", extra: dict = None):
     """记录用户业务操作
     
     Args:
+        logger: 日志记录器
         user: 用户名
         action: 操作类型 (登录/登出/创建用户/修改用户/删除用户等)
         result: 操作结果 (成功/失败)
         details: 操作详情
         ip: 用户IP地址
+        extra: 额外的上下文信息（字典格式）
     """
     business_logger = get_business_logger()
     
@@ -173,6 +175,30 @@ def log_user_action(user: str, action: str, result: str, details: str = "", ip: 
         detail_parts.append(f"IP: {ip}")
     
     full_details = ", ".join(detail_parts) if detail_parts else "-"
+    
+    # 直接写入业务日志文件，不依赖过滤器
+    import time
+    from datetime import datetime
+    from pathlib import Path
+    
+    timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+    log_line = f"{timestamp} | {user or '系统'} | {action} | {result} | {full_details}\n"
+    
+    # 获取当前日期的日志文件路径
+    today = datetime.now().strftime("%Y-%m-%d")
+    log_file = Path("logs") / today / "app.log"
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    
+    # 写入日志文件
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(log_line)
+    
+    # 如果有 extra 信息，同时使用 logger 记录（带结构化信息）
+    if extra is not None:
+        logger.info(f"用户: {user}, 操作: {action}, 结果: {result}, 详情: {full_details}", extra=extra)
+    else:
+        # 否则只使用 business_logger 记录
+        business_logger.info(f"用户: {user}, 操作: {action}, 结果: {result}, 详情: {full_details}")
     
     # 直接写入业务日志文件，不依赖过滤器
     import time

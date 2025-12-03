@@ -9,7 +9,7 @@ from typing import List, Optional
 from ...core.deps import get_db, validate_pagination_params
 from ...core.permissions import require_write_permission, require_no_auth
 from ...services.sensor_service import SensorService
-from ...schemas.sensor import SensorCreate, SensorUpdate, SensorResponse, SensorQuery, SensorListResponse
+from ...schemas.sensor import SensorCreate, SensorUpdate, SensorResponse, SensorQuery, SensorListResponse, SensorBatchUpdateGroup
 from ...utils.response import ApiResponse
 
 router = APIRouter()
@@ -167,4 +167,28 @@ async def get_sensor_stats(
     """
     service = SensorService(db)
     return await service.get_sensor_stats(current_user)
+
+
+@router.put("/batch-update-group", response_model=dict)
+async def batch_update_sensor_group(
+    batch_data: SensorBatchUpdateGroup,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_write_permission)
+):
+    """批量更新传感器分组
+    
+    Args:
+        batch_data: 批量更新数据（包含传感器ID列表和分组ID）
+        db: 数据库会话
+        current_user: 当前用户
+    
+    Returns:
+        批量更新结果
+    """
+    service = SensorService(db)
+    return await service.batch_update_group(
+        sensor_ids=batch_data.sensor_ids,
+        group_id=batch_data.group_id,
+        user=current_user
+    )
 

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 
 from ..repositories.motorstatus_repository import MotorStatusRepository
-from ..schemas.motorstatus import MotorStatusCreate, MotorStatusUpdate, MotorStatusQuery
+from ..schemas.motorstatus import MotorStatusCreate, MotorStatusUpdate, MotorStatusQuery, MotorStatusBatchUpdate
 from ..core.exceptions import (
     ResourceNotFoundError, BusinessError
 )
@@ -112,7 +112,7 @@ class MotorStatusService:
             raise BusinessError(f"获取电机状态配置列表失败: {str(e)}")
 
     async def update_motor_status(self, status_id: str, data: MotorStatusUpdate, user: dict) -> Dict[str, Any]:
-        """更新电机状态配置"""
+        """更新电机状态配置（单个，兼容旧接口）"""
         try:
             # 检查电机状态配置是否存在
             existing_status = await self.repo.get_by_id(status_id)
@@ -143,6 +143,50 @@ class MotorStatusService:
         except Exception as e:
             logger.error(f"更新电机状态配置失败: {e}", exc_info=True)
             raise BusinessError(f"更新电机状态配置失败: {str(e)}")
+    
+    async def batch_update_motor_statuses_by_robot(self, robot_id: str, configs: List[MotorStatusCreate], user: dict) -> Dict[str, Any]:
+        """批量更新机器人的电机状态配置（真删除旧数据后重新添加）"""
+        try:
+            from ..repositories.robot_repository import RobotRepository
+            # 检查机器人是否存在
+            robot_repo = RobotRepository(self.db)
+            robot = await robot_repo.get_by_id(robot_id)
+            if not robot:
+                raise ResourceNotFoundError(f"机器人ID '{robot_id}' 不存在")
+            
+            # 真删除该机器人的所有旧配置
+            deleted_count = await self.repo.hard_delete_by_robot_id(robot_id)
+            logger.info(f"删除机器人 {robot_id} 的 {deleted_count} 个旧电机状态配置")
+            
+            # 创建新配置
+            created_configs = []
+            for config_data in configs:
+                create_data = {
+                    **config_data.dict(),
+                    "robot_id": robot_id,
+                    "created_by": user["username"],
+                    "updated_by": user["username"]
+                }
+                motor_status = await self.repo.create(create_data)
+                created_configs.append(motor_status)
+            
+            # 记录操作日志
+            log_user_action(
+                logger, user["username"], "batch_update_motor_statuses",
+                f"批量更新机器人 {robot_id} 的电机状态配置: 删除{deleted_count}个，新增{len(created_configs)}个",
+                extra={"robot_id": robot_id, "deleted_count": deleted_count, "created_count": len(created_configs)}
+            )
+
+            return ApiResponse.success(
+                data=[self._format_status_response(config) for config in created_configs],
+                message=f"批量更新电机状态配置成功，删除{deleted_count}个，新增{len(created_configs)}个"
+            )
+
+        except ResourceNotFoundError:
+            raise
+        except Exception as e:
+            logger.error(f"批量更新电机状态配置失败: {e}", exc_info=True)
+            raise BusinessError(f"批量更新电机状态配置失败: {str(e)}")
 
     async def delete_motor_status(self, status_id: str, user: dict) -> Dict[str, Any]:
         """删除电机状态配置"""
@@ -192,10 +236,11 @@ class MotorStatusService:
         """格式化电机状态配置响应数据"""
         return {
             "id": motor_status.id,
+            "robot_id": motor_status.robot_id,
             "motor_id": motor_status.motor_id,
             "baud_rate": motor_status.baud_rate,
-            "tpdo_config": motor_status.tpdo_config,
-            "rpdo_config": motor_status.rpdo_config,
+            "tpdo_config": motor_status.tpdo_config if motor_status.tpdo_config else None,
+            "rpdo_config": motor_status.rpdo_config if motor_status.rpdo_config else None,
             "created_at": motor_status.created_at.strftime("%Y-%m-%dT%H:%M:%S") if motor_status.created_at else None,
             "updated_at": motor_status.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if motor_status.updated_at else None,
             "created_by": motor_status.created_by,

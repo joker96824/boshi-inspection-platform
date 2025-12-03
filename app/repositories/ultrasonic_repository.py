@@ -74,6 +74,24 @@ class UltrasonicRepository:
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+    
+    async def get_by_robot_id(self, robot_id: str) -> Optional[Ultrasonic]:
+        """根据机器人ID获取超声波状态配置（单个，兼容旧接口）"""
+        stmt = select(Ultrasonic).where(
+            Ultrasonic.robot_id == robot_id,
+            Ultrasonic.is_deleted == False
+        )
+        result = await self.db.execute(stmt)
+        return result.scalar_one_or_none()
+    
+    async def get_all_by_robot_id(self, robot_id: str) -> List[Ultrasonic]:
+        """根据机器人ID获取所有超声波状态配置（列表）"""
+        stmt = select(Ultrasonic).where(
+            Ultrasonic.robot_id == robot_id,
+            Ultrasonic.is_deleted == False
+        ).order_by(Ultrasonic.ultrasonic_id.asc())
+        result = await self.db.execute(stmt)
+        return list(result.scalars().all())
 
     async def update(self, ultrasonic_id: str, data: Dict[str, Any]) -> Optional[Ultrasonic]:
         """更新超声波状态配置"""
@@ -111,6 +129,16 @@ class UltrasonicRepository:
         ultrasonic.updated_by = updated_by
         await self.db.commit()
         return True
+    
+    async def hard_delete_by_robot_id(self, robot_id: str) -> int:
+        """真删除指定机器人的所有超声波状态配置（返回删除数量）"""
+        from sqlalchemy import delete
+        stmt = delete(Ultrasonic).where(
+            Ultrasonic.robot_id == robot_id
+        )
+        result = await self.db.execute(stmt)
+        await self.db.commit()
+        return result.rowcount
 
     async def get_stats(self) -> Dict[str, Any]:
         """获取超声波状态配置统计信息"""

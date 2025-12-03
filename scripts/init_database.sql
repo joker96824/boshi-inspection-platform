@@ -24,6 +24,7 @@ DROP TABLE IF EXISTS tb_mapnet;
 DROP TABLE IF EXISTS tb_robot_map;
 DROP TABLE IF EXISTS tb_robot;
 DROP TABLE IF EXISTS tb_gimbalhistory;
+DROP TABLE IF EXISTS tb_group;
 DROP TABLE IF EXISTS tb_gimbalschedule;
 DROP TABLE IF EXISTS tb_gimbal_inspection_project_preset_point;
 DROP TABLE IF EXISTS tb_gimbal_preset_point;
@@ -105,6 +106,21 @@ CREATE TABLE tb_factory (
     INDEX idx_is_deleted (is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='厂区表';
 
+-- 创建分组表
+CREATE TABLE tb_group (
+    id VARCHAR(36) PRIMARY KEY COMMENT '分组ID',
+    group_name VARCHAR(100) NOT NULL COMMENT '分组名称',
+    group_description VARCHAR(500) NULL COMMENT '分组描述',
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    created_by VARCHAR(100) NULL COMMENT '创建人',
+    updated_by VARCHAR(100) NULL COMMENT '更新人',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
+    INDEX idx_group_name (group_name),
+    INDEX idx_created_at (created_at),
+    INDEX idx_is_deleted (is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='分组表';
+
 -- 创建地图表
 CREATE TABLE tb_map (
     id VARCHAR(36) PRIMARY KEY COMMENT '地图ID',
@@ -150,6 +166,7 @@ CREATE TABLE tb_robot (
     robot_name VARCHAR(100) NOT NULL COMMENT '机器人名称',
     robot_info JSON NULL COMMENT '机器人信息',
     factory_id VARCHAR(36) NULL COMMENT '厂区ID',
+    group_id VARCHAR(36) NULL COMMENT '分组ID',
     preview_url VARCHAR(500) NULL COMMENT '预览地址',
     control_url VARCHAR(500) NULL COMMENT '控制地址',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -159,10 +176,12 @@ CREATE TABLE tb_robot (
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     INDEX idx_robot_name (robot_name),
     INDEX idx_factory_id (factory_id),
+    INDEX idx_group_id (group_id),
     INDEX idx_created_at (created_at),
     INDEX idx_is_deleted (is_deleted),
     UNIQUE KEY uk_robot_name_active (robot_name, is_deleted),
-    FOREIGN KEY (factory_id) REFERENCES tb_factory(id) ON DELETE SET NULL
+    FOREIGN KEY (factory_id) REFERENCES tb_factory(id) ON DELETE SET NULL,
+    FOREIGN KEY (group_id) REFERENCES tb_group(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='机器人表';
 
 -- 创建机器人-地图关联表（多对多中间表）
@@ -188,6 +207,7 @@ CREATE TABLE tb_gimbal (
     id VARCHAR(36) PRIMARY KEY COMMENT '云台ID',
     gimbal_name VARCHAR(100) NOT NULL COMMENT '云台名称',
     map_id VARCHAR(36) NULL COMMENT '地图ID',
+    group_id VARCHAR(36) NULL COMMENT '分组ID',
     enabled BOOLEAN NOT NULL DEFAULT TRUE COMMENT '启用状态：0-禁用，1-启用',
     ip_address VARCHAR(45) NOT NULL COMMENT '云台IP地址',
     port INT NOT NULL COMMENT '云台端口',
@@ -211,13 +231,15 @@ CREATE TABLE tb_gimbal (
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     INDEX idx_gimbal_name (gimbal_name),
     INDEX idx_map_id (map_id),
+    INDEX idx_group_id (group_id),
     INDEX idx_enabled (enabled),
     INDEX idx_gimbal_coordinates (map_id, x_coordinate, y_coordinate),
     INDEX idx_gimbal_channel (channel),
     INDEX idx_created_at (created_at),
     INDEX idx_is_deleted (is_deleted),
     UNIQUE KEY uk_gimbal_name_active (gimbal_name, is_deleted),
-    FOREIGN KEY (map_id) REFERENCES tb_map(id) ON DELETE SET NULL
+    FOREIGN KEY (map_id) REFERENCES tb_map(id) ON DELETE SET NULL,
+    FOREIGN KEY (group_id) REFERENCES tb_group(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='云台表';
 
 -- 创建云台任务表
@@ -372,6 +394,9 @@ CREATE TABLE tb_gimbalhistory (
 CREATE TABLE cfg_vehicle_controller (
     id VARCHAR(36) PRIMARY KEY COMMENT '车体控制器ID',
     
+    -- 关联机器人
+    robot_id VARCHAR(36) NOT NULL COMMENT '关联机器人ID',
+    
     -- 车体基础参数
     vehicle_model VARCHAR(50) NOT NULL COMMENT '车体模型：双轮差速/四轮差速/四驱四转/单舵轮/双舵轮',
     wheel_diameter DECIMAL(8,2) NOT NULL COMMENT '车轮直径(mm)',
@@ -381,11 +406,33 @@ CREATE TABLE cfg_vehicle_controller (
     max_linear_velocity DECIMAL(8,3) NOT NULL COMMENT '车体最大线速度(m/s)',
     max_angular_velocity DECIMAL(8,3) NOT NULL COMMENT '车体最大角速度(rad/s)',
     
-    -- 串口通讯配置（JSON数组，支持4组）
-    serial_configs JSON NOT NULL COMMENT '串口通讯配置数组',
+    -- 串口通讯配置（4组，每组3个参数：站号、波特率、功能码）
+    serial_1_station_number INT NULL COMMENT '串口1站号(1-255)',
+    serial_1_baud_rate INT NULL COMMENT '串口1波特率(9600-115200)',
+    serial_1_function_code INT NULL COMMENT '串口1功能码',
+    serial_2_station_number INT NULL COMMENT '串口2站号(1-255)',
+    serial_2_baud_rate INT NULL COMMENT '串口2波特率(9600-115200)',
+    serial_2_function_code INT NULL COMMENT '串口2功能码',
+    serial_3_station_number INT NULL COMMENT '串口3站号(1-255)',
+    serial_3_baud_rate INT NULL COMMENT '串口3波特率(9600-115200)',
+    serial_3_function_code INT NULL COMMENT '串口3功能码',
+    serial_4_station_number INT NULL COMMENT '串口4站号(1-255)',
+    serial_4_baud_rate INT NULL COMMENT '串口4波特率(9600-115200)',
+    serial_4_function_code INT NULL COMMENT '串口4功能码',
     
-    -- 以太网通讯配置（JSON数组，支持2组）
-    ethernet_configs JSON NOT NULL COMMENT '以太网通讯配置数组',
+    -- 以太网通讯配置（2组，用编号区分）
+    ethernet_1_ip_address VARCHAR(15) NULL COMMENT '以太网1IP地址',
+    ethernet_1_subnet_mask VARCHAR(15) NULL COMMENT '以太网1子网掩码',
+    ethernet_1_gateway VARCHAR(15) NULL COMMENT '以太网1网关',
+    ethernet_1_port INT NULL COMMENT '以太网1端口(1-65535)',
+    ethernet_1_baud_rate INT NULL COMMENT '以太网1波特率(9600-115200)',
+    ethernet_1_communication_mode VARCHAR(20) NULL COMMENT '以太网1通讯模式：server/client',
+    ethernet_2_ip_address VARCHAR(15) NULL COMMENT '以太网2IP地址',
+    ethernet_2_subnet_mask VARCHAR(15) NULL COMMENT '以太网2子网掩码',
+    ethernet_2_gateway VARCHAR(15) NULL COMMENT '以太网2网关',
+    ethernet_2_port INT NULL COMMENT '以太网2端口(1-65535)',
+    ethernet_2_baud_rate INT NULL COMMENT '以太网2波特率(9600-115200)',
+    ethernet_2_communication_mode VARCHAR(20) NULL COMMENT '以太网2通讯模式：server/client',
     
     -- 控制器管理
     controller_version VARCHAR(20) NOT NULL COMMENT '控制器版本',
@@ -398,7 +445,11 @@ CREATE TABLE cfg_vehicle_controller (
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     
+    -- 外键
+    FOREIGN KEY (robot_id) REFERENCES tb_robot(id) ON DELETE CASCADE,
+    
     -- 索引
+    INDEX idx_robot_id (robot_id),
     INDEX idx_vehicle_model (vehicle_model),
     INDEX idx_created_at (created_at),
     INDEX idx_is_deleted (is_deleted)
@@ -407,6 +458,9 @@ CREATE TABLE cfg_vehicle_controller (
 -- 创建环境传感器配置表
 CREATE TABLE cfg_environment_sensor (
     id VARCHAR(36) PRIMARY KEY COMMENT '环境传感器ID',
+    
+    -- 关联机器人
+    robot_id VARCHAR(36) NOT NULL COMMENT '关联机器人ID',
     
     -- 环境传感器参数
     station_number INT NOT NULL COMMENT '站号(1-255)',
@@ -419,7 +473,11 @@ CREATE TABLE cfg_environment_sensor (
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     
+    -- 外键
+    FOREIGN KEY (robot_id) REFERENCES tb_robot(id) ON DELETE CASCADE,
+    
     -- 索引
+    INDEX idx_robot_id (robot_id),
     INDEX idx_station_number (station_number),
     INDEX idx_baud_rate (baud_rate),
     INDEX idx_created_at (created_at),
@@ -429,6 +487,9 @@ CREATE TABLE cfg_environment_sensor (
 -- 创建双光云台配置表
 CREATE TABLE cfg_dual_ptz (
     id VARCHAR(36) PRIMARY KEY COMMENT '双光云台配置ID',
+    
+    -- 关联机器人
+    robot_id VARCHAR(36) NOT NULL COMMENT '关联机器人ID',
     
     -- 网络配置
     ptz_ip VARCHAR(15) NOT NULL COMMENT '云台IP地址',
@@ -449,7 +510,11 @@ CREATE TABLE cfg_dual_ptz (
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     
+    -- 外键
+    FOREIGN KEY (robot_id) REFERENCES tb_robot(id) ON DELETE CASCADE,
+    
     -- 索引
+    INDEX idx_robot_id (robot_id),
     INDEX idx_ptz_ip (ptz_ip),
     INDEX idx_operating_speed (operating_speed),
     INDEX idx_created_at (created_at),
@@ -459,6 +524,9 @@ CREATE TABLE cfg_dual_ptz (
 -- 创建电机状态配置表
 CREATE TABLE cfg_motor_status (
     id VARCHAR(36) PRIMARY KEY COMMENT '电机状态配置ID',
+    
+    -- 关联机器人
+    robot_id VARCHAR(36) NOT NULL COMMENT '关联机器人ID',
     
     -- 电机参数
     motor_id INT NOT NULL COMMENT '电机ID(0-255)',
@@ -473,7 +541,11 @@ CREATE TABLE cfg_motor_status (
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     
+    -- 外键
+    FOREIGN KEY (robot_id) REFERENCES tb_robot(id) ON DELETE CASCADE,
+    
     -- 索引
+    INDEX idx_robot_id (robot_id),
     INDEX idx_motor_id (motor_id),
     INDEX idx_baud_rate (baud_rate),
     INDEX idx_created_at (created_at),
@@ -483,6 +555,9 @@ CREATE TABLE cfg_motor_status (
 -- 创建激光雷达配置表
 CREATE TABLE cfg_lidar (
     id VARCHAR(36) PRIMARY KEY COMMENT '激光雷达配置ID',
+    
+    -- 关联机器人
+    robot_id VARCHAR(36) NOT NULL COMMENT '关联机器人ID',
     
     -- 网络配置
     lidar_ip VARCHAR(15) NOT NULL COMMENT '激光雷达IP地址',
@@ -507,7 +582,11 @@ CREATE TABLE cfg_lidar (
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     
+    -- 外键
+    FOREIGN KEY (robot_id) REFERENCES tb_robot(id) ON DELETE CASCADE,
+    
     -- 索引
+    INDEX idx_robot_id (robot_id),
     INDEX idx_lidar_ip (lidar_ip),
     INDEX idx_lidar_port (lidar_port),
     INDEX idx_scan_frequency (scan_frequency_rpm),
@@ -518,6 +597,9 @@ CREATE TABLE cfg_lidar (
 -- 创建机械臂状态配置表
 CREATE TABLE cfg_robot_arm (
     id VARCHAR(36) PRIMARY KEY COMMENT '机械臂状态配置ID',
+    
+    -- 关联机器人
+    robot_id VARCHAR(36) NOT NULL COMMENT '关联机器人ID',
     
     -- 网络配置
     robot_arm_ip VARCHAR(15) NOT NULL COMMENT '机械臂IP地址',
@@ -541,7 +623,11 @@ CREATE TABLE cfg_robot_arm (
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     
+    -- 外键
+    FOREIGN KEY (robot_id) REFERENCES tb_robot(id) ON DELETE CASCADE,
+    
     -- 索引
+    INDEX idx_robot_id (robot_id),
     INDEX idx_robot_arm_ip (robot_arm_ip),
     INDEX idx_robot_arm_port (robot_arm_port),
     INDEX idx_operating_speed (operating_speed),
@@ -553,6 +639,9 @@ CREATE TABLE cfg_robot_arm (
 -- 创建超声波状态配置表
 CREATE TABLE cfg_ultrasonic (
     id VARCHAR(36) PRIMARY KEY COMMENT '超声波状态配置ID',
+    
+    -- 关联机器人
+    robot_id VARCHAR(36) NOT NULL COMMENT '关联机器人ID',
     
     -- 超声波参数
     ultrasonic_id INT NOT NULL COMMENT '超声波ID(0-255)',
@@ -567,7 +656,11 @@ CREATE TABLE cfg_ultrasonic (
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     
+    -- 外键
+    FOREIGN KEY (robot_id) REFERENCES tb_robot(id) ON DELETE CASCADE,
+    
     -- 索引
+    INDEX idx_robot_id (robot_id),
     INDEX idx_ultrasonic_id (ultrasonic_id),
     INDEX idx_baud_rate (baud_rate),
     INDEX idx_obstacle_distance (obstacle_avoidance_distance),
@@ -580,26 +673,14 @@ CREATE TABLE cfg_ultrasonic (
 CREATE TABLE cfg_depth_camera (
     id VARCHAR(36) PRIMARY KEY COMMENT '深度相机配置ID',
     
-    -- 相机基本信息
-    camera_type ENUM('RGB-D', 'ToF', 'Stereo', 'Structured_Light') NOT NULL DEFAULT 'RGB-D' COMMENT '深度相机类型',
-    resolution_width INT NOT NULL DEFAULT 640 COMMENT '分辨率宽度',
-    resolution_height INT NOT NULL DEFAULT 480 COMMENT '分辨率高度',
-    frame_rate INT NOT NULL DEFAULT 30 COMMENT '帧率(fps)',
+    -- 关联机器人
+    robot_id VARCHAR(36) NOT NULL COMMENT '关联机器人ID',
     
-    -- 深度参数
-    depth_range_min DECIMAL(8,2) NOT NULL DEFAULT 0.10 COMMENT '最小深度范围(m)',
-    depth_range_max DECIMAL(8,2) NOT NULL DEFAULT 10.00 COMMENT '最大深度范围(m)',
-    depth_accuracy DECIMAL(8,4) NOT NULL DEFAULT 0.0010 COMMENT '深度精度(m)',
-    
-    -- 网络配置
-    camera_ip VARCHAR(15) NULL COMMENT '相机IP地址',
-    camera_port INT NULL COMMENT '相机端口号',
-    protocol ENUM('USB', 'Ethernet', 'WiFi', 'Serial') NOT NULL DEFAULT 'USB' COMMENT '连接协议',
-    
-    -- 相机参数
-    exposure_time INT NULL COMMENT '曝光时间(μs)',
-    gain DECIMAL(5,2) NULL COMMENT '增益值',
-    white_balance ENUM('Auto', 'Manual', 'Daylight', 'Fluorescent', 'Tungsten') NOT NULL DEFAULT 'Auto' COMMENT '白平衡模式',
+    -- 深度相机配置参数
+    serial_port_id INT NOT NULL DEFAULT 0 COMMENT '串口ID(0-255)',
+    camera_mode VARCHAR(50) NULL COMMENT '相机模式',
+    image_flip ENUM('上下翻转', '左右翻转', '中心翻转') NULL COMMENT '图像翻转',
+    image_alignment VARCHAR(50) NULL COMMENT '图像对齐',
     
     -- 基础字段
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -608,11 +689,12 @@ CREATE TABLE cfg_depth_camera (
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     
+    -- 外键
+    FOREIGN KEY (robot_id) REFERENCES tb_robot(id) ON DELETE CASCADE,
+    
     -- 索引
-    INDEX idx_camera_type (camera_type),
-    INDEX idx_camera_ip (camera_ip),
-    INDEX idx_protocol (protocol),
-    INDEX idx_frame_rate (frame_rate),
+    INDEX idx_robot_id (robot_id),
+    INDEX idx_serial_port_id (serial_port_id),
     INDEX idx_created_at (created_at),
     INDEX idx_is_deleted (is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='深度相机配置表';
@@ -621,15 +703,20 @@ CREATE TABLE cfg_depth_camera (
 CREATE TABLE cfg_navigation_controller (
     id VARCHAR(36) PRIMARY KEY COMMENT '导航控制器配置ID',
     
-    -- 控制器基本信息
-    module_group INT NOT NULL DEFAULT 1 COMMENT '模块组编号(支持多组配置)',
+    -- 关联机器人
+    robot_id VARCHAR(36) NOT NULL COMMENT '关联机器人ID',
     
-    -- 网络配置
-    ethernet_ip VARCHAR(15) NOT NULL COMMENT '以太网通讯IP地址',
-    subnet_mask VARCHAR(15) NOT NULL DEFAULT '255.255.255.0' COMMENT '子网掩码',
-    gateway VARCHAR(15) NOT NULL DEFAULT '192.168.1.1' COMMENT '网关地址',
-    ethernet_port INT NOT NULL COMMENT '以太网通讯端口号(1-65535)',
-    baud_rate INT NOT NULL DEFAULT 9600 COMMENT '波特率(9600-115200)',
+    -- 以太网通讯配置（2组，用编号区分）
+    ethernet_1_ip VARCHAR(15) NULL COMMENT '以太网1IP地址',
+    ethernet_1_subnet_mask VARCHAR(15) NULL COMMENT '以太网1子网掩码',
+    ethernet_1_gateway VARCHAR(15) NULL COMMENT '以太网1网关',
+    ethernet_1_port INT NULL COMMENT '以太网1端口号(1-65535)',
+    ethernet_1_baud_rate INT NULL COMMENT '以太网1波特率(9600-115200)',
+    ethernet_2_ip VARCHAR(15) NULL COMMENT '以太网2IP地址',
+    ethernet_2_subnet_mask VARCHAR(15) NULL COMMENT '以太网2子网掩码',
+    ethernet_2_gateway VARCHAR(15) NULL COMMENT '以太网2网关',
+    ethernet_2_port INT NULL COMMENT '以太网2端口号(1-65535)',
+    ethernet_2_baud_rate INT NULL COMMENT '以太网2波特率(9600-115200)',
     
     -- 导航参数
     deceleration_distance DECIMAL(8,2) NOT NULL DEFAULT 800.00 COMMENT '减速距离(mm)',
@@ -647,11 +734,15 @@ CREATE TABLE cfg_navigation_controller (
     updated_by VARCHAR(100) NULL COMMENT '更新人',
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     
+    -- 外键
+    FOREIGN KEY (robot_id) REFERENCES tb_robot(id) ON DELETE CASCADE,
+    
     -- 索引
-    INDEX idx_module_group (module_group),
-    INDEX idx_ethernet_ip (ethernet_ip),
-    INDEX idx_ethernet_port (ethernet_port),
-    INDEX idx_baud_rate (baud_rate),
+    INDEX idx_robot_id (robot_id),
+    INDEX idx_ethernet_1_ip (ethernet_1_ip),
+    INDEX idx_ethernet_1_port (ethernet_1_port),
+    INDEX idx_ethernet_2_ip (ethernet_2_ip),
+    INDEX idx_ethernet_2_port (ethernet_2_port),
     INDEX idx_created_at (created_at),
     INDEX idx_is_deleted (is_deleted)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='导航控制器配置表';
@@ -706,6 +797,7 @@ CREATE TABLE tb_sensor (
     device_id VARCHAR(36) NOT NULL COMMENT '关联设备ID',
     sensor_name VARCHAR(100) NOT NULL COMMENT '传感器名称',
     sensor_params JSON NULL COMMENT '传感器参数',
+    group_id VARCHAR(36) NULL COMMENT '分组ID',
     enabled BOOLEAN NOT NULL DEFAULT TRUE COMMENT '启用状态：0-禁用，1-启用',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -714,6 +806,7 @@ CREATE TABLE tb_sensor (
     is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除',
     INDEX idx_device_id (device_id),
     INDEX idx_sensor_name (sensor_name),
+    INDEX idx_group_id (group_id),
     INDEX idx_enabled (enabled),
     INDEX idx_created_at (created_at),
     INDEX idx_is_deleted (is_deleted),

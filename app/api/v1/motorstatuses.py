@@ -11,7 +11,7 @@ from ...core.permissions import require_write_permission, require_no_auth
 from ...services.motor_status_service import MotorStatusService
 from ...schemas.motorstatus import (
     MotorStatusCreate, MotorStatusUpdate, MotorStatusResponse, 
-    MotorStatusQuery, MotorStatusListResponse
+    MotorStatusQuery, MotorStatusListResponse, MotorStatusBatchUpdate
 )
 from ...utils.response import ApiResponse
 
@@ -72,6 +72,17 @@ async def create_motor_status(
     return await service.create_motor_status(data, current_user)
 
 
+@router.put("/batch-update-by-robot", response_model=dict)
+async def batch_update_motor_statuses_by_robot(
+    data: MotorStatusBatchUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_write_permission)
+):
+    """批量更新机器人的电机状态配置（真删除旧数据后重新添加）"""
+    service = MotorStatusService(db)
+    return await service.batch_update_motor_statuses_by_robot(data.robot_id, data.configs, current_user)
+
+
 @router.put("/{status_id}", response_model=dict)
 async def update_motor_status(
     status_id: str,
@@ -79,7 +90,7 @@ async def update_motor_status(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_write_permission)
 ):
-    """更新电机状态配置"""
+    """更新电机状态配置（单个，兼容旧接口）"""
     service = MotorStatusService(db)
     return await service.update_motor_status(status_id, data, current_user)
 

@@ -436,12 +436,19 @@ class NavigationControllerService:
         """格式化导航控制器配置响应数据"""
         return {
             "id": navigation_controller.id,
-            "module_group": navigation_controller.module_group,
-            "ethernet_ip": navigation_controller.ethernet_ip,
-            "subnet_mask": navigation_controller.subnet_mask,
-            "gateway": navigation_controller.gateway,
-            "ethernet_port": navigation_controller.ethernet_port,
-            "baud_rate": navigation_controller.baud_rate,
+            "robot_id": navigation_controller.robot_id,
+            # 以太网配置（2组）
+            "ethernet_1_ip": navigation_controller.ethernet_1_ip,
+            "ethernet_1_subnet_mask": navigation_controller.ethernet_1_subnet_mask,
+            "ethernet_1_gateway": navigation_controller.ethernet_1_gateway,
+            "ethernet_1_port": navigation_controller.ethernet_1_port,
+            "ethernet_1_baud_rate": navigation_controller.ethernet_1_baud_rate,
+            "ethernet_2_ip": navigation_controller.ethernet_2_ip,
+            "ethernet_2_subnet_mask": navigation_controller.ethernet_2_subnet_mask,
+            "ethernet_2_gateway": navigation_controller.ethernet_2_gateway,
+            "ethernet_2_port": navigation_controller.ethernet_2_port,
+            "ethernet_2_baud_rate": navigation_controller.ethernet_2_baud_rate,
+            # 导航参数
             "deceleration_distance": float(navigation_controller.deceleration_distance) if navigation_controller.deceleration_distance else 0.0,
             "stop_distance": float(navigation_controller.stop_distance) if navigation_controller.stop_distance else 0.0,
             "max_linear_velocity": float(navigation_controller.max_linear_velocity) if navigation_controller.max_linear_velocity else 0.0,
