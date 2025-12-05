@@ -154,14 +154,32 @@ class ROS2Bridge(Node):
         # - 记录到任务历史
     
     def _broadcast_message(self, message: dict):
-        """广播消息到所有回调"""
+        """广播消息到所有回调
+        
+        Args:
+            message: 消息字典，必须包含 'type' 字段
+        """
         if not isinstance(self._message_callbacks, list):
             self._message_callbacks = []
+        
+        # 从消息中获取类型
+        message_type = message.get("type", "unknown")
+        
         for callback in self._message_callbacks:
             try:
-                callback(message)
+                # 尝试传递两个参数（message, message_type），如果回调只接受一个参数则只传递message
+                import inspect
+                sig = inspect.signature(callback)
+                param_count = len(sig.parameters)
+                
+                if param_count >= 2:
+                    # 回调接受两个参数，传递 message 和 message_type
+                    callback(message, message_type)
+                else:
+                    # 回调只接受一个参数，只传递 message（向后兼容）
+                    callback(message)
             except Exception as e:
-                logger.error(f"消息回调错误: {e}")
+                logger.error(f"消息回调错误: {e}", exc_info=True)
     
     def add_message_callback(self, callback: Callable):
         """添加消息回调"""

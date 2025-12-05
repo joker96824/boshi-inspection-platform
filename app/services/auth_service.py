@@ -13,7 +13,9 @@ from ..core.exceptions import LoginFailedError, UserNotFoundError
 from ..config.settings import settings
 from ..models.session import Session
 from ..utils.response import ApiResponse
-from ..config.logging import log_user_action
+from ..config.logging import get_logger, log_user_action
+
+logger = get_logger(__name__)
 
 
 class AuthService:
@@ -30,6 +32,7 @@ class AuthService:
         if not user:
             # 记录登录失败日志
             log_user_action(
+                logger,
                 user=username,
                 action="登录",
                 result="失败",
@@ -41,6 +44,7 @@ class AuthService:
         if not verify_password(password, user.password_hash):
             # 记录登录失败日志
             log_user_action(
+                logger,
                 user=username,
                 action="登录",
                 result="失败", 
@@ -52,6 +56,7 @@ class AuthService:
         if user.is_deleted:
             # 记录登录失败日志
             log_user_action(
+                logger,
                 user=username,
                 action="登录",
                 result="失败",
@@ -81,6 +86,7 @@ class AuthService:
         
         # 记录登录成功的业务日志
         log_user_action(
+            logger,
             user=user.username,
             action="登录",
             result="成功",

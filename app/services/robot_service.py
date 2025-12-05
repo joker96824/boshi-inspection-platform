@@ -94,6 +94,7 @@ class RobotService:
             
             # 记录操作日志
             log_user_action(
+                logger,
                 user["username"],
                 "create_robot",
                 "success",
@@ -108,6 +109,7 @@ class RobotService:
         except Exception as e:
             logger.error(f"创建机器人失败: {e}")
             log_user_action(
+                logger,
                 user["username"],
                 "create_robot",
                 "failed",
@@ -226,6 +228,7 @@ class RobotService:
             
             # 记录操作日志
             log_user_action(
+                logger,
                 user["username"],
                 "update_robot",
                 "success",
@@ -240,6 +243,7 @@ class RobotService:
         except Exception as e:
             logger.error(f"更新机器人失败: {e}")
             log_user_action(
+                logger,
                 user["username"],
                 "update_robot",
                 "failed",
@@ -263,6 +267,7 @@ class RobotService:
             
             # 记录操作日志
             log_user_action(
+                logger,
                 user["username"],
                 "delete_robot",
                 "success",
@@ -277,6 +282,7 @@ class RobotService:
         except Exception as e:
             logger.error(f"删除机器人失败: {e}")
             log_user_action(
+                logger,
                 user["username"],
                 "delete_robot",
                 "failed",
@@ -323,6 +329,7 @@ class RobotService:
             
             # 记录操作日志
             log_user_action(
+                logger,
                 user["username"],
                 "batch_update_robot_group",
                 "success",
@@ -337,6 +344,7 @@ class RobotService:
         except Exception as e:
             logger.error(f"批量更新机器人分组失败: {e}")
             log_user_action(
+                logger,
                 user["username"],
                 "batch_update_robot_group",
                 "failed",

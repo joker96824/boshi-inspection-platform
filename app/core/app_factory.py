@@ -241,17 +241,26 @@ def setup_lifespan_events(app: FastAPI):
         app.state.connection_manager = connection_manager
         app.state.websocket_handler = websocket_handler
         
+        # 启动WebSocket测试任务（仅用于测试）
+        await websocket_handler.start_test_tasks()
+        logger.info("WebSocket测试任务已启动")
+        
         yield
         
         # 关闭时执行
         logger.info("应用关闭中...")
         
+        # 停止WebSocket测试任务
+        if websocket_handler:
+            websocket_handler._stop_test_tasks()
+            logger.info("WebSocket测试任务已停止")
+        
         # 关闭WebSocket连接
         if connection_manager:
-            await connection_manager.broadcast_json({
+            await connection_manager.broadcast_by_type({
                 "type": "server_shutdown",
                 "message": "服务器正在关闭"
-            })
+            }, "server_shutdown")
             logger.info("WebSocket连接已关闭")
         
         # 关闭ROS2 Bridge
