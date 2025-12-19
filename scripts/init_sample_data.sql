@@ -62,16 +62,13 @@ INSERT INTO tb_users (id, username, password_hash, role, created_at, updated_at,
 ('550e8400-e29b-41d4-a716-446655440101', 'admin', '$2b$12$aO5ac829bmhgt8.3Bszrq.ByPvri0qLi1fN9gGgmpShzSF3yGiqle', 'admin', NOW(), NOW(), 'system'),
 ('550e8400-e29b-41d4-a716-446655440102', 'operator', '$2b$12$iaUv0/mZ1YaPJIl3e9G48uac9xTPzUzuM7miyvP5MS7z4Kflmttvy', 'operator', NOW(), NOW(), 'system');
 
--- 插入示例厂区数据
+-- 插入示例厂区数据（只有一个厂区）
 INSERT INTO tb_factory (id, factory_name, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655440000', '厂区一', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655440001', '厂区二', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
+('550e8400-e29b-41d4-a716-446655440000', '默认厂区', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
 
--- 插入示例地图数据
+-- 插入示例地图数据（只有一个地图）
 INSERT INTO tb_map (id, map_name, map_image_url, map_scale, map_center_x, map_center_y, factory_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655440010', '厂区一地图', '/uploads/maps/factory1_map.png', 1.0, 100.0, 100.0, '550e8400-e29b-41d4-a716-446655440000', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655440011', '厂区二地图一', '/uploads/maps/factory2_map1.png', 1.0, 100.0, 100.0, '550e8400-e29b-41d4-a716-446655440001', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655440012', '厂区二地图二', '/uploads/maps/factory2_map2.png', 1.0, 100.0, 100.0, '550e8400-e29b-41d4-a716-446655440001', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
+('550e8400-e29b-41d4-a716-446655440010', '默认地图', '/uploads/maps/default_map.png', 1.0, 100.0, 100.0, '550e8400-e29b-41d4-a716-446655440000', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
 
 -- 插入示例地图路网数据
 -- 厂区一地图路网
@@ -86,30 +83,19 @@ INSERT INTO tb_group (id, group_name, group_description, created_at, updated_at,
 ('550e8400-e29b-41d4-a716-446655440201', '第二组', '第二组设备分组', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
 ('550e8400-e29b-41d4-a716-446655440202', '第三组', '第三组设备分组', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
 
--- 插入示例机器人数据
+-- 插入示例机器人数据（只有一个机器人）
 INSERT INTO tb_robot (id, robot_name, robot_info, factory_id, group_id, preview_url, control_url, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655440020', '厂区一机器人001', '{"model": "BOSHI-RB-01", "battery": 100, "status": "idle"}', '550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440200', 'http://192.168.8.102:9266/robot-preview', 'http://192.168.8.102:9266/robot-control', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655440021', '厂区一机器人002', '{"model": "BOSHI-RB-02", "battery": 85, "status": "working"}', '550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440200', NULL, NULL, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655440022', '厂区一机器人003', '{"model": "BOSHI-RB-03", "battery": 95, "status": "idle"}', '550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440201', NULL, NULL, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655440023', '厂区一机器人004', '{"model": "BOSHI-RB-04", "battery": 90, "status": "idle"}', '550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440201', NULL, NULL, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655440024', '厂区二机器人001', '{"model": "BOSHI-RB-05", "battery": 100, "status": "idle"}', '550e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440202', NULL, NULL, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655440025', '厂区二机器人002', '{"model": "BOSHI-RB-06", "battery": 88, "status": "working"}', '550e8400-e29b-41d4-a716-446655440001', '550e8400-e29b-41d4-a716-446655440202', NULL, NULL, NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
+('550e8400-e29b-41d4-a716-446655440020', '默认机器人', '{"model": "BOSHI-RB-01", "battery": 100, "status": "idle"}', '550e8400-e29b-41d4-a716-446655440000', '550e8400-e29b-41d4-a716-446655440200', 'http://192.168.8.102:9266/robot-preview', 'http://192.168.8.102:9266/robot-control', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
 
--- 插入机器人-地图关联数据
--- 厂区一：4个机器人都关联到1个地图
+-- 插入机器人-地图关联数据（唯一机器人关联唯一地图）
 INSERT INTO tb_robot_map (id, robot_id, map_id, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655440501', '550e8400-e29b-41d4-a716-446655440020', '550e8400-e29b-41d4-a716-446655440010', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655440502', '550e8400-e29b-41d4-a716-446655440021', '550e8400-e29b-41d4-a716-446655440010', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655440503', '550e8400-e29b-41d4-a716-446655440022', '550e8400-e29b-41d4-a716-446655440010', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655440504', '550e8400-e29b-41d4-a716-446655440023', '550e8400-e29b-41d4-a716-446655440010', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655440505', '550e8400-e29b-41d4-a716-446655440024', '550e8400-e29b-41d4-a716-446655440011', NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655440506', '550e8400-e29b-41d4-a716-446655440025', '550e8400-e29b-41d4-a716-446655440012', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
+('550e8400-e29b-41d4-a716-446655440501', '550e8400-e29b-41d4-a716-446655440020', '550e8400-e29b-41d4-a716-446655440010', NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
 
--- 插入示例云台数据
+-- 插入示例云台数据（所有云台都绑定到唯一地图）
 INSERT INTO tb_gimbal (id, gimbal_name, map_id, group_id, enabled, ip_address, port, username, password, rtsp_main_url, rtsp_sub_url, channel, x_coordinate, y_coordinate, p_coordinate, t_coordinate, z_coordinate, f_coordinate, preview_url, control_url, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
 ('550e8400-e29b-41d4-a716-446655440030', '云台001', '550e8400-e29b-41d4-a716-446655440010', '550e8400-e29b-41d4-a716-446655440200', TRUE, '192.168.1.110', 554, 'admin', 'admin123', 'rtsp://192.168.1.110:554/stream/main', 'rtsp://192.168.1.110:554/stream/sub', 1, 198.6700, 134.2800, 0.0000, 0.0000, 0.0000, 0.0000, NULL, NULL, NOW(), NOW(), 'admin', 'admin', FALSE),
 ('550e8400-e29b-41d4-a716-446655440031', '云台002', '550e8400-e29b-41d4-a716-446655440010', '550e8400-e29b-41d4-a716-446655440200', TRUE, '192.168.1.111', 8554, 'operator', 'securePass!', 'rtsp://192.168.1.111:8554/live/main', 'rtsp://192.168.1.111:8554/live/sub', 2, 456.8300, 312.5700, 5.0000, 2.5000, 1.0000, 0.5000, NULL, NULL, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440032', '云台003', '550e8400-e29b-41d4-a716-446655440011', '550e8400-e29b-41d4-a716-446655440201', TRUE, '10.0.0.50', 554, 'guest', 'guest123', 'rtsp://10.0.0.50:554/main', 'rtsp://10.0.0.50:554/sub', 1, 150.0000, 200.0000, 0.0000, 0.0000, 1.0000, 0.5000, NULL, NULL, NOW(), NOW(), 'operator', 'operator', FALSE),
+('550e8400-e29b-41d4-a716-446655440032', '云台003', '550e8400-e29b-41d4-a716-446655440010', '550e8400-e29b-41d4-a716-446655440201', TRUE, '10.0.0.50', 554, 'guest', 'guest123', 'rtsp://10.0.0.50:554/main', 'rtsp://10.0.0.50:554/sub', 1, 150.0000, 200.0000, 0.0000, 0.0000, 1.0000, 0.5000, NULL, NULL, NOW(), NOW(), 'operator', 'operator', FALSE),
 ('550e8400-e29b-41d4-a716-446655440033', '云台004', '550e8400-e29b-41d4-a716-446655440010', '550e8400-e29b-41d4-a716-446655440201', TRUE, '192.168.1.112', 554, 'admin', 'admin456', 'rtsp://192.168.1.112:554/stream/main', 'rtsp://192.168.1.112:554/stream/sub', 1, 680.1500, 320.4800, 10.0000, 5.0000, 2.0000, 1.0000, NULL, NULL, NOW(), NOW(), 'admin', 'admin', FALSE),
 ('550e8400-e29b-41d4-a716-446655440034', '云台005', '550e8400-e29b-41d4-a716-446655440010', NULL, TRUE, '192.168.1.113', 8554, 'operator', 'operator123', 'rtsp://192.168.1.113:8554/live/main', 'rtsp://192.168.1.113:8554/live/sub', 2, 450.2300, 580.7600, 15.0000, 8.0000, 3.0000, 1.5000, NULL, NULL, NOW(), NOW(), 'admin', 'admin', FALSE),
 ('550e8400-e29b-41d4-a716-446655440035', '云台006', '550e8400-e29b-41d4-a716-446655440010', NULL, TRUE, '192.168.1.114', 554, 'admin', 'admin789', 'rtsp://192.168.1.114:554/stream/main', 'rtsp://192.168.1.114:554/stream/sub', 1, 720.8900, 450.1200, 20.0000, 10.0000, 4.0000, 2.0000, NULL, NULL, NOW(), NOW(), 'admin', 'admin', FALSE),
@@ -555,99 +541,54 @@ INSERT INTO tb_item (id, item_name, item_info, device_id, robot_id, detection_ty
 ('70000000-0000-0000-0000-000000000017', '压力检测', '{"type": "pressure", "unit": "kPa", "threshold": {"min": 0, "max": 700}}', '550e8400-e29b-41d4-a716-446655440076', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000007', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
 ('70000000-0000-0000-0000-000000000018', '可见光拍照002', '{"type": "photo", "format": "JPEG", "resolution": "1920x1080"}', '550e8400-e29b-41d4-a716-446655440077', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000004', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
 ('70000000-0000-0000-0000-000000000019', '设备外观检查', '{"type": "equipment_appearance", "check_items": ["surface", "damage", "cleanliness"]}', '550e8400-e29b-41d4-a716-446655440077', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000004', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
-('70000000-0000-0000-0000-000000000020', '热成像检测002', '{"type": "thermal_imaging", "format": "image", "resolution": "320x240"}', '550e8400-e29b-41d4-a716-446655440078', '550e8400-e29b-41d4-a716-446655440021', '80000000-0000-0000-0000-000000000004', TRUE, NOW(), NOW(), 'operator', 'operator', FALSE),
+('70000000-0000-0000-0000-000000000020', '热成像检测002', '{"type": "thermal_imaging", "format": "image", "resolution": "320x240"}', '550e8400-e29b-41d4-a716-446655440078', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000004', TRUE, NOW(), NOW(), 'operator', 'operator', FALSE),
 ('70000000-0000-0000-0000-000000000021', '气体浓度检测002', '{"type": "gas_concentration", "unit": "ppm", "threshold": {"co": 50, "nh3": 25}}', '550e8400-e29b-41d4-a716-446655440079', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000003', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
 ('70000000-0000-0000-0000-000000000022', '振动检测002', '{"type": "vibration", "unit": "mm/s", "threshold": {"max": 50}}', '550e8400-e29b-41d4-a716-446655440080', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000006', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
-('70000000-0000-0000-0000-000000000023', '温度检测003', '{"type": "temperature", "unit": "℃", "threshold": {"min": -10, "max": 50}}', '550e8400-e29b-41d4-a716-446655440081', '550e8400-e29b-41d4-a716-446655440022', '80000000-0000-0000-0000-000000000001', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
+('70000000-0000-0000-0000-000000000023', '温度检测003', '{"type": "temperature", "unit": "℃", "threshold": {"min": -10, "max": 50}}', '550e8400-e29b-41d4-a716-446655440081', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000001', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
 ('70000000-0000-0000-0000-000000000024', '湿度检测003', '{"type": "humidity", "unit": "%RH", "threshold": {"min": 30, "max": 80}}', '550e8400-e29b-41d4-a716-446655440081', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000002', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
 ('70000000-0000-0000-0000-000000000025', '可见光拍照003', '{"type": "photo", "format": "JPEG", "resolution": "1920x1080"}', '550e8400-e29b-41d4-a716-446655440082', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000004', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
 ('70000000-0000-0000-0000-000000000026', '压力检测002', '{"type": "pressure", "unit": "kPa", "threshold": {"min": 0, "max": 700}}', '550e8400-e29b-41d4-a716-446655440083', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000007', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
-('70000000-0000-0000-0000-000000000027', '热成像检测003', '{"type": "thermal_imaging", "format": "image", "resolution": "320x240"}', '550e8400-e29b-41d4-a716-446655440084', '550e8400-e29b-41d4-a716-446655440023', '80000000-0000-0000-0000-000000000004', TRUE, NOW(), NOW(), 'operator', 'operator', FALSE),
+('70000000-0000-0000-0000-000000000027', '热成像检测003', '{"type": "thermal_imaging", "format": "image", "resolution": "320x240"}', '550e8400-e29b-41d4-a716-446655440084', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000004', TRUE, NOW(), NOW(), 'operator', 'operator', FALSE),
 ('70000000-0000-0000-0000-000000000028', '气体浓度检测003', '{"type": "gas_concentration", "unit": "ppm", "threshold": {"co": 50, "nh3": 25}}', '550e8400-e29b-41d4-a716-446655440085', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000003', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
 ('70000000-0000-0000-0000-000000000029', '振动检测003', '{"type": "vibration", "unit": "mm/s", "threshold": {"max": 50}}', '550e8400-e29b-41d4-a716-446655440086', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000006', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
 ('70000000-0000-0000-0000-000000000030', '温度检测004', '{"type": "temperature", "unit": "℃", "threshold": {"min": -10, "max": 50}}', '550e8400-e29b-41d4-a716-446655440087', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000001', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
-('70000000-0000-0000-0000-000000000031', '可见光拍照004', '{"type": "photo", "format": "JPEG", "resolution": "1920x1080"}', '550e8400-e29b-41d4-a716-446655440088', '550e8400-e29b-41d4-a716-446655440023', '80000000-0000-0000-0000-000000000004', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE);
+('70000000-0000-0000-0000-000000000031', '可见光拍照004', '{"type": "photo", "format": "JPEG", "resolution": "1920x1080"}', '550e8400-e29b-41d4-a716-446655440088', '550e8400-e29b-41d4-a716-446655440020', '80000000-0000-0000-0000-000000000004', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE);
 
 -- 插入示例车体控制器配置数据
 INSERT INTO cfg_vehicle_controller (id, robot_id, vehicle_model, wheel_diameter, reduction_ratio, wheelbase, track_width, max_linear_velocity, max_angular_velocity, serial_1_station_number, serial_1_baud_rate, serial_1_function_code, serial_2_station_number, serial_2_baud_rate, serial_2_function_code, serial_3_station_number, serial_3_baud_rate, serial_3_function_code, serial_4_station_number, serial_4_baud_rate, serial_4_function_code, ethernet_1_ip_address, ethernet_1_subnet_mask, ethernet_1_gateway, ethernet_1_port, ethernet_1_baud_rate, ethernet_1_communication_mode, ethernet_2_ip_address, ethernet_2_subnet_mask, ethernet_2_gateway, ethernet_2_port, ethernet_2_baud_rate, ethernet_2_communication_mode, controller_version, remote_upgrade_enabled, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655440090', '550e8400-e29b-41d4-a716-446655440020', '四轮差速', 430.00, 50, 780.00, 1000.00, 0.800, 0.100, 1, 115200, 1, 2, 115200, 2, 3, 115200, 3, 4, 115200, 4, '192.168.1.100', '255.255.255.0', '192.168.1.1', 8080, 115200, 'server', '192.168.1.101', '255.255.255.0', '192.168.1.1', 8081, 115200, 'client', '1.232', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440091', '550e8400-e29b-41d4-a716-446655440021', '双轮差速', 350.00, 30, 600.00, 800.00, 1.200, 0.150, 1, 9600, 1, 2, 9600, 2, NULL, NULL, NULL, NULL, NULL, NULL, '192.168.2.100', '255.255.255.0', '192.168.2.1', 9000, 9600, 'server', NULL, NULL, NULL, NULL, NULL, NULL, '1.200', FALSE, NOW(), NOW(), 'operator', 'operator', FALSE),
-('550e8400-e29b-41d4-a716-446655440092', '550e8400-e29b-41d4-a716-446655440022', '四驱四转', 500.00, 60, 900.00, 1200.00, 1.000, 0.120, 1, 19200, 1, 2, 19200, 2, 3, 19200, 3, NULL, NULL, NULL, '192.168.3.100', '255.255.255.0', '192.168.3.1', 8080, 19200, 'server', '192.168.3.101', '255.255.255.0', '192.168.3.1', 8081, 19200, 'client', '1.300', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440093', '550e8400-e29b-41d4-a716-446655440023', '单舵轮', 400.00, 40, 700.00, 900.00, 0.900, 0.110, 1, 38400, 1, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '192.168.4.100', '255.255.255.0', '192.168.4.1', 8080, 38400, 'server', NULL, NULL, NULL, NULL, NULL, NULL, '1.150', FALSE, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440094', '550e8400-e29b-41d4-a716-446655440024', '双舵轮', 450.00, 55, 850.00, 1100.00, 1.100, 0.130, 1, 57600, 1, 2, 57600, 2, NULL, NULL, NULL, NULL, NULL, NULL, '192.168.5.100', '255.255.255.0', '192.168.5.1', 8080, 57600, 'server', '192.168.5.101', '255.255.255.0', '192.168.5.1', 8081, 57600, 'client', '1.400', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440095', '550e8400-e29b-41d4-a716-446655440025', '四轮差速', 420.00, 48, 750.00, 950.00, 0.850, 0.105, 1, 115200, 1, 2, 115200, 2, 3, 115200, 3, 4, 115200, 4, '192.168.6.100', '255.255.255.0', '192.168.6.1', 8080, 115200, 'server', '192.168.6.101', '255.255.255.0', '192.168.6.1', 8081, 115200, 'client', '1.250', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE);
+('550e8400-e29b-41d4-a716-446655440090', '550e8400-e29b-41d4-a716-446655440020', '四轮差速', 430.00, 50, 780.00, 1000.00, 0.800, 0.100, 1, 115200, 1, 2, 115200, 2, 3, 115200, 3, 4, 115200, 4, '192.168.1.100', '255.255.255.0', '192.168.1.1', 8080, 115200, 'server', '192.168.1.101', '255.255.255.0', '192.168.1.1', 8081, 115200, 'client', '1.232', TRUE, NOW(), NOW(), 'admin', 'admin', FALSE);
 
 -- 插入示例环境传感器配置数据
 INSERT INTO cfg_environment_sensor (id, robot_id, station_number, baud_rate, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655440200', '550e8400-e29b-41d4-a716-446655440020', 1, 115200, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440201', '550e8400-e29b-41d4-a716-446655440021', 2, 9600, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440202', '550e8400-e29b-41d4-a716-446655440022', 3, 19200, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440203', '550e8400-e29b-41d4-a716-446655440023', 4, 38400, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440204', '550e8400-e29b-41d4-a716-446655440024', 5, 57600, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440205', '550e8400-e29b-41d4-a716-446655440025', 6, 115200, NOW(), NOW(), 'admin', 'admin', FALSE);
+('550e8400-e29b-41d4-a716-446655440200', '550e8400-e29b-41d4-a716-446655440020', 1, 115200, NOW(), NOW(), 'admin', 'admin', FALSE);
 
 -- 插入示例双光云台配置数据
 INSERT INTO cfg_dual_ptz (id, robot_id, ptz_ip, subnet_mask, gateway, operating_speed, fill_light_enabled, wiper_enabled, auto_focus_enabled, backlight_compensation_enabled, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655440210', '550e8400-e29b-41d4-a716-446655440020', '192.168.1.100', '255.255.255.0', '192.168.1.1', 100, TRUE, FALSE, TRUE, FALSE, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440211', '550e8400-e29b-41d4-a716-446655440021', '192.168.1.101', '255.255.255.0', '192.168.1.1', 150, FALSE, TRUE, TRUE, TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440212', '550e8400-e29b-41d4-a716-446655440022', '192.168.1.102', '255.255.255.0', '192.168.1.1', 120, TRUE, TRUE, TRUE, FALSE, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440213', '550e8400-e29b-41d4-a716-446655440023', '192.168.1.103', '255.255.255.0', '192.168.1.1', 80, FALSE, FALSE, TRUE, TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440214', '550e8400-e29b-41d4-a716-446655440024', '192.168.1.104', '255.255.255.0', '192.168.1.1', 130, TRUE, FALSE, FALSE, TRUE, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440215', '550e8400-e29b-41d4-a716-446655440025', '192.168.1.105', '255.255.255.0', '192.168.1.1', 110, FALSE, TRUE, TRUE, FALSE, NOW(), NOW(), 'admin', 'admin', FALSE);
+('550e8400-e29b-41d4-a716-446655440210', '550e8400-e29b-41d4-a716-446655440020', '192.168.1.100', '255.255.255.0', '192.168.1.1', 100, TRUE, FALSE, TRUE, FALSE, NOW(), NOW(), 'admin', 'admin', FALSE);
 
 -- 插入示例电机状态配置数据
 INSERT INTO cfg_motor_status (id, robot_id, motor_id, baud_rate, tpdo_config, rpdo_config, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655440220', '550e8400-e29b-41d4-a716-446655440020', 1, 115200, '{"enabled": true, "transmission_type": "synchronous", "inhibit_time": 0, "event_timer": 0, "sync_start_value": 0}', '{"enabled": true, "transmission_type": "synchronous", "inhibit_time": 0, "event_timer": 0, "sync_start_value": 0}', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440221', '550e8400-e29b-41d4-a716-446655440021', 2, 9600, '{"enabled": true, "transmission_type": "asynchronous", "inhibit_time": 100, "event_timer": 1000, "sync_start_value": 1}', '{"enabled": true, "transmission_type": "asynchronous", "inhibit_time": 100, "event_timer": 1000, "sync_start_value": 1}', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440222', '550e8400-e29b-41d4-a716-446655440022', 3, 19200, '{"enabled": true, "transmission_type": "synchronous", "inhibit_time": 0, "event_timer": 0, "sync_start_value": 0}', '{"enabled": true, "transmission_type": "synchronous", "inhibit_time": 0, "event_timer": 0, "sync_start_value": 0}', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440223', '550e8400-e29b-41d4-a716-446655440023', 4, 38400, '{"enabled": true, "transmission_type": "asynchronous", "inhibit_time": 50, "event_timer": 500, "sync_start_value": 1}', '{"enabled": true, "transmission_type": "asynchronous", "inhibit_time": 50, "event_timer": 500, "sync_start_value": 1}', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440224', '550e8400-e29b-41d4-a716-446655440024', 5, 57600, '{"enabled": true, "transmission_type": "synchronous", "inhibit_time": 0, "event_timer": 0, "sync_start_value": 0}', '{"enabled": true, "transmission_type": "synchronous", "inhibit_time": 0, "event_timer": 0, "sync_start_value": 0}', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440225', '550e8400-e29b-41d4-a716-446655440025', 6, 115200, '{"enabled": true, "transmission_type": "asynchronous", "inhibit_time": 200, "event_timer": 2000, "sync_start_value": 1}', '{"enabled": true, "transmission_type": "asynchronous", "inhibit_time": 200, "event_timer": 2000, "sync_start_value": 1}', NOW(), NOW(), 'admin', 'admin', FALSE);
+('550e8400-e29b-41d4-a716-446655440220', '550e8400-e29b-41d4-a716-446655440020', 1, 115200, '{"enabled": true, "transmission_type": "synchronous", "inhibit_time": 0, "event_timer": 0, "sync_start_value": 0}', '{"enabled": true, "transmission_type": "synchronous", "inhibit_time": 0, "event_timer": 0, "sync_start_value": 0}', NOW(), NOW(), 'admin', 'admin', FALSE);
 
 -- 插入示例激光雷达配置数据
 INSERT INTO cfg_lidar (id, robot_id, lidar_ip, subnet_mask, gateway, lidar_port, scan_frequency_rpm, x_coordinate, y_coordinate, z_coordinate, scan_range_min, scan_range_max, scan_distance_min, scan_distance_max, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655440130', '550e8400-e29b-41d4-a716-446655440020', '192.168.1.100', '255.255.255.0', '192.168.1.1', 8080, 2000, 49.10, 23.20, 34.90, 0.00, 360.00, 0.00, 100.00, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440131', '550e8400-e29b-41d4-a716-446655440021', '192.168.1.101', '255.255.255.0', '192.168.1.1', 8081, 1500, 50.00, 25.00, 35.00, 0.00, 180.00, 0.00, 50.00, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440132', '550e8400-e29b-41d4-a716-446655440022', '192.168.1.102', '255.255.255.0', '192.168.1.1', 8082, 1800, 51.00, 26.00, 36.00, 0.00, 360.00, 0.00, 80.00, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440133', '550e8400-e29b-41d4-a716-446655440023', '192.168.1.103', '255.255.255.0', '192.168.1.1', 8083, 2200, 52.00, 27.00, 37.00, 0.00, 270.00, 0.00, 60.00, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440134', '550e8400-e29b-41d4-a716-446655440024', '192.168.1.104', '255.255.255.0', '192.168.1.1', 8084, 1600, 53.00, 28.00, 38.00, 0.00, 360.00, 0.00, 90.00, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440135', '550e8400-e29b-41d4-a716-446655440025', '192.168.1.105', '255.255.255.0', '192.168.1.1', 8085, 1900, 54.00, 29.00, 39.00, 0.00, 360.00, 0.00, 70.00, NOW(), NOW(), 'admin', 'admin', FALSE);
+('550e8400-e29b-41d4-a716-446655440130', '550e8400-e29b-41d4-a716-446655440020', '192.168.1.100', '255.255.255.0', '192.168.1.1', 8080, 2000, 49.10, 23.20, 34.90, 0.00, 360.00, 0.00, 100.00, NOW(), NOW(), 'admin', 'admin', FALSE);
 
 -- 插入示例机械臂状态配置数据
 INSERT INTO cfg_robot_arm (id, robot_id, robot_arm_ip, subnet_mask, gateway, robot_arm_port, operating_speed, origin_coordinates, plane_coordinates, load_size, end_coordinates, tool_io, collision_detection_level, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655440140', '550e8400-e29b-41d4-a716-446655440020', '192.168.1.100', '255.255.255.0', '192.168.1.1', 8080, 50, JSON_ARRAY(10, 20, 0, 5, -3, -180), JSON_ARRAY(10, 20, 0, 5, -3, -180), 0.50, JSON_ARRAY(10, 20, 0, 5, -3, -180), 0, '中', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440141', '550e8400-e29b-41d4-a716-446655440021', '192.168.1.101', '255.255.255.0', '192.168.1.1', 8081, 75, JSON_ARRAY(15, 25, 5, 10, -5, -90), JSON_ARRAY(15, 25, 5, 10, -5, -90), 1.20, JSON_ARRAY(15, 25, 5, 10, -5, -90), 128, '高', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440142', '550e8400-e29b-41d4-a716-446655440022', '192.168.1.102', '255.255.255.0', '192.168.1.1', 8082, 60, JSON_ARRAY(12, 22, 2, 7, -4, -135), JSON_ARRAY(12, 22, 2, 7, -4, -135), 0.80, JSON_ARRAY(12, 22, 2, 7, -4, -135), 64, '中', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440143', '550e8400-e29b-41d4-a716-446655440023', '192.168.1.103', '255.255.255.0', '192.168.1.1', 8083, 40, JSON_ARRAY(8, 18, -1, 3, -2, -225), JSON_ARRAY(8, 18, -1, 3, -2, -225), 0.30, JSON_ARRAY(8, 18, -1, 3, -2, -225), 32, '低', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440144', '550e8400-e29b-41d4-a716-446655440024', '192.168.1.104', '255.255.255.0', '192.168.1.1', 8084, 70, JSON_ARRAY(18, 28, 8, 12, -6, -45), JSON_ARRAY(18, 28, 8, 12, -6, -45), 1.00, JSON_ARRAY(18, 28, 8, 12, -6, -45), 96, '高', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440145', '550e8400-e29b-41d4-a716-446655440025', '192.168.1.105', '255.255.255.0', '192.168.1.1', 8085, 55, JSON_ARRAY(11, 21, 1, 6, -3.5, -160), JSON_ARRAY(11, 21, 1, 6, -3.5, -160), 0.65, JSON_ARRAY(11, 21, 1, 6, -3.5, -160), 48, '中', NOW(), NOW(), 'admin', 'admin', FALSE);
+('550e8400-e29b-41d4-a716-446655440140', '550e8400-e29b-41d4-a716-446655440020', '192.168.1.100', '255.255.255.0', '192.168.1.1', 8080, 50, JSON_ARRAY(10, 20, 0, 5, -3, -180), JSON_ARRAY(10, 20, 0, 5, -3, -180), 0.50, JSON_ARRAY(10, 20, 0, 5, -3, -180), 0, '中', NOW(), NOW(), 'admin', 'admin', FALSE);
 
 -- 插入示例超声波状态配置数据
 INSERT INTO cfg_ultrasonic (id, robot_id, ultrasonic_id, obstacle_avoidance_distance, deceleration_distance, baud_rate, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655440150', '550e8400-e29b-41d4-a716-446655440020', 1, 800.00, 1500.00, 9600, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440151', '550e8400-e29b-41d4-a716-446655440021', 2, 1000.00, 2000.00, 19200, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440152', '550e8400-e29b-41d4-a716-446655440022', 3, 900.00, 1700.00, 38400, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440153', '550e8400-e29b-41d4-a716-446655440023', 4, 750.00, 1400.00, 9600, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440154', '550e8400-e29b-41d4-a716-446655440024', 5, 1100.00, 2200.00, 57600, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440155', '550e8400-e29b-41d4-a716-446655440025', 6, 850.00, 1600.00, 115200, NOW(), NOW(), 'admin', 'admin', FALSE);
+('550e8400-e29b-41d4-a716-446655440150', '550e8400-e29b-41d4-a716-446655440020', 1, 800.00, 1500.00, 9600, NOW(), NOW(), 'admin', 'admin', FALSE);
 
 -- 插入示例深度相机配置数据
 INSERT INTO cfg_depth_camera (id, robot_id, serial_port_id, camera_mode, image_flip, image_alignment, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655440160', '550e8400-e29b-41d4-a716-446655440020', 1, '标准模式', '上下翻转', '自动对齐', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440161', '550e8400-e29b-41d4-a716-446655440021', 2, '高精度模式', '左右翻转', '手动对齐', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440162', '550e8400-e29b-41d4-a716-446655440022', 3, '快速模式', '中心翻转', '自动对齐', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440163', '550e8400-e29b-41d4-a716-446655440023', 4, '标准模式', '上下翻转', '手动对齐', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440164', '550e8400-e29b-41d4-a716-446655440024', 5, '高精度模式', '左右翻转', '自动对齐', NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440165', '550e8400-e29b-41d4-a716-446655440025', 6, '快速模式', '中心翻转', '手动对齐', NOW(), NOW(), 'admin', 'admin', FALSE);
+('550e8400-e29b-41d4-a716-446655440160', '550e8400-e29b-41d4-a716-446655440020', 1, '标准模式', '上下翻转', '自动对齐', NOW(), NOW(), 'admin', 'admin', FALSE);
 
 -- 插入示例导航控制器配置数据
 INSERT INTO cfg_navigation_controller (id, robot_id, ethernet_1_ip, ethernet_1_subnet_mask, ethernet_1_gateway, ethernet_1_port, ethernet_1_baud_rate, ethernet_2_ip, ethernet_2_subnet_mask, ethernet_2_gateway, ethernet_2_port, ethernet_2_baud_rate, deceleration_distance, stop_distance, max_linear_velocity, max_angular_velocity, acceleration, deceleration, expansion_coefficient, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655440170', '550e8400-e29b-41d4-a716-446655440020', '192.168.1.100', '255.255.255.0', '192.168.1.1', 8080, 9600, '192.168.1.101', '255.255.255.0', '192.168.1.1', 8081, 19200, 800.00, 1500.00, 0.800, 0.100, 0.800, 0.800, 0.00, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440171', '550e8400-e29b-41d4-a716-446655440021', '192.168.1.102', '255.255.255.0', '192.168.1.1', 8082, 115200, NULL, NULL, NULL, NULL, NULL, 1000.00, 2000.00, 1.000, 0.150, 1.000, 1.000, 0.50, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440172', '550e8400-e29b-41d4-a716-446655440022', '192.168.1.103', '255.255.255.0', '192.168.1.1', 8083, 19200, '192.168.1.104', '255.255.255.0', '192.168.1.1', 8084, 38400, 850.00, 1600.00, 0.850, 0.110, 0.850, 0.850, 0.10, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440173', '550e8400-e29b-41d4-a716-446655440023', '192.168.1.105', '255.255.255.0', '192.168.1.1', 8085, 38400, NULL, NULL, NULL, NULL, NULL, 900.00, 1700.00, 0.900, 0.120, 0.900, 0.900, 0.20, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440174', '550e8400-e29b-41d4-a716-446655440024', '192.168.1.106', '255.255.255.0', '192.168.1.1', 8086, 57600, '192.168.1.107', '255.255.255.0', '192.168.1.1', 8087, 115200, 950.00, 1800.00, 0.950, 0.125, 0.950, 0.950, 0.30, NOW(), NOW(), 'admin', 'admin', FALSE),
-('550e8400-e29b-41d4-a716-446655440175', '550e8400-e29b-41d4-a716-446655440025', '192.168.1.108', '255.255.255.0', '192.168.1.1', 8088, 115200, '192.168.1.109', '255.255.255.0', '192.168.1.1', 8089, 19200, 820.00, 1550.00, 0.820, 0.105, 0.820, 0.820, 0.15, NOW(), NOW(), 'admin', 'admin', FALSE);
+('550e8400-e29b-41d4-a716-446655440170', '550e8400-e29b-41d4-a716-446655440020', '192.168.1.100', '255.255.255.0', '192.168.1.1', 8080, 9600, '192.168.1.101', '255.255.255.0', '192.168.1.1', 8081, 19200, 800.00, 1500.00, 0.800, 0.100, 0.800, 0.800, 0.00, NOW(), NOW(), 'admin', 'admin', FALSE);
 
 -- 插入示例智能传感器数据
 INSERT INTO tb_sensor (id, device_id, sensor_name, sensor_params, group_id, enabled, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
