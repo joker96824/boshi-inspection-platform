@@ -120,13 +120,20 @@ class AlarmRuleService:
 
             items_data = [self._format_alarmrule_response(alarmrule) for alarmrule in alarmrules]
 
-            return ApiResponse.paginated(
-                items=items_data,
-                total=total,
-                page=query.page,
-                size=query.size,
-                message="获取报警规则列表成功"
-            )
+            # 如果提供了分页参数，返回分页响应；否则返回全部数据
+            if query.page is not None and query.size is not None:
+                return ApiResponse.paginated(
+                    items=items_data,
+                    total=total,
+                    page=query.page,
+                    size=query.size,
+                    message="获取报警规则列表成功"
+                )
+            else:
+                return ApiResponse.success(
+                    data={"items": items_data, "total": total},
+                    message="获取报警规则列表成功"
+                )
 
         except Exception as e:
             logger.error(f"获取报警规则列表失败: {e}", exc_info=True)

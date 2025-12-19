@@ -10,8 +10,13 @@ from typing import Dict, Any
 from fastapi import WebSocket, WebSocketDisconnect
 
 from .connection_manager import ConnectionManager
-from ..ros import ROS2Bridge
 from ..config.logging import get_logger
+
+# 可选导入ROS2Bridge
+try:
+    from ..ros import ROS2Bridge
+except ImportError:
+    ROS2Bridge = None
 
 logger = get_logger(__name__)
 
@@ -19,7 +24,7 @@ logger = get_logger(__name__)
 class WebSocketHandler:
     """WebSocket消息处理器"""
     
-    def __init__(self, connection_manager: ConnectionManager, ros2_bridge: ROS2Bridge = None):
+    def __init__(self, connection_manager: ConnectionManager, ros2_bridge = None):
         self.connection_manager = connection_manager
         self.ros2_bridge = ros2_bridge
         
@@ -146,7 +151,7 @@ class WebSocketHandler:
             await self.connection_manager.send_json_message({
                 "type": "ros2_topics_response",
                 "topics": [],
-                "error": "ROS2 Bridge未初始化"
+                "error": "ROS2功能不可用。当前环境不支持ROS2，或ROS2 Bridge未初始化。"
             }, websocket)
             return
         
@@ -159,7 +164,7 @@ class WebSocketHandler:
     async def _handle_publish_ros2_string(self, message: Dict[str, Any], websocket: WebSocket):
         """处理ROS2字符串发布请求"""
         if not self.ros2_bridge:
-            await self._send_error_response(websocket, "ROS2 Bridge未初始化")
+            await self._send_error_response(websocket, "ROS2功能不可用。当前环境不支持ROS2，或ROS2 Bridge未初始化。")
             return
         
         data = message.get("data", "")
@@ -177,7 +182,7 @@ class WebSocketHandler:
     async def _handle_publish_ros2_int(self, message: Dict[str, Any], websocket: WebSocket):
         """处理ROS2整数发布请求"""
         if not self.ros2_bridge:
-            await self._send_error_response(websocket, "ROS2 Bridge未初始化")
+            await self._send_error_response(websocket, "ROS2功能不可用。当前环境不支持ROS2，或ROS2 Bridge未初始化。")
             return
         
         data = message.get("data", 0)
@@ -195,7 +200,7 @@ class WebSocketHandler:
     async def _handle_publish_ros2_float(self, message: Dict[str, Any], websocket: WebSocket):
         """处理ROS2浮点数发布请求"""
         if not self.ros2_bridge:
-            await self._send_error_response(websocket, "ROS2 Bridge未初始化")
+            await self._send_error_response(websocket, "ROS2功能不可用。当前环境不支持ROS2，或ROS2 Bridge未初始化。")
             return
         
         data = message.get("data", 0.0)
@@ -213,7 +218,7 @@ class WebSocketHandler:
     async def _handle_publish_ros2_cmd_vel(self, message: Dict[str, Any], websocket: WebSocket):
         """处理ROS2速度命令发布请求"""
         if not self.ros2_bridge:
-            await self._send_error_response(websocket, "ROS2 Bridge未初始化")
+            await self._send_error_response(websocket, "ROS2功能不可用。当前环境不支持ROS2，或ROS2 Bridge未初始化。")
             return
         
         data = message.get("data", {})

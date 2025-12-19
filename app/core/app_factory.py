@@ -198,7 +198,6 @@ def setup_lifespan_events(app: FastAPI):
     """设置应用生命周期事件"""
     from contextlib import asynccontextmanager
     from ..config.database import init_database, close_database
-    from ..ros import ROS2Bridge
     from ..websocket import ConnectionManager, WebSocketHandler
     
     # 全局实例
@@ -221,16 +220,23 @@ def setup_lifespan_events(app: FastAPI):
         connection_manager = ConnectionManager()
         logger.info("WebSocket连接管理器初始化完成")
         
-        # 初始化ROS2 Bridge
+        # 初始化ROS2 Bridge（可选）
+        ros2_bridge = None
         try:
-            import rclpy
-            if not rclpy.ok():
-                rclpy.init()
-            ros2_bridge = ROS2Bridge()
-            logger.info("ROS2 Bridge初始化完成")
+            # 检查ROS2模块是否可用
+            from ..ros import ROS2_AVAILABLE, ROS2Bridge
+            if ROS2_AVAILABLE and ROS2Bridge is not None:
+                import rclpy
+                if not rclpy.ok():
+                    rclpy.init()
+                ros2_bridge = ROS2Bridge()
+                logger.info("ROS2 Bridge初始化完成")
+            else:
+                logger.info("ROS2模块不可用，跳过ROS2 Bridge初始化")
+        except ImportError as e:
+            logger.info(f"ROS2模块不可用（可能在不支持ROS2的环境中运行）: {e}，跳过ROS2 Bridge初始化")
         except Exception as e:
-            logger.warning(f"ROS2 Bridge初始化失败: {e}")
-            ros2_bridge = None
+            logger.warning(f"ROS2 Bridge初始化失败: {e}，应用将继续运行但ROS2功能不可用")
         
         # 初始化WebSocket处理器
         websocket_handler = WebSocketHandler(connection_manager, ros2_bridge)
@@ -268,8 +274,12 @@ def setup_lifespan_events(app: FastAPI):
             try:
                 ros2_bridge.stop_spin()  # 先停止spin线程
                 ros2_bridge.destroy_node()
-                if rclpy.ok():
-                    rclpy.shutdown()
+                try:
+                    import rclpy
+                    if rclpy.ok():
+                        rclpy.shutdown()
+                except ImportError:
+                    pass  # ROS2不可用，忽略
                 logger.info("ROS2 Bridge已关闭")
             except Exception as e:
                 logger.error(f"关闭ROS2 Bridge失败: {e}")

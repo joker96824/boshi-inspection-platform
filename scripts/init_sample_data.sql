@@ -1,78 +1,8 @@
 -- 博实智能巡检平台 - 示例数据初始化SQL
 USE boshirobot;
 
--- 更新数据库表结构（如果字段不存在则添加）
--- 为巡检项目表添加机器人ID字段
-SET @dbname = DATABASE();
-SET @tablename = 'tb_item';
-SET @columnname = 'robot_id';
-SET @preparedStatement = (SELECT IF(
-    (
-        SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE
-            (TABLE_SCHEMA = @dbname)
-            AND (TABLE_NAME = @tablename)
-            AND (COLUMN_NAME = @columnname)
-    ) > 0,
-    'SELECT 1',
-    CONCAT('ALTER TABLE ', @tablename, ' ADD COLUMN ', @columnname, ' VARCHAR(36) NULL COMMENT ''关联机器人ID'' AFTER device_id')
-));
-PREPARE alterIfNotExists FROM @preparedStatement;
-EXECUTE alterIfNotExists;
-DEALLOCATE PREPARE alterIfNotExists;
-
--- 为巡检项目表添加检测类型ID字段
-SET @tablename = 'tb_item';
-SET @columnname = 'detection_type_id';
-SET @preparedStatement = (SELECT IF(
-    (
-        SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE
-            (TABLE_SCHEMA = @dbname)
-            AND (TABLE_NAME = @tablename)
-            AND (COLUMN_NAME = @columnname)
-    ) > 0,
-    'SELECT 1',
-    CONCAT('ALTER TABLE ', @tablename, ' ADD COLUMN ', @columnname, ' VARCHAR(36) NULL COMMENT ''检测类型ID'' AFTER robot_id, ADD INDEX idx_detection_type_id (detection_type_id), ADD FOREIGN KEY (detection_type_id) REFERENCES tb_detection_type(id) ON DELETE SET NULL')
-));
-PREPARE alterIfNotExists FROM @preparedStatement;
-EXECUTE alterIfNotExists;
-DEALLOCATE PREPARE alterIfNotExists;
-
--- 添加外键约束（如果不存在）
-SET @constraintname = 'fk_item_robot';
-SET @preparedStatement = (SELECT IF(
-    (
-        SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
-        WHERE
-            (TABLE_SCHEMA = @dbname)
-            AND (TABLE_NAME = @tablename)
-            AND (CONSTRAINT_NAME = @constraintname)
-            AND (CONSTRAINT_TYPE = 'FOREIGN KEY')
-    ) > 0,
-    'SELECT 1',
-    CONCAT('ALTER TABLE ', @tablename, ' ADD CONSTRAINT ', @constraintname, ' FOREIGN KEY (robot_id) REFERENCES tb_robot(id) ON DELETE SET NULL')
-));
-PREPARE alterIfNotExists FROM @preparedStatement;
-EXECUTE alterIfNotExists;
-DEALLOCATE PREPARE alterIfNotExists;
-
--- 添加索引（如果不存在）
-SET @indexname = 'idx_robot_id';
-SET @preparedStatement = (SELECT IF(
-    (
-        SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS
-        WHERE
-            (TABLE_SCHEMA = @dbname)
-            AND (TABLE_NAME = @tablename)
-            AND (INDEX_NAME = @indexname)
-    ) > 0,
-    'SELECT 1',
-    CONCAT('CREATE INDEX ', @indexname, ' ON ', @tablename, '(robot_id)')
-));
-PREPARE alterIfNotExists FROM @preparedStatement;
-EXECUTE alterIfNotExists;
-DEALLOCATE PREPARE alterIfNotExists;
+-- 注意：此脚本假设数据库表结构已经通过 init_database.sql 创建
+-- 如果是旧版本数据库升级，请先执行 add_missing_columns.sql 添加缺失字段
 
 -- 清空所有示例数据（如果存在）
 -- 注意：使用 SET FOREIGN_KEY_CHECKS = 0 来禁用外键检查，以便可以按任意顺序删除数据
@@ -735,9 +665,9 @@ INSERT INTO tb_sensorhistory (id, sensor_id, record_data, file_url, created_at, 
 
 -- 插入示例任务数据
 -- 插入示例任务数据（厂区一-机器人一的两个任务）
-INSERT INTO tb_task (id, task_name, robot_id, task_items, task_order, task_res_prior, task_int_prior, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
-('550e8400-e29b-41d4-a716-446655440021', '任务一：环境监测', '550e8400-e29b-41d4-a716-446655440020', '["70000000-0000-0000-0000-000000000001", "70000000-0000-0000-0000-000000000002", "70000000-0000-0000-0000-000000000003"]', 1, 5, 3, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
-('550e8400-e29b-41d4-a716-446655440022', '任务二：设备巡检', '550e8400-e29b-41d4-a716-446655440020', '["70000000-0000-0000-0000-000000000005", "70000000-0000-0000-0000-000000000006", "70000000-0000-0000-0000-000000000007"]', 2, 5, 3, NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
+INSERT INTO tb_task (id, task_name, robot_id, task_items, task_order, task_res_prior, task_int_prior, total_duration, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
+('550e8400-e29b-41d4-a716-446655440021', '任务一：环境监测', '550e8400-e29b-41d4-a716-446655440020', '["70000000-0000-0000-0000-000000000001", "70000000-0000-0000-0000-000000000002", "70000000-0000-0000-0000-000000000003"]', 1, 5, 3, 30, NOW(), NOW(), 'superadmin', 'superadmin', FALSE),
+('550e8400-e29b-41d4-a716-446655440022', '任务二：设备巡检', '550e8400-e29b-41d4-a716-446655440020', '["70000000-0000-0000-0000-000000000005", "70000000-0000-0000-0000-000000000006", "70000000-0000-0000-0000-000000000007"]', 2, 5, 3, 45, NOW(), NOW(), 'superadmin', 'superadmin', FALSE);
 
 -- 插入示例任务日程数据
 INSERT INTO tb_taskschedule (id, task_id, schedule_name, start_date, end_date, enabled, item_count, cycle_type, cycle_config, time_mode, time_config, time_display_start, time_display_end, created_at, updated_at, created_by, updated_by, is_deleted) VALUES

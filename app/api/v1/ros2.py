@@ -3,9 +3,8 @@ ROS2相关API路由
 """
 
 from fastapi import APIRouter, Depends
-from typing import Dict
+from typing import Dict, Optional
 
-from ...ros import ROS2Bridge
 from ...core.auth import get_current_user
 from ...core.exceptions import ROS2Error, ParameterError
 from ...utils.response import ApiResponse
@@ -13,14 +12,13 @@ from ...utils.response import ApiResponse
 router = APIRouter()
 
 
-def get_ros2_bridge() -> ROS2Bridge:
+def get_ros2_bridge():
     """获取ROS2 Bridge实例"""
-    from fastapi import Request
     from ...main import app
     
     ros2_bridge = app.state.ros2_bridge
     if not ros2_bridge:
-        raise ROS2Error("ROS2 Bridge未初始化")
+        raise ROS2Error("ROS2功能不可用。当前环境不支持ROS2，或ROS2 Bridge未初始化。")
     return ros2_bridge
 
 

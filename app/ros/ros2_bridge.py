@@ -6,11 +6,27 @@ import asyncio
 import json
 import threading
 from typing import Dict, List, Optional, Callable
-import rclpy
-from rclpy.node import Node
-from std_msgs.msg import String, Int32, Float32
-from geometry_msgs.msg import Twist
-from sensor_msgs.msg import LaserScan
+
+# 可选导入ROS2相关模块
+try:
+    import rclpy
+    from rclpy.node import Node
+    from std_msgs.msg import String, Int32, Float32
+    from geometry_msgs.msg import Twist
+    from sensor_msgs.msg import LaserScan
+    ROS2_IMPORTS_AVAILABLE = True
+except ImportError as e:
+    ROS2_IMPORTS_AVAILABLE = False
+    # 创建占位符类以避免导入错误
+    class Node:
+        pass
+    rclpy = None
+    String = None
+    Int32 = None
+    Float32 = None
+    Twist = None
+    LaserScan = None
+    _import_error = e
 
 from ..config.logging import get_logger
 
@@ -21,6 +37,17 @@ class ROS2Bridge(Node):
     """ROS2桥接节点"""
     
     def __init__(self):
+        # 检查ROS2是否可用
+        if not ROS2_IMPORTS_AVAILABLE:
+            raise ImportError(
+                f"ROS2模块不可用: {_import_error}。"
+                "请确保在支持ROS2的环境中运行，或在Windows上禁用ROS2功能。"
+            )
+        
+        # 初始化rclpy（如果尚未初始化）
+        if not rclpy.ok():
+            rclpy.init()
+        
         super().__init__('ros2_bridge_node')
         
         # 发布器 - 使用不同的属性名避免与父类冲突
