@@ -15,7 +15,7 @@ class AlarmRuleRelation(Base):
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
     alarm_rule_id = Column(String(36), ForeignKey("tb_alarm_rule.id", ondelete="CASCADE"), nullable=False, comment="报警规则ID")
-    relation_type = Column(Enum('item', 'gimbal', 'sensor', name='relation_type'),
+    relation_type = Column(Enum('item', 'gimbal', 'sensor', 'robot', name='relation_type'),
                           nullable=False, comment="关联类型")
     relation_id = Column(String(36), nullable=False, comment="关联对象ID")
     sort_order = Column(Integer, nullable=False, default=0, comment="顺序，用于多数据源规则")

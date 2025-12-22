@@ -19,7 +19,10 @@ from ..core.exceptions import (
 )
 
 # JWT配置
-security = HTTPBearer()
+# 注意：HTTPBearer 默认 auto_error=True 时，未提供 token 会返回 403
+# 但按照 HTTP 标准，未认证应该返回 401
+# 因此我们使用 auto_error=False，然后在 get_current_user 中手动处理
+security = HTTPBearer(auto_error=False)
 
 
 def create_access_token(
@@ -112,10 +115,14 @@ async def get_current_user_optional(
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: AsyncSession = Depends(get_db)
 ) -> dict:
     """获取当前用户信息"""
+    # 如果没有提供认证信息，返回 401
+    if not credentials:
+        raise TokenError("未提供认证信息，请先登录")
+    
     try:
         token = credentials.credentials
         payload = jwt.decode(

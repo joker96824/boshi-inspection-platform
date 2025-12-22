@@ -12,6 +12,7 @@ from ..repositories.itemhistory_repository import ItemHistoryRepository
 from ..repositories.item_repository import ItemRepository
 from ..repositories.point_repository import PointRepository
 from ..repositories.taskresult_repository import TaskResultRepository
+from ..repositories.alarminfo_repository import AlarmInfoRepository
 from ..schemas.taskhistory import TaskHistoryCreate, TaskHistoryUpdate, TaskHistoryQuery
 from ..core.exceptions import (
     ResourceNotFoundError, PermissionDeniedError, BusinessError
@@ -34,6 +35,7 @@ class TaskHistoryService:
         self.item_repo = ItemRepository(db)
         self.point_repo = PointRepository(db)
         self.taskresult_repo = TaskResultRepository(db)
+        self.alarminfo_repo = AlarmInfoRepository(db)
     
     async def create_taskhistory(self, taskhistory_data: TaskHistoryCreate, user: dict) -> Dict[str, Any]:
         """创建任务记录"""
@@ -116,6 +118,7 @@ class TaskHistoryService:
     
     async def get_taskhistories(self, user: dict, page: Optional[int] = None, size: Optional[int] = None, 
                         task_id: str = None, record_status: str = None, record_batch: int = None,
+                        view_status: str = None, inspection_result_status: str = None,
                         start_time_from: str = None, start_time_to: str = None,
                         end_time_from: str = None, end_time_to: str = None) -> Dict[str, Any]:
         """获取任务记录列表"""
@@ -123,7 +126,7 @@ class TaskHistoryService:
             # 如果未提供分页参数，返回所有数据
             if page is None or size is None:
                 taskhistories, total = await self.taskhistory_repo.get_all(
-                    None, None, task_id, record_status, record_batch,
+                    None, None, task_id, record_status, record_batch, view_status, inspection_result_status,
                     start_time_from, start_time_to, end_time_from, end_time_to
                 )
                 items = []
@@ -136,7 +139,7 @@ class TaskHistoryService:
             
             # 获取所有任务记录，无需基于用户ID过滤
             taskhistories, total = await self.taskhistory_repo.get_all(
-                page, size, task_id, record_status, record_batch,
+                page, size, task_id, record_status, record_batch, view_status, inspection_result_status,
                 start_time_from, start_time_to, end_time_from, end_time_to
             )
             
@@ -314,6 +317,11 @@ class TaskHistoryService:
         
         # 获取关联的巡检记录
         itemhistories = await self.itemhistory_repo.get_by_taskhistory_ids([taskhistory.id])
+        
+        # 批量获取关联的报警信息
+        itemhistory_ids = [ih.id for ih in itemhistories]
+        alarminfos_dict = await self.alarminfo_repo.get_by_itemhistory_ids(itemhistory_ids)
+        
         itemhistories_info = []
         for itemhistory in itemhistories:
             item_info = None
@@ -354,11 +362,17 @@ class TaskHistoryService:
                         "description": detection_type.description,
                     }
             
+            # 格式化关联的报警信息
+            alarminfos = alarminfos_dict.get(itemhistory.id, [])
+            alarminfos_data = [self._format_alarminfo_response(alarminfo) for alarminfo in alarminfos]
+            
             itemhistories_info.append({
                 "id": itemhistory.id,
                 "item_id": itemhistory.item_id,
                 "item_result": itemhistory.item_result,
                 "process_status": itemhistory.process_status,
+                "inspection_result_status": itemhistory.inspection_result_status,
+                "alarm_infos": alarminfos_data,
                 "item": item_info,
                 "point": point_info,
                 "detection_type": detection_type_info,
@@ -396,6 +410,8 @@ class TaskHistoryService:
             "current_point_id": taskhistory.current_point_id,
             "current_point": current_point_info,
             "current_item_id": taskhistory.current_item_id,
+            "view_status": taskhistory.view_status,
+            "inspection_result_status": taskhistory.inspection_result_status,
             "itemhistories": itemhistories_info,
             "taskresult": taskresult_info,
             "created_at": taskhistory.created_at.strftime("%Y-%m-%dT%H:%M:%S") if taskhistory.created_at else None,
@@ -403,3 +419,109 @@ class TaskHistoryService:
             "created_by": taskhistory.created_by,
             "updated_by": taskhistory.updated_by,
         }
+    
+    def _format_alarminfo_response(self, alarminfo) -> Dict[str, Any]:
+        """格式化报警信息响应数据"""
+        return {
+            "id": alarminfo.id,
+            "alarm_rule_id": alarminfo.alarm_rule_id,
+            "alarm_category": alarminfo.alarm_category,
+            "alarm_level": alarminfo.alarm_level,
+            "alarm_status": alarminfo.alarm_status,
+            "source_type": alarminfo.source_type,
+            "source_ids": alarminfo.source_ids,
+            "relation_type": alarminfo.relation_type,
+            "relation_ids": alarminfo.relation_ids,
+            "trigger_item_ids": alarminfo.trigger_item_ids,
+            "trigger_data": alarminfo.trigger_data,
+            "calculated_value": alarminfo.calculated_value,
+            "alarm_message": alarminfo.alarm_message,
+            "processed_by": alarminfo.processed_by,
+            "processed_at": alarminfo.processed_at.strftime("%Y-%m-%dT%H:%M:%S") if alarminfo.processed_at else None,
+            "process_remark": alarminfo.process_remark,
+            "created_at": alarminfo.created_at.strftime("%Y-%m-%dT%H:%M:%S") if alarminfo.created_at else None,
+            "updated_at": alarminfo.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if alarminfo.updated_at else None,
+        }
+    
+    async def update_taskhistory_status_by_itemhistories(self, taskhistory_id: str, user: dict = None) -> None:
+        """根据 taskhistory 下所有 itemhistory 的状态自动更新 taskhistory 的 view_status
+        
+        规则：
+        1. 如果有任意数量的未查看（pending），则 taskhistory 状态为 pending
+        2. 如果没有未查看了，则检查是否有已查看（viewed），如果有则 taskhistory 状态改为 viewed
+        3. 如果所有 itemhistory 都没有未查看/已查看，都是已处理（processed）/null（没有异常），则 taskhistory 状态改为 processed
+        4. 如果所有 itemhistory 状态都是 null，则 taskhistory 的状态也是 null（没有异常）
+        
+        Args:
+            taskhistory_id: 任务记录ID
+            user: 用户信息（可选，用于记录更新人）
+        """
+        try:
+            # 获取该 taskhistory 下的所有 itemhistory
+            itemhistories = await self.itemhistory_repo.get_by_taskhistory_ids([taskhistory_id])
+            
+            if not itemhistories:
+                # 如果没有 itemhistory，保持原状态或设为 null
+                logger.debug(f"任务记录 {taskhistory_id} 下没有 itemhistory，保持原状态")
+                return
+            
+            # 统计各种状态的数量
+            pending_count = 0
+            viewed_count = 0
+            processed_count = 0
+            null_count = 0
+            
+            for itemhistory in itemhistories:
+                status = itemhistory.process_status
+                if status == 'pending':
+                    pending_count += 1
+                elif status == 'viewed':
+                    viewed_count += 1
+                elif status == 'processed':
+                    processed_count += 1
+                elif status is None:
+                    null_count += 1
+            
+            # 根据规则确定新的 view_status
+            new_view_status = None
+            
+            if pending_count > 0:
+                # 规则1：如果有任意数量的未查看，则 taskhistory 状态为 pending
+                new_view_status = 'pending'
+            elif viewed_count > 0:
+                # 规则2：如果没有未查看了，但还有已查看，则 taskhistory 状态改为 viewed
+                new_view_status = 'viewed'
+            elif null_count == len(itemhistories):
+                # 规则4：如果所有 itemhistory 状态都是 null，则 taskhistory 的状态也是 null（没有异常）
+                new_view_status = None
+            else:
+                # 规则3：如果所有 itemhistory 都没有未查看/已查看，都是已处理/null，则 taskhistory 状态改为 processed
+                # 此时 processed_count > 0 或者 (processed_count == 0 但 null_count < len(itemhistories))
+                # 说明至少有一个 processed，或者有 mixed 状态（processed + null）
+                new_view_status = 'processed'
+            
+            # 获取当前的 taskhistory
+            taskhistory = await self.taskhistory_repo.get_by_id(taskhistory_id)
+            if not taskhistory:
+                logger.warning(f"任务记录 {taskhistory_id} 不存在，无法更新状态")
+                return
+            
+            # 如果状态有变化，则更新
+            if taskhistory.view_status != new_view_status:
+                update_data = {
+                    "view_status": new_view_status
+                }
+                if user:
+                    update_data["updated_by"] = user.get("username")
+                
+                await self.taskhistory_repo.update(taskhistory_id, update_data)
+                logger.info(
+                    f"任务记录 {taskhistory_id} 的 view_status 已从 {taskhistory.view_status} 更新为 {new_view_status} "
+                    f"(pending: {pending_count}, viewed: {viewed_count}, processed: {processed_count}, null: {null_count})"
+                )
+            else:
+                logger.debug(f"任务记录 {taskhistory_id} 的 view_status 无需更新，仍为 {new_view_status}")
+                
+        except Exception as e:
+            logger.error(f"更新任务记录 {taskhistory_id} 状态失败: {e}", exc_info=True)
+            # 不抛出异常，避免影响主流程

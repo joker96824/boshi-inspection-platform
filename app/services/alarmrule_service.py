@@ -346,16 +346,16 @@ class AlarmRuleService:
 
         # 验证关联类型与报警分类的匹配性
         valid_types = {
-            'robot': [],
+            'robot': ['robot'],
             'inspection': ['item'],
             'gimbal': ['gimbal'],
             'sensor': ['sensor'],
-            'other': ['item', 'gimbal', 'sensor']
+            'other': ['item', 'gimbal', 'sensor', 'robot']
         }
 
         allowed_types = valid_types.get(alarm_category, [])
         if not allowed_types:
-            # robot类型通常不关联对象
+            # 如果没有允许的类型，跳过验证（可能是全局规则）
             return
 
         for relation in relations:
@@ -377,6 +377,12 @@ class AlarmRuleService:
                 sensor = await self.sensor_repo.get_by_id(relation.id)
                 if not sensor:
                     raise ResourceNotFoundError(f"传感器ID '{relation.id}' 不存在")
+            elif relation.type == 'robot':
+                from ..repositories.robot_repository import RobotRepository
+                robot_repo = RobotRepository(self.db)
+                robot = await robot_repo.get_by_id(relation.id)
+                if not robot:
+                    raise ResourceNotFoundError(f"机器人ID '{relation.id}' 不存在")
 
     def _format_alarmrule_response(self, alarmrule) -> Dict[str, Any]:
         """格式化报警规则响应数据"""

@@ -43,6 +43,8 @@ async def get_taskhistories(
     task_id: str = Query(None, description="任务ID"),
     record_status: str = Query(None, description="任务状态"),
     record_batch: int = Query(None, description="任务批次号"),
+    view_status: str = Query(None, description="查看状态：pending-未查看, viewed-已查看, processed-已处理"),
+    inspection_result_status: str = Query(None, description="巡检结果状态：null-尚未结束（任务进行中）, normal-正常（任务完成且无异常）, warning-预警报警, critical-严重报警, emergency-危机报警"),
     start_time_from: str = Query(None, description="开始时间范围-起始（格式：YYYY-MM-DDTHH:MM:SS）"),
     start_time_to: str = Query(None, description="开始时间范围-结束（格式：YYYY-MM-DDTHH:MM:SS）"),
     end_time_from: str = Query(None, description="结束时间范围-起始（格式：YYYY-MM-DDTHH:MM:SS）"),
@@ -58,6 +60,8 @@ async def get_taskhistories(
         task_id: 任务ID
         record_status: 任务状态
         record_batch: 任务批次号
+        view_status: 查看状态：pending-未查看, viewed-已查看, processed-已处理
+        inspection_result_status: 巡检结果状态：normal-正常, warning-预警报警, critical-严重报警, emergency-危机报警
         start_time_from: 开始时间范围-起始
         start_time_to: 开始时间范围-结束
         end_time_from: 结束时间范围-起始
@@ -70,7 +74,7 @@ async def get_taskhistories(
     """
     service = TaskHistoryService(db)
     return await service.get_taskhistories(
-        current_user, page, size, task_id, record_status, record_batch,
+        current_user, page, size, task_id, record_status, record_batch, view_status, inspection_result_status,
         start_time_from, start_time_to, end_time_from, end_time_to
     )
 

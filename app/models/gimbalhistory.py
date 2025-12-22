@@ -21,6 +21,8 @@ class GimbalHistory(BaseModel):
     )
     record_data = Column(JSON, nullable=True, comment="记录数据")
     media_url = Column(String(500), nullable=True, comment="图像/视频链接")
+    view_status = Column(String(20), nullable=True, comment="查看状态：pending-未查看, viewed-已查看, processed-已处理（有报警信息时使用，无异常时为空）")
+    inspection_result_status = Column(String(20), nullable=True, comment="巡检结果状态：null-尚未结束（任务进行中）, normal-正常（任务完成且无异常）, warning-预警报警, critical-严重报警, emergency-危机报警")
 
     project_preset_point = relationship(
         "GimbalInspectionProjectPresetPoint", back_populates="histories"
@@ -28,6 +30,8 @@ class GimbalHistory(BaseModel):
 
     __table_args__ = (
         Index("idx_project_preset_point_id", "project_preset_point_id"),
+        Index("idx_view_status", "view_status"),
+        Index("idx_inspection_result_status", "inspection_result_status"),
         Index("idx_created_at", "created_at"),
         Index("idx_is_deleted", "is_deleted"),
     )

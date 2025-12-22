@@ -68,6 +68,7 @@ class TaskHistoryRepository:
     
     async def get_all(self, page: Optional[int] = None, size: Optional[int] = None, 
                       task_id: str = None, record_status: str = None, record_batch: int = None,
+                      view_status: str = None, inspection_result_status: str = None,
                       start_time_from: str = None, start_time_to: str = None,
                       end_time_from: str = None, end_time_to: str = None) -> tuple[List[TaskHistory], int]:
         """获取任务记录列表"""
@@ -89,6 +90,10 @@ class TaskHistoryRepository:
             conditions.append(TaskHistory.record_status == record_status)
         if record_batch:
             conditions.append(TaskHistory.record_batch == record_batch)
+        if view_status:
+            conditions.append(TaskHistory.view_status == view_status)
+        if inspection_result_status:
+            conditions.append(TaskHistory.inspection_result_status == inspection_result_status)
         if start_time_from:
             from datetime import datetime
             start_from_dt = datetime.strptime(start_time_from, "%Y-%m-%dT%H:%M:%S")

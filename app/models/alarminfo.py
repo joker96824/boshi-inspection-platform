@@ -17,10 +17,10 @@ class AlarmInfo(BaseModel):
     alarm_level = Column(Integer, nullable=False, comment="报警等级 1-10")
     alarm_status = Column(Enum('unviewed', 'unprocessed', 'processed', name='alarm_status'),
                          nullable=False, default='unviewed', comment="报警状态")
-    source_type = Column(Enum('itemhistory', 'gimbalhistory', 'sensorhistory', 'taskhistory', 'robot_status', name='source_type'),
+    source_type = Column(Enum('itemhistory', 'gimbalhistory', 'sensorhistory', 'robot_status', name='source_type'),
                         nullable=False, comment="数据源类型")
     source_ids = Column(JSON, nullable=False, comment="数据源ID列表，按关联表顺序排列")
-    relation_type = Column(Enum('item', 'gimbal', 'sensor', 'none', name='relation_type'),
+    relation_type = Column(Enum('item', 'gimbal', 'sensor', 'robot', 'none', name='relation_type'),
                           nullable=True, comment="关联对象类型")
     relation_ids = Column(JSON, nullable=True, comment="关联对象ID列表")
     trigger_item_ids = Column(JSON, nullable=True, comment="触发源对应的巡检项目ID列表")

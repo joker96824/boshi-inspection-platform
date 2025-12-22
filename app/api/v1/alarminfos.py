@@ -2,14 +2,14 @@
 报警信息API路由
 """
 
-from fastapi import APIRouter, Depends, Query, Body
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
 from ...core.deps import get_db
 from ...core.permissions import require_write_permission, require_no_auth
 from ...services.alarminfo_service import AlarmInfoService
-from ...schemas.alarminfo import AlarmInfoQuery
+from ...schemas.alarminfo import AlarmInfoQuery, AlarmInfoProcessRequest, AlarmInfoStatusUpdateRequest
 
 router = APIRouter()
 
@@ -87,18 +87,49 @@ async def get_alarminfo_by_id(
     return await service.get_alarminfo_by_id(alarminfo_id, current_user)
 
 
-@router.put("/{alarminfo_id}/status", response_model=dict)
-async def update_alarm_status(
+@router.put("/{alarminfo_id}/view", response_model=dict)
+async def view_alarm(
     alarminfo_id: str,
-    alarm_status: str = Body(..., description="报警状态：unviewed, unprocessed, processed"),
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_write_permission)
+    current_user: Optional[dict] = Depends(require_no_auth())
 ):
-    """更新报警状态
+    """查看报警（同时更新报警信息和数据源的查看状态）
+    
+    此接口会：
+    1. 将报警信息的 alarm_status 从 unviewed 更新为 unprocessed
+    2. 根据 source_type 更新对应数据源的查看状态：
+       - itemhistory: 更新 process_status 为 'viewed'
+       - gimbalhistory/sensorhistory/robot_status: 暂不支持（无查看状态字段）
+    
+    注意：此接口不需要认证，任何人都可以查看报警
     
     Args:
         alarminfo_id: 报警信息ID
-        alarm_status: 报警状态
+        db: 数据库会话
+        current_user: 当前用户（可选）
+    
+    Returns:
+        更新后的报警信息对象
+    """
+    service = AlarmInfoService(db)
+    # 如果没有用户信息，使用默认值
+    if not current_user:
+        current_user = {"username": "anonymous", "role": "user"}
+    return await service.view_alarm(alarminfo_id, current_user)
+
+
+@router.put("/{alarminfo_id}/status", response_model=dict)
+async def update_alarm_status(
+    alarminfo_id: str,
+    request: AlarmInfoStatusUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_write_permission)
+):
+    """更新报警状态（直接更新状态，不更新数据源查看状态）
+    
+    Args:
+        alarminfo_id: 报警信息ID
+        request: 更新报警状态请求数据
         db: 数据库会话
         current_user: 当前用户
     
@@ -106,13 +137,13 @@ async def update_alarm_status(
         更新后的报警信息对象
     """
     service = AlarmInfoService(db)
-    return await service.update_alarm_status(alarminfo_id, alarm_status, current_user)
+    return await service.update_alarm_status(alarminfo_id, request.alarm_status, current_user)
 
 
 @router.put("/{alarminfo_id}/process", response_model=dict)
 async def process_alarm(
     alarminfo_id: str,
-    process_remark: str = Body(..., description="处理备注"),
+    request: AlarmInfoProcessRequest,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_write_permission)
 ):
@@ -120,7 +151,7 @@ async def process_alarm(
     
     Args:
         alarminfo_id: 报警信息ID
-        process_remark: 处理备注
+        request: 处理报警请求数据
         db: 数据库会话
         current_user: 当前用户
     
@@ -128,7 +159,7 @@ async def process_alarm(
         更新后的报警信息对象
     """
     service = AlarmInfoService(db)
-    return await service.process_alarm(alarminfo_id, process_remark, current_user)
+    return await service.process_alarm(alarminfo_id, request.process_remark, current_user)
 
 
 @router.delete("/{alarminfo_id}", response_model=dict)

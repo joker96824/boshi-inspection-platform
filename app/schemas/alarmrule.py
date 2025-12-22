@@ -9,14 +9,14 @@ from .base import BaseSchema, BaseResponse
 
 class RelationItem(BaseSchema):
     """关联对象项"""
-    type: str = Field(..., description="关联类型：item, gimbal, sensor")
+    type: str = Field(..., description="关联类型：item, gimbal, sensor, robot")
     id: str = Field(..., description="关联对象ID")
     sort_order: int = Field(0, description="顺序，用于多数据源规则")
 
     @validator('type')
     def validate_type(cls, v):
-        if v not in ['item', 'gimbal', 'sensor']:
-            raise ValueError('关联类型必须是 item, gimbal 或 sensor')
+        if v not in ['item', 'gimbal', 'sensor', 'robot']:
+            raise ValueError('关联类型必须是 item, gimbal, sensor 或 robot')
         return v
 
 

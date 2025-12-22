@@ -118,6 +118,100 @@ class AlarmInfoRepository:
 
         return alarminfos, total
 
+    async def get_by_itemhistory_id(self, itemhistory_id: str) -> List[AlarmInfo]:
+        """根据 itemhistory_id 获取关联的报警信息"""
+        query = (
+            select(AlarmInfo)
+            .options(selectinload(AlarmInfo.alarm_rule))
+            .where(
+                AlarmInfo.source_type == 'itemhistory',
+                func.JSON_CONTAINS(AlarmInfo.source_ids, json.dumps(itemhistory_id)),
+                AlarmInfo.is_deleted == False
+            )
+            .order_by(AlarmInfo.created_at.desc())
+        )
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+    
+    async def get_by_itemhistory_ids(self, itemhistory_ids: List[str]) -> Dict[str, List[AlarmInfo]]:
+        """根据 itemhistory_id 列表批量获取关联的报警信息，返回字典：itemhistory_id -> [AlarmInfo]"""
+        if not itemhistory_ids:
+            return {}
+        
+        # 查询所有相关的报警信息
+        query = (
+            select(AlarmInfo)
+            .options(selectinload(AlarmInfo.alarm_rule))
+            .where(
+                AlarmInfo.source_type == 'itemhistory',
+                AlarmInfo.is_deleted == False
+            )
+            .order_by(AlarmInfo.created_at.desc())
+        )
+        result = await self.db.execute(query)
+        all_alarminfos = list(result.scalars().all())
+        
+        # 按 itemhistory_id 分组
+        result_dict = {}
+        for itemhistory_id in itemhistory_ids:
+            result_dict[itemhistory_id] = []
+        
+        for alarminfo in all_alarminfos:
+            if alarminfo.source_ids:
+                source_ids = alarminfo.source_ids if isinstance(alarminfo.source_ids, list) else json.loads(alarminfo.source_ids)
+                for source_id in source_ids:
+                    if source_id in itemhistory_ids:
+                        result_dict[source_id].append(alarminfo)
+        
+        return result_dict
+    
+    async def get_by_gimbalhistory_id(self, gimbalhistory_id: str) -> List[AlarmInfo]:
+        """根据 gimbalhistory_id 获取关联的报警信息"""
+        query = (
+            select(AlarmInfo)
+            .options(selectinload(AlarmInfo.alarm_rule))
+            .where(
+                AlarmInfo.source_type == 'gimbalhistory',
+                func.JSON_CONTAINS(AlarmInfo.source_ids, json.dumps(gimbalhistory_id)),
+                AlarmInfo.is_deleted == False
+            )
+            .order_by(AlarmInfo.created_at.desc())
+        )
+        result = await self.db.execute(query)
+        return list(result.scalars().all())
+    
+    async def get_by_gimbalhistory_ids(self, gimbalhistory_ids: List[str]) -> Dict[str, List[AlarmInfo]]:
+        """根据 gimbalhistory_id 列表批量获取关联的报警信息，返回字典：gimbalhistory_id -> [AlarmInfo]"""
+        if not gimbalhistory_ids:
+            return {}
+        
+        # 查询所有相关的报警信息
+        query = (
+            select(AlarmInfo)
+            .options(selectinload(AlarmInfo.alarm_rule))
+            .where(
+                AlarmInfo.source_type == 'gimbalhistory',
+                AlarmInfo.is_deleted == False
+            )
+            .order_by(AlarmInfo.created_at.desc())
+        )
+        result = await self.db.execute(query)
+        all_alarminfos = list(result.scalars().all())
+        
+        # 按 gimbalhistory_id 分组
+        result_dict = {}
+        for gimbalhistory_id in gimbalhistory_ids:
+            result_dict[gimbalhistory_id] = []
+        
+        for alarminfo in all_alarminfos:
+            if alarminfo.source_ids:
+                source_ids = alarminfo.source_ids if isinstance(alarminfo.source_ids, list) else json.loads(alarminfo.source_ids)
+                for source_id in source_ids:
+                    if source_id in gimbalhistory_ids:
+                        result_dict[source_id].append(alarminfo)
+        
+        return result_dict
+
     async def update(self, alarminfo_id: str, data: Dict[str, Any]) -> Optional[AlarmInfo]:
         """更新报警信息"""
         alarminfo = await self.get_by_id(alarminfo_id)

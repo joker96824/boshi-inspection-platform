@@ -72,9 +72,14 @@ class GimbalHistoryRepository:
 
     async def get_all(
         self, page: Optional[int] = None, size: Optional[int] = None, 
-        project_preset_point_id: str = None, inspection_project_id: str = None
+        project_preset_point_id: str = None, inspection_project_id: str = None,
+        view_status: str = None, inspection_result_status: str = None
     ) -> Tuple[List[GimbalHistory], int]:
         """获取云台巡检记录列表"""
+        # 导入必要的模型（必须在函数开头导入，因为后面会用到）
+        from sqlalchemy.orm import selectinload
+        from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
+        
         # 如果未提供分页参数，返回所有数据
         if page is None or size is None:
             skip = None
@@ -92,17 +97,20 @@ class GimbalHistoryRepository:
         
         if inspection_project_id:
             # 通过中间表关联查询
-            from ..models.gimbalinspectionprojectpresetpoint import GimbalInspectionProjectPresetPoint
             conditions.append(
                 GimbalHistory.project_preset_point.has(
                     GimbalInspectionProjectPresetPoint.inspection_project_id == inspection_project_id
                 )
             )
+        
+        if view_status:
+            conditions.append(GimbalHistory.view_status == view_status)
+        
+        if inspection_result_status:
+            conditions.append(GimbalHistory.inspection_result_status == inspection_result_status)
 
         count_query = select(func.count(GimbalHistory.id)).where(and_(*conditions))
         total = (await self.db.execute(count_query)).scalar() or 0
-
-        from sqlalchemy.orm import selectinload
         
         query = (
             select(GimbalHistory)

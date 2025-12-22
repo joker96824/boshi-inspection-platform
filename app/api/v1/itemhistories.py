@@ -39,6 +39,8 @@ async def get_itemhistories_from_taskhistories(
     taskhistory_ids: Optional[List[str]] = Query(None, description="任务记录ID列表（可选）"),
     page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
     size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
+    process_status: Optional[str] = Query(None, description="查看状态：pending-未查看, viewed-已查看, processed-已处理"),
+    inspection_result_status: Optional[str] = Query(None, description="巡检结果状态：null-尚未结束（任务进行中）, normal-正常（任务完成且无异常）, warning-预警报警, critical-严重报警, emergency-危机报警"),
     with_details: bool = Query(False, description="是否返回详细信息（显示巡检项目信息）"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[dict] = Depends(require_no_auth())
@@ -49,6 +51,8 @@ async def get_itemhistories_from_taskhistories(
         taskhistory_ids: 任务记录ID列表（可选，不传则查询所有）
         page: 页码
         size: 每页数量
+        process_status: 查看状态：pending-未查看, viewed-已查看, processed-已处理
+        inspection_result_status: 巡检结果状态：normal-正常, warning-预警报警, critical-严重报警, emergency-危机报警
         with_details: 是否返回详细信息（显示巡检项目信息）
         db: 数据库会话
         current_user: 当前用户
@@ -60,7 +64,9 @@ async def get_itemhistories_from_taskhistories(
         page=page,
         size=size,
         taskhistory_ids=taskhistory_ids,
-        item_ids=None
+        item_ids=None,
+        process_status=process_status,
+        inspection_result_status=inspection_result_status
     )
     service = ItemHistoryService(db)
     
@@ -75,6 +81,8 @@ async def get_itemhistories_from_items(
     item_ids: Optional[List[str]] = Query(None, description="巡检项目ID列表（可选）"),
     page: Optional[int] = Query(None, gt=0, description="页码（可选，大于0，必须与size同时提供）"),
     size: Optional[int] = Query(None, gt=0, description="每页数量（可选，大于0，必须与page同时提供）"),
+    process_status: Optional[str] = Query(None, description="查看状态：pending-未查看, viewed-已查看, processed-已处理"),
+    inspection_result_status: Optional[str] = Query(None, description="巡检结果状态：null-尚未结束（任务进行中）, normal-正常（任务完成且无异常）, warning-预警报警, critical-严重报警, emergency-危机报警"),
     with_details: bool = Query(False, description="是否返回详细信息（显示任务记录信息）"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[dict] = Depends(require_no_auth())
@@ -85,6 +93,8 @@ async def get_itemhistories_from_items(
         item_ids: 巡检项目ID列表（可选，不传则查询所有）
         page: 页码
         size: 每页数量
+        process_status: 查看状态：pending-未查看, viewed-已查看, processed-已处理
+        inspection_result_status: 巡检结果状态：normal-正常, warning-预警报警, critical-严重报警, emergency-危机报警
         with_details: 是否返回详细信息（显示任务记录信息）
         db: 数据库会话
         current_user: 当前用户
@@ -96,7 +106,9 @@ async def get_itemhistories_from_items(
         page=page,
         size=size,
         taskhistory_ids=None,
-        item_ids=item_ids
+        item_ids=item_ids,
+        process_status=process_status,
+        inspection_result_status=inspection_result_status
     )
     service = ItemHistoryService(db)
     

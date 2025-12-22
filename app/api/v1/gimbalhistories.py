@@ -37,6 +37,8 @@ async def get_gimbal_histories(
     inspection_project_id: Optional[str] = Query(
         None, description="云台巡检项目ID筛选"
     ),
+    view_status: Optional[str] = Query(None, description="查看状态：pending-未查看, viewed-已查看, processed-已处理"),
+    inspection_result_status: Optional[str] = Query(None, description="巡检结果状态：null-尚未结束（任务进行中）, normal-正常（任务完成且无异常）, warning-预警报警, critical-严重报警, emergency-危机报警"),
     db: AsyncSession = Depends(get_db),
     current_user: Optional[dict] = Depends(require_no_auth()),
 ):
@@ -45,6 +47,8 @@ async def get_gimbal_histories(
         page=page,
         size=size,
         inspection_project_id=inspection_project_id,
+        view_status=view_status,
+        inspection_result_status=inspection_result_status,
     )
     service = GimbalHistoryService(db)
     return await service.get_gimbal_histories(query, current_user)

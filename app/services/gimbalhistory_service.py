@@ -13,6 +13,7 @@ from ..repositories.gimbalhistory_repository import GimbalHistoryRepository
 from ..repositories.gimbalinspectionproject_repository import (
     GimbalInspectionProjectRepository,
 )
+from ..repositories.alarminfo_repository import AlarmInfoRepository
 from ..schemas.gimbalhistory import (
     GimbalHistoryCreate,
     GimbalHistoryQuery,
@@ -29,6 +30,7 @@ class GimbalHistoryService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.gimbal_history_repo = GimbalHistoryRepository(db)
+        self.alarminfo_repo = AlarmInfoRepository(db)
 
     async def create_gimbal_history(
         self, history_data: GimbalHistoryCreate, user: dict
@@ -43,6 +45,9 @@ class GimbalHistoryService:
 
             history = await self.gimbal_history_repo.create(create_data)
 
+            # 获取关联的报警信息（新创建的记录通常没有报警信息）
+            alarminfos = await self.alarminfo_repo.get_by_gimbalhistory_id(history.id)
+
             log_user_action(
                 user["username"],
                 "create_gimbal_history",
@@ -51,7 +56,7 @@ class GimbalHistoryService:
             )
 
             return ApiResponse.success(
-                data=self._format_gimbal_history_response(history),
+                data=self._format_gimbal_history_response(history, alarminfos),
                 message="创建云台巡检记录成功",
             )
 
@@ -79,8 +84,11 @@ class GimbalHistoryService:
             if not history:
                 raise ResourceNotFoundError(f"云台巡检记录ID '{history_id}' 不存在")
 
+            # 获取关联的报警信息
+            alarminfos = await self.alarminfo_repo.get_by_gimbalhistory_id(history_id)
+
             return ApiResponse.success(
-                data=self._format_gimbal_history_response(history),
+                data=self._format_gimbal_history_response(history, alarminfos),
                 message="获取云台巡检记录成功",
             )
 
@@ -98,8 +106,13 @@ class GimbalHistoryService:
         try:
             histories = await self.gimbal_history_repo.get_by_ids(gimbalhistory_ids)
 
+            # 获取所有记录的报警信息
+            history_ids = [h.id for h in histories]
+            alarminfos_dict = await self.alarminfo_repo.get_by_gimbalhistory_ids(history_ids)
+            
             histories_data = [
-                self._format_gimbal_history_response(history) for history in histories
+                self._format_gimbal_history_response(history, alarminfos_dict.get(history.id, [])) 
+                for history in histories
             ]
 
             return ApiResponse.success(
@@ -120,10 +133,17 @@ class GimbalHistoryService:
                 page=query.page,
                 size=query.size,
                 inspection_project_id=query.inspection_project_id,
+                view_status=query.view_status,
+                inspection_result_status=query.inspection_result_status,
             )
 
+            # 获取所有记录的报警信息
+            history_ids = [h.id for h in histories]
+            alarminfos_dict = await self.alarminfo_repo.get_by_gimbalhistory_ids(history_ids)
+            
             histories_data = [
-                self._format_gimbal_history_response(history) for history in histories
+                self._format_gimbal_history_response(history, alarminfos_dict.get(history.id, [])) 
+                for history in histories
             ]
 
             return ApiResponse.paginated(
@@ -156,6 +176,9 @@ class GimbalHistoryService:
                 history_id, update_data
             )
 
+            # 获取关联的报警信息
+            alarminfos = await self.alarminfo_repo.get_by_gimbalhistory_id(history_id)
+
             log_user_action(
                 user["username"],
                 "update_gimbal_history",
@@ -164,7 +187,7 @@ class GimbalHistoryService:
             )
 
             return ApiResponse.success(
-                data=self._format_gimbal_history_response(updated_history),
+                data=self._format_gimbal_history_response(updated_history, alarminfos),
                 message="更新云台巡检记录成功",
             )
 
@@ -226,11 +249,12 @@ class GimbalHistoryService:
             logger.error(f"获取云台巡检记录统计失败: {e}", exc_info=True)
             raise BusinessError(f"获取云台巡检记录统计失败: {str(e)}")
 
-    def _format_gimbal_history_response(self, history) -> Dict[str, Any]:
+    def _format_gimbal_history_response(self, history, alarminfos: List = None) -> Dict[str, Any]:
         """格式化云台巡检记录响应数据"""
         # 从关联表中获取相关信息
         inspection_project_id = None
         preset_point_id = None
+        preset_point_name = None
         detection_type = None
         
         if hasattr(history, 'project_preset_point') and history.project_preset_point:
@@ -238,15 +262,29 @@ class GimbalHistoryService:
             inspection_project_id = link.inspection_project_id if hasattr(link, 'inspection_project_id') else None
             preset_point_id = link.preset_point_id if hasattr(link, 'preset_point_id') else None
             detection_type = link.detection_type if hasattr(link, 'detection_type') else None
+            
+            # 获取预设点名称
+            if hasattr(link, 'preset_point') and link.preset_point:
+                preset_point_name = link.preset_point.preset_name if hasattr(link.preset_point, 'preset_name') else None
+        
+        # 格式化报警信息
+        alarminfos_data = []
+        if alarminfos:
+            for alarminfo in alarminfos:
+                alarminfos_data.append(self._format_alarminfo_response(alarminfo))
         
         return {
             "id": history.id,
             "project_preset_point_id": history.project_preset_point_id,
             "inspection_project_id": inspection_project_id,
             "preset_point_id": preset_point_id,
+            "preset_point_name": preset_point_name,
             "detection_type": detection_type,
             "record_data": history.record_data,
             "media_url": history.media_url,
+            "view_status": history.view_status,
+            "inspection_result_status": history.inspection_result_status,
+            "alarm_infos": alarminfos_data,
             "created_at": history.created_at.strftime("%Y-%m-%dT%H:%M:%S")
             if history.created_at
             else None,
@@ -255,5 +293,29 @@ class GimbalHistoryService:
             else None,
             "created_by": history.created_by,
             "updated_by": history.updated_by,
+        }
+    
+    def _format_alarminfo_response(self, alarminfo) -> Dict[str, Any]:
+        """格式化报警信息响应数据"""
+        return {
+            "id": alarminfo.id,
+            "alarm_rule_id": alarminfo.alarm_rule_id,
+            "alarm_category": alarminfo.alarm_category,
+            "alarm_level": alarminfo.alarm_level,
+            "alarm_status": alarminfo.alarm_status,
+            "source_type": alarminfo.source_type,
+            "source_ids": alarminfo.source_ids,
+            "relation_type": alarminfo.relation_type,
+            "relation_ids": alarminfo.relation_ids,
+            "trigger_item_ids": alarminfo.trigger_item_ids,
+            "trigger_project_ids": alarminfo.trigger_project_ids,
+            "trigger_data": alarminfo.trigger_data,
+            "calculated_value": alarminfo.calculated_value,
+            "alarm_message": alarminfo.alarm_message,
+            "processed_by": alarminfo.processed_by,
+            "processed_at": alarminfo.processed_at.strftime("%Y-%m-%dT%H:%M:%S") if alarminfo.processed_at else None,
+            "process_remark": alarminfo.process_remark,
+            "created_at": alarminfo.created_at.strftime("%Y-%m-%dT%H:%M:%S") if alarminfo.created_at else None,
+            "updated_at": alarminfo.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if alarminfo.updated_at else None,
         }
 

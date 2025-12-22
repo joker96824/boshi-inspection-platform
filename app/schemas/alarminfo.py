@@ -21,8 +21,8 @@ class AlarmInfoBase(BaseSchema):
 
     @validator('source_type')
     def validate_source_type(cls, v):
-        if v not in ['itemhistory', 'gimbalhistory', 'sensorhistory', 'taskhistory', 'robot_status']:
-            raise ValueError('数据源类型必须是 itemhistory, gimbalhistory, sensorhistory, taskhistory 或 robot_status')
+        if v not in ['itemhistory', 'gimbalhistory', 'sensorhistory', 'robot_status']:
+            raise ValueError('数据源类型必须是 itemhistory, gimbalhistory, sensorhistory 或 robot_status')
         return v
 
 
@@ -68,6 +68,22 @@ class AlarmInfoResponse(BaseResponse):
     updated_at: str = Field(..., description="更新时间")
     created_by: Optional[str] = Field(None, description="创建者")
     updated_by: Optional[str] = Field(None, description="更新者")
+
+
+class AlarmInfoProcessRequest(BaseSchema):
+    """处理报警请求模式"""
+    process_remark: str = Field(..., description="处理备注")
+
+
+class AlarmInfoStatusUpdateRequest(BaseSchema):
+    """更新报警状态请求模式"""
+    alarm_status: str = Field(..., description="报警状态：unviewed, unprocessed, processed")
+    
+    @validator('alarm_status')
+    def validate_alarm_status(cls, v):
+        if v not in ['unviewed', 'unprocessed', 'processed']:
+            raise ValueError('报警状态必须是 unviewed, unprocessed 或 processed')
+        return v
 
 
 class AlarmInfoQuery(BaseSchema):

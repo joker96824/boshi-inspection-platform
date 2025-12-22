@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from ..repositories.itemhistory_repository import ItemHistoryRepository
 from ..repositories.taskhistory_repository import TaskHistoryRepository
 from ..repositories.item_repository import ItemRepository
+from ..repositories.alarminfo_repository import AlarmInfoRepository
 from ..schemas.itemhistory import ItemHistoryCreate, ItemHistoryUpdate, ItemHistoryQuery
 from ..core.exceptions import (
     ResourceNotFoundError, BusinessError
@@ -27,6 +28,7 @@ class ItemHistoryService:
         self.itemhistory_repo = ItemHistoryRepository(db)
         self.taskhistory_repo = TaskHistoryRepository(db)
         self.item_repo = ItemRepository(db)
+        self.alarminfo_repo = AlarmInfoRepository(db)
     
     async def create_itemhistory(self, itemhistory_data: ItemHistoryCreate, user: dict) -> Dict[str, Any]:
         """创建巡检记录"""
@@ -54,6 +56,9 @@ class ItemHistoryService:
             
             itemhistory = await self.itemhistory_repo.create(create_data)
             
+            # 获取关联的报警信息（新创建的记录可能还没有报警信息）
+            alarminfos = await self.alarminfo_repo.get_by_itemhistory_id(itemhistory.id)
+            
             log_user_action(
                 user["username"],
                 "create_itemhistory",
@@ -62,7 +67,7 @@ class ItemHistoryService:
             )
             
             return ApiResponse.success(
-                data=self._format_itemhistory_response(itemhistory),
+                data=self._format_itemhistory_response(itemhistory, alarminfos),
                 message="创建巡检记录成功"
             )
             
@@ -80,8 +85,11 @@ class ItemHistoryService:
             if not itemhistory:
                 raise ResourceNotFoundError(f"巡检记录ID '{itemhistory_id}' 不存在")
             
+            # 获取关联的报警信息
+            alarminfos = await self.alarminfo_repo.get_by_itemhistory_id(itemhistory_id)
+            
             return ApiResponse.success(
-                data=self._format_itemhistory_response(itemhistory),
+                data=self._format_itemhistory_response(itemhistory, alarminfos),
                 message="获取巡检记录成功"
             )
             
@@ -101,11 +109,17 @@ class ItemHistoryService:
                 taskhistory_id=query.taskhistory_id,
                 item_id=query.item_id,
                 taskhistory_ids=query.taskhistory_ids,
-                item_ids=query.item_ids
+                item_ids=query.item_ids,
+                process_status=query.process_status,
+                inspection_result_status=query.inspection_result_status
             )
             
+            # 批量获取关联的报警信息
+            itemhistory_ids = [ih.id for ih in itemhistories]
+            alarminfos_dict = await self.alarminfo_repo.get_by_itemhistory_ids(itemhistory_ids)
+            
             # 格式化响应数据
-            items_data = [self._format_itemhistory_response(itemhistory) for itemhistory in itemhistories]
+            items_data = [self._format_itemhistory_response(itemhistory, alarminfos_dict.get(itemhistory.id, [])) for itemhistory in itemhistories]
             
             return ApiResponse.paginated(
                 items=items_data,
@@ -128,12 +142,18 @@ class ItemHistoryService:
                 taskhistory_ids=query.taskhistory_ids
             )
             
-            # 格式化时间字段
+            # 批量获取关联的报警信息
+            itemhistory_ids = [item["id"] for item in itemhistories_with_details]
+            alarminfos_dict = await self.alarminfo_repo.get_by_itemhistory_ids(itemhistory_ids)
+            
+            # 格式化时间字段并添加报警信息
             for item in itemhistories_with_details:
                 if item.get("created_at"):
                     item["created_at"] = item["created_at"].strftime("%Y-%m-%dT%H:%M:%S")
                 if item.get("updated_at"):
                     item["updated_at"] = item["updated_at"].strftime("%Y-%m-%dT%H:%M:%S")
+                # 添加报警信息
+                item["alarm_infos"] = [self._format_alarminfo_response(ai) for ai in alarminfos_dict.get(item["id"], [])]
             
             return ApiResponse.paginated(
                 items=itemhistories_with_details,
@@ -156,12 +176,18 @@ class ItemHistoryService:
                 item_ids=query.item_ids
             )
             
-            # 格式化时间字段
+            # 批量获取关联的报警信息
+            itemhistory_ids = [item["id"] for item in itemhistories_with_details]
+            alarminfos_dict = await self.alarminfo_repo.get_by_itemhistory_ids(itemhistory_ids)
+            
+            # 格式化时间字段并添加报警信息
             for item in itemhistories_with_details:
                 if item.get("created_at"):
                     item["created_at"] = item["created_at"].strftime("%Y-%m-%dT%H:%M:%S")
                 if item.get("updated_at"):
                     item["updated_at"] = item["updated_at"].strftime("%Y-%m-%dT%H:%M:%S")
+                # 添加报警信息
+                item["alarm_infos"] = [self._format_alarminfo_response(ai) for ai in alarminfos_dict.get(item["id"], [])]
             
             return ApiResponse.paginated(
                 items=itemhistories_with_details,
@@ -204,10 +230,30 @@ class ItemHistoryService:
                 ):
                     raise BusinessError("任务记录和巡检项目的关联已存在")
             
+            # 检查 process_status 是否发生变化
+            old_process_status = existing_itemhistory.process_status
+            new_process_status = itemhistory_data.process_status if itemhistory_data.process_status is not None else old_process_status
+            
             update_data = itemhistory_data.dict(exclude_unset=True)
             update_data["updated_by"] = user["username"]
             
             updated_itemhistory = await self.itemhistory_repo.update(itemhistory_id, update_data)
+            
+            # 如果 process_status 发生变化，更新对应的 taskhistory 状态
+            if old_process_status != new_process_status:
+                try:
+                    from ..services.taskhistory_service import TaskHistoryService
+                    taskhistory_service = TaskHistoryService(self.db)
+                    await taskhistory_service.update_taskhistory_status_by_itemhistories(
+                        existing_itemhistory.taskhistory_id,
+                        user
+                    )
+                except Exception as e:
+                    logger.warning(f"更新任务记录状态失败: {e}", exc_info=True)
+                    # 不抛出异常，避免影响主流程
+            
+            # 获取关联的报警信息
+            alarminfos = await self.alarminfo_repo.get_by_itemhistory_id(itemhistory_id)
             
             log_user_action(
                 user["username"],
@@ -217,7 +263,7 @@ class ItemHistoryService:
             )
             
             return ApiResponse.success(
-                data=self._format_itemhistory_response(updated_itemhistory),
+                data=self._format_itemhistory_response(updated_itemhistory, alarminfos),
                 message="更新巡检记录成功"
             )
             
@@ -311,16 +357,47 @@ class ItemHistoryService:
             logger.error(f"获取巡检记录统计失败: {e}")
             raise HTTPException(status_code=500, detail="获取巡检记录统计失败")
     
-    def _format_itemhistory_response(self, itemhistory) -> Dict[str, Any]:
+    def _format_itemhistory_response(self, itemhistory, alarminfos: List = None) -> Dict[str, Any]:
         """格式化巡检记录响应数据"""
+        if alarminfos is None:
+            alarminfos = []
+        
+        # 格式化报警信息
+        alarminfos_data = [self._format_alarminfo_response(alarminfo) for alarminfo in alarminfos]
+        
         return {
             "id": itemhistory.id,
             "taskhistory_id": itemhistory.taskhistory_id,
             "item_id": itemhistory.item_id,
             "item_result": itemhistory.item_result,
             "process_status": itemhistory.process_status,
+            "inspection_result_status": itemhistory.inspection_result_status,
+            "alarm_infos": alarminfos_data,
             "created_at": itemhistory.created_at.strftime("%Y-%m-%dT%H:%M:%S") if itemhistory.created_at else None,
             "updated_at": itemhistory.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if itemhistory.updated_at else None,
             "created_by": itemhistory.created_by,
             "updated_by": itemhistory.updated_by,
+        }
+    
+    def _format_alarminfo_response(self, alarminfo) -> Dict[str, Any]:
+        """格式化报警信息响应数据"""
+        return {
+            "id": alarminfo.id,
+            "alarm_rule_id": alarminfo.alarm_rule_id,
+            "alarm_category": alarminfo.alarm_category,
+            "alarm_level": alarminfo.alarm_level,
+            "alarm_status": alarminfo.alarm_status,
+            "source_type": alarminfo.source_type,
+            "source_ids": alarminfo.source_ids,
+            "relation_type": alarminfo.relation_type,
+            "relation_ids": alarminfo.relation_ids,
+            "trigger_item_ids": alarminfo.trigger_item_ids,
+            "trigger_data": alarminfo.trigger_data,
+            "calculated_value": alarminfo.calculated_value,
+            "alarm_message": alarminfo.alarm_message,
+            "processed_by": alarminfo.processed_by,
+            "processed_at": alarminfo.processed_at.strftime("%Y-%m-%dT%H:%M:%S") if alarminfo.processed_at else None,
+            "process_remark": alarminfo.process_remark,
+            "created_at": alarminfo.created_at.strftime("%Y-%m-%dT%H:%M:%S") if alarminfo.created_at else None,
+            "updated_at": alarminfo.updated_at.strftime("%Y-%m-%dT%H:%M:%S") if alarminfo.updated_at else None,
         }

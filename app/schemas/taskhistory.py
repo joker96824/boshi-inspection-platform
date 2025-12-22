@@ -18,6 +18,8 @@ class TaskHistoryBase(BaseSchema):
     record_batch: int = Field(..., ge=1, description="任务批次号")
     current_point_id: Optional[str] = Field(None, description="当前执行的巡检点ID")
     current_item_id: Optional[str] = Field(None, description="当前执行的巡检项目ID")
+    view_status: Optional[str] = Field(None, description="查看状态：pending-未查看, viewed-已查看, processed-已处理（有报警信息时使用，无异常时为空）")
+    inspection_result_status: Optional[str] = Field(None, description="巡检结果状态：null-尚未结束（任务进行中）, normal-正常（任务完成且无异常）, warning-预警报警, critical-严重报警, emergency-危机报警")
     
     @validator('record_start_time')
     def validate_start_time(cls, v):
@@ -44,6 +46,24 @@ class TaskHistoryBase(BaseSchema):
             valid_statuses = ", ".join(TaskStatus.get_all_statuses())
             raise ValueError(f"任务状态必须是以下值之一: {valid_statuses}")
         return v
+    
+    @validator('view_status')
+    def validate_view_status(cls, v):
+        """验证查看状态值"""
+        if v is not None and v.strip():
+            valid_statuses = ['pending', 'viewed', 'processed']
+            if v not in valid_statuses:
+                raise ValueError(f'查看状态必须是以下值之一: {", ".join(valid_statuses)}')
+        return v
+    
+    @validator('inspection_result_status')
+    def validate_inspection_result_status(cls, v):
+        """验证巡检结果状态值"""
+        if v is not None and v.strip():
+            valid_statuses = ['normal', 'warning', 'critical', 'emergency']
+            if v not in valid_statuses:
+                raise ValueError(f'巡检结果状态必须是以下值之一: {", ".join(valid_statuses)}')
+        return v
 
 
 class TaskHistoryCreate(TaskHistoryBase):
@@ -59,6 +79,8 @@ class TaskHistoryUpdate(BaseSchema):
     record_batch: Optional[int] = Field(None, ge=1, description="任务批次号")
     current_point_id: Optional[str] = Field(None, description="当前执行的巡检点ID")
     current_item_id: Optional[str] = Field(None, description="当前执行的巡检项目ID")
+    view_status: Optional[str] = Field(None, description="查看状态：pending-未查看, viewed-已查看, processed-已处理（有报警信息时使用，无异常时为空）")
+    inspection_result_status: Optional[str] = Field(None, description="巡检结果状态：null-尚未结束（任务进行中）, normal-正常（任务完成且无异常）, warning-预警报警, critical-严重报警, emergency-危机报警")
     
     @validator('record_start_time')
     def validate_start_time(cls, v):
@@ -85,6 +107,24 @@ class TaskHistoryUpdate(BaseSchema):
             valid_statuses = ", ".join(TaskStatus.get_all_statuses())
             raise ValueError(f"任务状态必须是以下值之一: {valid_statuses}")
         return v
+    
+    @validator('view_status')
+    def validate_view_status(cls, v):
+        """验证查看状态值"""
+        if v is not None and v.strip():
+            valid_statuses = ['pending', 'viewed', 'processed']
+            if v not in valid_statuses:
+                raise ValueError(f'查看状态必须是以下值之一: {", ".join(valid_statuses)}')
+        return v
+    
+    @validator('inspection_result_status')
+    def validate_inspection_result_status(cls, v):
+        """验证巡检结果状态值"""
+        if v is not None and v.strip():
+            valid_statuses = ['normal', 'warning', 'critical', 'emergency']
+            if v not in valid_statuses:
+                raise ValueError(f'巡检结果状态必须是以下值之一: {", ".join(valid_statuses)}')
+        return v
 
 
 class TaskHistoryResponse(BaseResponse):
@@ -97,6 +137,8 @@ class TaskHistoryResponse(BaseResponse):
     record_batch: int = Field(..., description="任务批次号")
     current_point_id: Optional[str] = Field(None, description="当前执行的巡检点ID")
     current_item_id: Optional[str] = Field(None, description="当前执行的巡检项目ID")
+    view_status: Optional[str] = Field(None, description="查看状态：pending-未查看, viewed-已查看, processed-已处理（有报警信息时使用，无异常时为空）")
+    inspection_result_status: Optional[str] = Field(None, description="巡检结果状态：null-尚未结束（任务进行中）, normal-正常（任务完成且无异常）, warning-预警报警, critical-严重报警, emergency-危机报警")
 
 
 class TaskHistoryQuery(BaseSchema):
@@ -106,6 +148,8 @@ class TaskHistoryQuery(BaseSchema):
     task_id: Optional[str] = Field(None, description="任务信息ID")
     record_status: Optional[str] = Field(None, description="任务状态")
     record_batch: Optional[int] = Field(None, description="任务批次号")
+    view_status: Optional[str] = Field(None, description="查看状态：pending-未查看, viewed-已查看, processed-已处理")
+    inspection_result_status: Optional[str] = Field(None, description="巡检结果状态：null-尚未结束（任务进行中）, normal-正常（任务完成且无异常）, warning-预警报警, critical-严重报警, emergency-危机报警")
     start_time_from: Optional[str] = Field(None, description="开始时间范围-起始（格式：YYYY-MM-DDTHH:MM:SS）")
     start_time_to: Optional[str] = Field(None, description="开始时间范围-结束（格式：YYYY-MM-DDTHH:MM:SS）")
     end_time_from: Optional[str] = Field(None, description="结束时间范围-起始（格式：YYYY-MM-DDTHH:MM:SS）")
@@ -118,6 +162,24 @@ class TaskHistoryQuery(BaseSchema):
                 datetime.strptime(v, "%Y-%m-%dT%H:%M:%S")
             except ValueError:
                 raise ValueError('时间格式必须为 YYYY-MM-DDTHH:MM:SS')
+        return v
+    
+    @validator('view_status')
+    def validate_view_status(cls, v):
+        """验证查看状态值"""
+        if v is not None and v.strip():
+            valid_statuses = ['pending', 'viewed', 'processed']
+            if v not in valid_statuses:
+                raise ValueError(f'查看状态必须是以下值之一: {", ".join(valid_statuses)}')
+        return v
+    
+    @validator('inspection_result_status')
+    def validate_inspection_result_status(cls, v):
+        """验证巡检结果状态值"""
+        if v is not None and v.strip():
+            valid_statuses = ['normal', 'warning', 'critical', 'emergency']
+            if v not in valid_statuses:
+                raise ValueError(f'巡检结果状态必须是以下值之一: {", ".join(valid_statuses)}')
         return v
 
 

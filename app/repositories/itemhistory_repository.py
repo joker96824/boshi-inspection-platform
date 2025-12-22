@@ -66,7 +66,8 @@ class ItemHistoryRepository:
     
     async def get_all(self, page: int = 1, size: int = 20, 
                      taskhistory_id: str = None, item_id: str = None,
-                     taskhistory_ids: List[str] = None, item_ids: List[str] = None) -> Tuple[List[ItemHistory], int]:
+                     taskhistory_ids: List[str] = None, item_ids: List[str] = None,
+                     process_status: str = None, inspection_result_status: str = None) -> Tuple[List[ItemHistory], int]:
         """获取巡检记录列表"""
         skip = (page - 1) * size
         
@@ -84,6 +85,12 @@ class ItemHistoryRepository:
         
         if item_ids:
             conditions.append(ItemHistory.item_id.in_(item_ids))
+        
+        if process_status:
+            conditions.append(ItemHistory.process_status == process_status)
+        
+        if inspection_result_status:
+            conditions.append(ItemHistory.inspection_result_status == inspection_result_status)
         
         # 查询总数
         count_query = select(func.count(ItemHistory.id)).where(and_(*conditions))
@@ -138,6 +145,8 @@ class ItemHistoryRepository:
                 "taskhistory_id": itemhistory.taskhistory_id,
                 "item_id": itemhistory.item_id,
                 "item_result": itemhistory.item_result,
+                "process_status": itemhistory.process_status,
+                "inspection_result_status": itemhistory.inspection_result_status,
                 "task_name": taskhistory.task_id,  # 这里可能需要根据实际需求调整
                 "item_name": item.item_name,
                 "item_info": item.item_info,
@@ -194,7 +203,8 @@ class ItemHistoryRepository:
                 "taskhistory_id": itemhistory.taskhistory_id,
                 "item_id": itemhistory.item_id,
                 "item_result": itemhistory.item_result,
-                "process_status": itemhistory.process_status,  # 处理状态
+                "process_status": itemhistory.process_status,  # 查看状态
+                "inspection_result_status": itemhistory.inspection_result_status,  # 巡检结果状态
                 "point_name": point.point_name if point else None,  # 巡检点名称
                 "robot_name": robot.robot_name if robot else None,  # 机器人名称
                 "record_start_time": taskhistory.record_start_time.strftime("%Y-%m-%dT%H:%M:%S") if taskhistory.record_start_time else None,  # 开始时间
